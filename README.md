@@ -49,7 +49,7 @@ npm run build            # rebuild dashboard and n8n node code
 
 Open `dist/dashboard-demo.html` in a browser to see the dashboard with demo data.
 
-In n8n: import `workflows/terracorridor.json`, activate it, then open `<your-n8n>/webhook/terracorridor/map`. See `workflows/README.md`.
+In n8n: build the workflows by hand following `workflows/README.md` (Code node bodies are in `dist/n8n/`; `workflows/terracorridor.json` is a reference only).
 
 ## Data is labelled
 
