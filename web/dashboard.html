@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TerraCorridor</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --ink:#e6edf3; --quiet:#8b949e; --green:#3fb950; --amber:#d29922; --red:#f85149; --grey:#6e7681; --blue:#58a6ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--ink); height:100vh; display:grid; grid-template-rows:auto auto 1fr; }
+  header { display:flex; gap:16px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:16px; margin:0; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:10px; border:1px solid var(--amber); color:var(--amber); }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .seg button { background:none; color:var(--quiet); border:0; padding:5px 10px; cursor:pointer; font:inherit; }
+  .seg button.on { background:#21262d; color:var(--ink); }
+  .spacer { flex:1; }
+  .kpis { display:grid; grid-template-columns:repeat(6, 1fr); border-bottom:1px solid var(--line); }
+  .kpi { padding:10px 16px; border-right:1px solid var(--line); }
+  .kpi:last-child { border-right:0; }
+  .kpi .v { font-size:20px; font-weight:600; }
+  .kpi .l { font-size:12px; color:var(--quiet); }
+  .kpi .s { font-size:11px; color:var(--quiet); }
+  main { display:grid; grid-template-columns:1fr 400px; min-height:0; }
+  #map { height:100%; }
+  aside { border-left:1px solid var(--line); overflow:auto; background:var(--panel); }
+  aside section { padding:12px 16px; border-bottom:1px solid var(--line); }
+  aside h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--quiet); margin:0 0 8px; }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; }
+  .row:hover, .row.sel { background:#21262d; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .tier-green{background:var(--green)} .tier-amber{background:var(--amber)} .tier-red,.tier-red-uncertain{background:var(--red)} .tier-unverified,.tier-grey,.tier-excluded{background:var(--grey)}
+  .muted { color:var(--quiet); font-size:12px; }
+  .bar { height:6px; background:#21262d; border-radius:3px; overflow:hidden; margin:3px 0 8px; }
+  .bar > div { height:100%; background:var(--blue); }
+  button.act { font:inherit; padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:#21262d; color:var(--ink); cursor:pointer; }
+  button.act.primary { background:#238636; border-color:#2ea043; }
+  select, input[type=text] { font:inherit; background:#0d1117; color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:5px; }
+  label.sl { display:block; margin:8px 0 2px; font-size:12px; color:var(--quiet); }
+  input[type=range] { width:100%; }
+  .assump { font-size:11px; color:var(--amber); }
+  .explain { background:#0d1117; border:1px solid var(--line); border-radius:6px; padding:8px; font-size:13px; }
+  table.mini { width:100%; border-collapse:collapse; font-size:12px; }
+  table.mini td { padding:3px 0; border-bottom:1px solid #21262d; }
+  table.mini td:last-child { text-align:right; }
+  .audit { font-size:12px; max-height:140px; overflow:auto; }
+  .leaflet-container { background:#0d1117; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TerraCorridor</h1>
+  <span id="corridorName" class="muted"></span>
+  <span id="synthBadge" class="badge" hidden>Synthetic demo data</span>
+  <span class="spacer"></span>
+  <span class="muted">Horizon</span>
+  <div class="seg" id="horizon"><button data-v="5">5 years</button><button data-v="10" class="on">10 years</button></div>
+  <span class="muted">Layer</span>
+  <div class="seg" id="layer"><button data-v="risk" class="on">Risk</button><button data-v="build">Build</button></div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="v" id="kTiers">-</div><div class="l">Red / amber segments</div><div class="s" id="kTiersS"></div></div>
+  <div class="kpi"><div class="v" id="kConc">-</div><div class="l">Expected loss in the top 10</div><div class="s" id="kConcS"></div></div>
+  <div class="kpi"><div class="v" id="kInsp">-</div><div class="l">Inspection savings per year</div><div class="s" id="kInspS"></div></div>
+  <div class="kpi"><div class="v" id="kBreak">-</div><div class="l">Failures to prevent to break even</div><div class="s" id="kBreakS"></div></div>
+  <div class="kpi"><div class="v" id="kLease">-</div><div class="l">New lease revenue per year</div><div class="s" id="kLeaseS"></div></div>
+  <div class="kpi"><div class="v" id="kNet">-</div><div class="l">Net value over horizon</div><div class="s" id="kNetS"></div></div>
+</div>
+
+<main>
+  <div id="map"></div>
+  <aside>
+    <section id="topSec"><h2 id="topTitle">Top 10 risks</h2><div id="topList"></div></section>
+    <section id="segSec" hidden></section>
+    <section>
+      <h2>Assumptions</h2>
+      <div class="assump">Sourced: $430k average ground-movement failure, $11.7M one geohazard rupture. Everything else is our assumption. Change it and every number updates.</div>
+      <label class="sl">Cost of one failure: <b id="vCost"></b></label><input type="range" id="sCost" min="0" max="100" value="0">
+      <label class="sl">Base natural-force failure rate per km-year: <b id="vRate"></b></label><input type="range" id="sRate" min="1" max="50" value="5">
+      <label class="sl">Work order effectiveness: <b id="vEff"></b></label><input type="range" id="sEff" min="10" max="95" value="75">
+      <label class="sl">Lease rate per acre per year: <b id="vLease"></b></label><input type="range" id="sLease" min="100" max="2000" step="50" value="600">
+      <label class="sl">Landowner partner share: <b id="vShare"></b></label><input type="range" id="sShare" min="0" max="100" value="50">
+      <label class="sl">Program cost per year: <b id="vProg"></b></label><input type="range" id="sProg" min="10000" max="250000" step="5000" value="50000">
+    </section>
+    <section><h2>Audit log</h2><div class="audit" id="auditLog"><span class="muted">No actions yet.</span></div></section>
+    <section class="muted" id="sourcesSec"></section>
+  </aside>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/*__ENGINE__*/
+</script>
+<script>
+// Where data comes from. When n8n serves this page it sets window.TC_API to its webhook base.
+const API = window.TC_API || new URLSearchParams(location.search).get('api') || '';
+const DATA_URL = API ? API + '/corridor' : '../data/demo/corridor.json';
+const fmt$ = (n) => n == null ? '-' : (Math.abs(n) >= 1e6 ? '$' + (n / 1e6).toFixed(2) + 'M' : Math.abs(n) >= 1e3 ? '$' + Math.round(n / 1e3) + 'k' : '$' + Math.round(n));
+const tierColor = { green:'#3fb950', amber:'#d29922', red:'#f85149', 'red-uncertain':'#f85149', unverified:'#6e7681', grey:'#6e7681', excluded:'#484f58' };
+
+let D, cfg, horizon = 10, layer = 'risk', selected = null, map, lines = {}, audit = [];
+
+const costFromSlider = (v) => Math.round(430000 * Math.pow(11700000 / 430000, v / 100) / 1000) * 1000;
+
+function readConfig() {
+  cfg = ENGINE.mergeConfig({ ...D.config, money: { ...D.config.money,
+    costOfFailure: costFromSlider(+sCost.value),
+    baseFailRatePerKmYr: +sRate.value * 1e-5,
+    mitigationEffectiveness: +sEff.value / 100,
+    leaseRatePerAcreYr: +sLease.value,
+    partnerShare: +sShare.value / 100,
+    programCostYr: +sProg.value,
+  }});
+  vCost.textContent = fmt$(cfg.money.costOfFailure);
+  vRate.textContent = (cfg.money.baseFailRatePerKmYr).toExponential(1);
+  vEff.textContent = Math.round(cfg.money.mitigationEffectiveness * 100) + '%';
+  vLease.textContent = '$' + cfg.money.leaseRatePerAcreYr;
+  vShare.textContent = Math.round(cfg.money.partnerShare * 100) + '%';
+  vProg.textContent = fmt$(cfg.money.programCostYr);
+}
+
+function key() { return horizon === 5 ? 'y5' : 'y10'; }
+
+function recompute() {
+  readConfig();
+  for (const s of D.segments) {
+    if (s.override) s.risk[key()].tierShown = s.override.tier;
+    s.build = ENGINE.buildScore(s, s.risk.y10, cfg);
+  }
+  const sum = ENGINE.corridorSummary(D.segments, cfg, { years: horizon, topN: 10 });
+  D.live = sum;
+  kTiers.textContent = `${sum.tiers.red || 0} / ${sum.tiers.amber || 0}`;
+  kTiersS.textContent = `of ${sum.segments} km-segments, ${sum.tiers.unverified || 0} unverified`;
+  kConc.textContent = sum.topShareOfLoss == null ? '-' : Math.round(sum.topShareOfLoss * 100) + '%';
+  kConcS.textContent = `${fmt$(sum.expectedLossTotal)} expected loss over ${horizon} yr`;
+  kInsp.textContent = fmt$(sum.inspectionSavingsYr);
+  kInspS.textContent = `${sum.greenKm} green km inspected every ${cfg.money.greenInspectEveryYrs} yr`;
+  kBreak.textContent = sum.breakEvenFailures;
+  kBreakS.textContent = `in ${horizon} yr; one avoided failure pays ${sum.yearsPaidByOneFailure} yr`;
+  kLease.textContent = fmt$(sum.leaseRevenueYr);
+  kLeaseS.textContent = `${sum.buildableKm} km buildable, partner ${fmt$(sum.partnerRevenueYr)}`;
+  kNet.textContent = fmt$(sum.netValue);
+  kNet.style.color = sum.netValue >= 0 ? 'var(--green)' : 'var(--red)';
+  kNetS.textContent = 'avoided loss + inspection savings - work orders - program';
+  paint();
+  renderTop();
+  if (selected) renderSeg(selected);
+}
+
+function segTier(s) {
+  if (layer === 'build') return s.build ? s.build.tier : 'unverified';
+  if (s.override && s.override.horizon === horizon) return s.override.tier;
+  return (s.risk[key()] || {}).tier || 'unverified';
+}
+
+function paint() {
+  for (const s of D.segments) {
+    const t = segTier(s);
+    lines[s.id].setStyle({ color: tierColor[t] || '#6e7681', weight: s.id === selected ? 9 : (t.startsWith('red') ? 7 : 5), opacity: 0.95 });
+  }
+}
+
+function renderTop() {
+  if (layer === 'build') {
+    topTitle.textContent = 'Best stretches to build';
+    const best = [...D.segments].filter((s) => s.build && s.build.tier === 'green').sort((a, b) => b.build.score - a.build.score).slice(0, 10);
+    topList.innerHTML = best.map((s) => `<div class="row ${s.id === selected ? 'sel' : ''}" data-id="${s.id}"><span><span class="dot tier-green"></span>${s.id} <span class="muted">km ${s.kmFrom}</span></span><span>${s.build.mw} MW · ${fmt$(s.build.leaseYr)}/yr</span></div>`).join('') || '<span class="muted">No green stretches with these assumptions.</span>';
+  } else {
+    topTitle.textContent = `Top 10 risks, ${horizon}-year outlook`;
+    topList.innerHTML = D.live.top.map((t) => `<div class="row ${t.id === selected ? 'sel' : ''}" data-id="${t.id}"><span><span class="dot tier-${t.tier}"></span>${t.id} <span class="muted">${t.driver.label} ${t.driver.key === 'slope' ? t.driver.change + '% grade' : t.driver.key === 'vegetation' ? t.driver.change + ' NDVI' : (t.driver.change > 0 ? '+' : '') + t.driver.change + '%'}</span></span><span>${t.score}</span></div>`).join('');
+  }
+  topList.querySelectorAll('.row').forEach((r) => r.onclick = () => select(r.dataset.id));
+}
+
+function chartRain(s) {
+  const b = s.baseline, p = s.projections[key()];
+  const models = Object.entries(p).filter(([, v]) => v && v.extremeDaysPerYr != null);
+  // Bias-corrected: observed history x each model's own change ratio (delta method)
+  const corr = (v) => Math.round(b.extremeDaysPerYr * (v.refExtremeDaysPerYr ? v.extremeDaysPerYr / v.refExtremeDaysPerYr : 1) * 10) / 10;
+  const bars = [['Observed', b.extremeDaysPerYr, '#8b949e'], ...models.map(([m, v]) => [m.split('_')[0], corr(v), '#58a6ff'])];
+  const max = Math.max(...bars.map((x) => x[1]), 1), W = 360, H = 110, top = 18, bw = 60, gap = 26;
+  return `<svg viewBox="0 0 ${W} ${H + top + 18}" width="100%" role="img" aria-label="Extreme-rain days per year">
+    ${bars.map(([l, v, c], i) => { const h = (v / max) * H, x = 10 + i * (bw + gap), y = top + H - h; return `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" fill="${c}"/><text x="${x + bw / 2}" y="${y - 4}" text-anchor="middle" fill="#e6edf3" font-size="11">${v}</text><text x="${x + bw / 2}" y="${top + H + 14}" text-anchor="middle" fill="#8b949e" font-size="10">${l}</text>`; }).join('')}
+  </svg><div class="muted">Extreme-rain days per year: observed 1995-2025 vs each climate model for ${horizon === 5 ? '2026-2031' : '2026-2036'}, bias-corrected against the model's own history</div>`;
+}
+
+function chartNdvi(s) {
+  const pts = (s.ndviSeries || []).filter((p) => p.ndvi != null);
+  if (!pts.length) return '<div class="muted">No NDVI series yet.</div>';
+  const W = 360, H = 60, x0 = +pts[0].date.slice(0, 4), x1 = +pts[pts.length - 1].date.slice(0, 4) + 1;
+  const ys = pts.map((p) => p.ndvi), lo = Math.min(...ys) - 0.02, hi = Math.max(...ys) + 0.02;
+  const X = (p) => ((+p.date.slice(0, 4) + (+p.date.slice(5, 7) - 1) / 12 - x0) / (x1 - x0)) * W;
+  const Y = (v) => H - ((v - lo) / (hi - lo)) * H;
+  return `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="NDVI"><polyline fill="none" stroke="#3fb950" stroke-width="1.5" points="${pts.map((p) => X(p) + ',' + Y(p.ndvi)).join(' ')}"/><text x="0" y="${H + 12}" fill="#8b949e" font-size="10">${x0}</text><text x="${W}" y="${H + 12}" text-anchor="end" fill="#8b949e" font-size="10">${x1 - 1}</text></svg>
+  <div class="muted">Sentinel-2 NDVI, growing season. 5-year change: ${s.ndvi ? s.ndvi.change5yr : '-'}</div>`;
+}
+
+function fallbackExplain(s, r) {
+  const d = r.drivers[0];
+  const what = d.key === 'slope' ? `a ${d.change}% grade` : d.key === 'vegetation' ? `an NDVI change of ${d.change} over 5 years` : `${d.base} a year historically, ${d.proj} projected (${d.change > 0 ? '+' : ''}${d.change}%)`;
+  return `${s.id} scores ${r.score} (${r.tier}). The biggest driver is ${d.label.toLowerCase()}: ${what}. Model agreement is ${r.agreement}.`;
+}
+
+function renderSeg(id) {
+  const s = D.segments.find((x) => x.id === id);
+  const r = s.risk[key()];
+  const m = ENGINE.moneyForSegment(r, horizon, cfg);
+  const b = s.build;
+  segSec.hidden = false;
+  segSec.innerHTML = `
+    <h2>${s.id} · km ${s.kmFrom} to ${s.kmTo}</h2>
+    <div><span class="dot tier-${r.tier}"></span><b>${r.tier}</b> · score ${r.score ?? '-'} · agreement ${r.agreement ?? '-'} · <span class="muted">${r.method || ''}</span></div>
+    ${s.override ? `<div class="assump">Overridden to ${s.override.tier}: ${s.override.reason}</div>` : ''}
+    <p class="explain">${s.explanation || fallbackExplain(s, r)}<br><span class="muted">${s.explanation ? 'AI explanation from the n8n run.' : 'Template text. The n8n run replaces this with an AI explanation.'}</span></p>
+    ${r.drivers.map((d) => `<div class="muted">${d.label}${d.change == null ? ': no data' : d.key === 'slope' ? ': ' + d.change + '% grade' : d.key === 'vegetation' ? ': ' + d.change + ' NDVI' : ': ' + (d.change > 0 ? '+' : '') + d.change + '%'}</div><div class="bar"><div style="width:${Math.min(100, d.w * 100 / 0.35)}%"></div></div>`).join('')}
+    ${chartRain(s)}
+    ${chartNdvi(s)}
+    <table class="mini">
+      <tr><td>Failure chance over ${horizon} yr</td><td>${m ? (m.pFailHorizon * 100).toFixed(3) + '%' : '-'}</td></tr>
+      <tr><td>Expected loss over ${horizon} yr</td><td>${fmt$(m && m.expectedLoss)}</td></tr>
+      <tr><td>Avoided if inspected and fixed</td><td>${fmt$(m && m.avoidedIfFixed)}</td></tr>
+      <tr><td>Slope · NDVI change · substation</td><td>${s.slopePct}% · ${s.ndvi ? s.ndvi.change5yr : '-'} · ${s.substationKm} km</td></tr>
+      <tr><td>Build: MW · MWh/yr</td><td>${b.tier === 'excluded' ? 'too steep' : b.mw + ' · ' + b.mwhYr.toLocaleString()}</td></tr>
+      <tr><td>Lease/yr · partner share</td><td>${b.tier === 'excluded' ? '-' : fmt$(b.leaseYr) + ' · ' + fmt$(b.partnerYr)}</td></tr>
+      <tr><td>Avoided tCO2/yr (if built)</td><td>${b.tier === 'excluded' ? '-' : b.avoidedTco2Yr.toLocaleString()}</td></tr>
+    </table>
+    <p style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
+      <button class="act primary" id="bApprove">Approve inspection work order</button>
+      <button class="act" id="bReject">Reject</button>
+    </p>
+    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap">
+      <select id="oTier"><option value="">Override tier...</option><option>green</option><option>amber</option><option>red</option></select>
+      <input type="text" id="oReason" placeholder="Reason (required)" style="flex:1; min-width:120px">
+      <button class="act" id="bOverride">Override</button>
+    </div>`;
+  bApprove.onclick = () => act(s, 'approve_work_order', {});
+  bReject.onclick = () => act(s, 'reject_work_order', {});
+  bOverride.onclick = () => {
+    if (!oTier.value || !oReason.value.trim()) { oReason.focus(); oReason.style.borderColor = 'var(--red)'; return; }
+    s.override = { tier: oTier.value, reason: oReason.value.trim(), horizon };
+    act(s, 'override_tier', { from: r.tier, to: oTier.value, reason: oReason.value.trim(), horizon });
+    paint(); renderSeg(s.id);
+  };
+}
+
+async function act(s, action, details) {
+  const entry = { at: new Date().toISOString(), segment: s.id, action, details, score: s.risk[key()].score, by: 'operator (demo)' };
+  let note = 'logged locally (no n8n API)';
+  if (API) {
+    try {
+      const r = await fetch(API + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+      note = r.ok ? 'sent to n8n' : 'n8n returned ' + r.status;
+    } catch (e) { note = 'n8n unreachable, logged locally'; }
+  }
+  audit.unshift({ ...entry, note });
+  auditLog.innerHTML = audit.map((a) => `<div>${a.at.slice(11, 19)} · ${a.segment} · ${a.action.replace(/_/g, ' ')}${a.details.reason ? ' · "' + a.details.reason + '"' : ''} <span class="muted">(${a.note})</span></div>`).join('');
+}
+
+function select(id) {
+  selected = id;
+  const s = D.segments.find((x) => x.id === id);
+  map.fitBounds(L.latLngBounds(s.studyPolygon.map((p) => [p[1], p[0]])).pad(2), { maxZoom: 14 });
+  paint(); renderTop(); renderSeg(id);
+}
+
+function initMap() {
+  map = L.map('map', { zoomControl: true });
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Imagery: Esri, Maxar, Earthstar Geographics', maxZoom: 18,
+  }).addTo(map);
+  const all = [];
+  for (const s of D.segments) {
+    const ll = s.centreline.map((p) => [p[1], p[0]]);
+    all.push(...ll);
+    lines[s.id] = L.polyline(ll, { color: '#6e7681', weight: 5 }).addTo(map).on('click', () => select(s.id))
+      .bindTooltip(() => `${s.id} · ${segTier(s)}`, { sticky: true });
+  }
+  (D.substations || []).forEach((p) => L.circleMarker([p[1], p[0]], { radius: 5, color: '#58a6ff', fillOpacity: 1 }).addTo(map).bindTooltip('Substation (illustrative)'));
+  map.fitBounds(L.latLngBounds(all).pad(0.05));
+}
+
+function wireToggles() {
+  for (const [id, set] of [['horizon', (v) => horizon = +v], ['layer', (v) => layer = v]]) {
+    document.querySelectorAll(`#${id} button`).forEach((b) => b.onclick = () => {
+      document.querySelectorAll(`#${id} button`).forEach((x) => x.classList.toggle('on', x === b));
+      set(b.dataset.v); recompute();
+    });
+  }
+  document.querySelectorAll('input[type=range]').forEach((r) => r.oninput = recompute);
+}
+
+(async () => {
+  D = window.TC_DATA || await (await fetch(DATA_URL)).json();
+  corridorName.textContent = `${D.meta.name} · ${D.segments.length} km`;
+  synthBadge.hidden = !D.meta.synthetic;
+  if (D.meta.synthetic) synthBadge.title = D.meta.note;
+  sourcesSec.innerHTML = `Data: ${D.meta.synthetic ? 'synthetic demo. ' : ''}Open-Meteo archive and CMIP6 climate projections (${(D.meta.models || []).join(', ')}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. Generated ${D.meta.generatedAt.slice(0, 16).replace('T', ' ')} UTC. Thresholds and weights are provisional, for expert review.`;
+  initMap(); wireToggles(); recompute();
+})();
+</script>
+</body>
+</html>
