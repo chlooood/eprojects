@@ -27,3 +27,11 @@ What the integration pass changed, and what it could not check. Written Sat Nov 
 ## Decision still open: every segment scores green
 
 The W2 Config node sets `ratio_full_score_increase` to 0.5, so a segment needs +50% more extreme-rain days to max out that factor. On the demo corridor nothing gets close, so there are no amber or red segments, no explanations, no work orders and nothing to override in the demo. Options: lower it to about 0.25 (state it as our assumption on the dashboard), or pick a bbox with steeper ground in W1. This changes the headline numbers, so the team should choose it, not a script.
+
+## Gemini on the AI nodes (live setup, Nov 14)
+
+The live n8n runs W2, WF4 and W5 on Google Gemini (`models/gemini-3.5-flash`, free AI Studio key, credential type "Google Gemini(PaLM) Api") instead of Anthropic or OpenAI. The exports in this repo still carry the original model nodes; swap in `lmChatGoogleGemini` and pick your credential.
+
+- **Set Max Output Tokens to 4000 on the WF4 summary node.** Gemini 3.5 Flash spends part of the output budget on thinking. At 400 the work order summary came back as a fragment of the model's reasoning; at 1500 it was clean but cut off mid-word; at 4000 it is two complete sentences.
+- If you still see cut-off or reasoning text, use `models/gemini-3.5-flash-lite`.
+- Free-tier content may be used by Google to improve its products. The inputs here are public weather data and a fictional corridor.
