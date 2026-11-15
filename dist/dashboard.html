@@ -1826,6 +1826,17 @@ function loadSaved() {
       if (w.status === 'rejected') s.wo = 'rejected';
       else { s.wo = w.status === 'cancelled' ? 'rejected' : 'approved'; s.workOrder = { ...w, delivery: 'n8n' }; }
     }
+    // The n8n feed sends each segment's work order as a thin row {id, status, priority, tier}. The pages read
+    // checks, dueBy, why and the map link too, so fill those in from the engine and keep n8n's work order id.
+    for (const s of D.segments) {
+      const w = s.workOrder; if (!w) continue;
+      const st = String(w.status || '');
+      if (st === 'pending_approval') { delete s.workOrder; continue; }   // drafted, not approved yet: still shows Approve
+      if (st === 'rejected' || st === 'cancelled') { s.wo = 'rejected'; delete s.workOrder; continue; }
+      const given = { id: w.id };   // n8n's priority is normal/high; the page keeps its own P1-P3 labels
+      s.workOrder = { ...ENGINE.workOrder(s, 'y10', cfg, {}), ...given, status: 'open', delivery: 'n8n' };
+      s.wo = 'approved';
+    }
     for (const s of D.segments) if (s.override && !s.override.stop) s.override.stop = 'y10';
     audit = (D.audit || []).filter((a) => a.segment).map((a) => ({ ...a, note: 'stored in n8n' }));
     return;
@@ -2137,7 +2148,7 @@ function wire() {
   synthBadge.hidden = !D.meta.synthetic; liveBadge.hidden = !!D.meta.synthetic;
   if (D.meta.synthetic) synthBadge.title = D.meta.note;
   genAt.textContent = 'Run ' + D.meta.generatedAt.slice(0, 16).replace('T', ' ') + ' UTC';
-  sourcesSec.innerHTML = `<b style="font-weight:600;color:var(--ink-2)">Sources.</b> ${D.meta.synthetic ? '<b style="color:var(--amber);font-weight:600">Synthetic demo.</b> ' : ''}Open-Meteo archive and CMIP6 projections (${esc((D.meta.models || []).join(', '))}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. $430k average failure and $11.7M rupture are sourced; other inputs are ours. Thresholds and weights are provisional, for expert review.`;
+  sourcesSec.innerHTML = `<b style="font-weight:600;color:var(--ink-2)">Sources.</b> ${D.meta.synthetic ? '<b style="color:var(--amber);font-weight:600">Synthetic demo.</b> ' : ''}Open-Meteo archive and CMIP6 projections (${esc((D.meta.models || []).join(', '))}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. $430k average failure and $11.7M rupture are sourced; other inputs are ours. Thresholds and weights are provisional, for expert review.${D.meta.source === 'n8n Data Tables' ? ' Live n8n run: ground-failure scores (rain, freeze-thaw, wet soil, plant cover, slope) are computed in n8n. River-crossing, wildfire and drought scores are not computed there, so those filters stay empty here.' : ''}`;
   readConfig();
   addObservedStop();
   for (const s of D.segments) s.build = ENGINE.buildScore(s, s.risk.y10, cfg);

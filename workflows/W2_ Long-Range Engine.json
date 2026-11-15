@@ -159,7 +159,7 @@
             {
               "id": "w24",
               "name": "ratio_full_score_increase",
-              "value": 0.5,
+              "value": 0.15,
               "type": "number"
             },
             {
@@ -183,7 +183,7 @@
             {
               "id": "w28",
               "name": "red_above",
-              "value": 65,
+              "value": 50,
               "type": "number"
             }
           ]
@@ -422,7 +422,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1328,
+        2320,
         272
       ],
       "executeOnce": true,
@@ -437,7 +437,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2000,
+        2992,
         272
       ]
     },
@@ -470,7 +470,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2224,
+        3216,
         272
       ]
     },
@@ -491,7 +491,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2448,
+        3440,
         224
       ],
       "retryOnFail": true,
@@ -508,7 +508,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2896,
+        3888,
         416
       ]
     },
@@ -522,7 +522,7 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        2672,
+        3664,
         224
       ],
       "onError": "continueRegularOutput"
@@ -536,7 +536,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2672,
+        3664,
         416
       ],
       "webhookId": "e5c935d3-03cf-44bd-9539-9d436354b3fe"
@@ -558,7 +558,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3120,
+        4112,
         224
       ],
       "retryOnFail": true,
@@ -575,7 +575,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3568,
+        4560,
         416
       ]
     },
@@ -589,7 +589,7 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        3344,
+        4336,
         224
       ],
       "onError": "continueRegularOutput"
@@ -603,7 +603,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3568,
+        4560,
         608
       ]
     },
@@ -614,7 +614,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        3792,
+        4784,
         224
       ]
     },
@@ -627,7 +627,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3792,
+        4784,
         416
       ]
     },
@@ -773,7 +773,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        4016,
+        5008,
         416
       ]
     },
@@ -786,7 +786,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3568,
+        4560,
         224
       ]
     },
@@ -819,7 +819,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2752,
+        6256,
         256
       ]
     },
@@ -834,7 +834,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        3328,
+        6832,
         128
       ]
     },
@@ -856,38 +856,10 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.7,
       "position": [
-        2976,
+        6480,
         256
       ],
       "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "list",
-          "value": "claude-haiku-5-5",
-          "cachedResultName": "Claude Haiku 5.5"
-        },
-        "options": {
-          "maxTokensToSample": 300
-        }
-      },
-      "id": "3634fa22-a7d3-43dd-8709-f00f80d5ec6c",
-      "name": "Claude Haiku",
-      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
-      "typeVersion": 1.6,
-      "position": [
-        3056,
-        480
-      ],
-      "credentials": {
-        "anthropicApi": {
-          "id": null,
-          "name": "Gateway credits",
-          "__aiGatewayManaged": true
-        }
-      }
     },
     {
       "parameters": {
@@ -1201,7 +1173,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        3552,
+        7056,
         256
       ]
     },
@@ -1632,6 +1604,26 @@
         3424,
         320
       ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        6592,
+        432
+      ],
+      "id": "281ec88a-44cf-4820-a871-52a39de4e378",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Y6jytyquvr05V31h",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -1962,17 +1954,6 @@
         ]
       ]
     },
-    "Claude Haiku": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Explain Risk",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Build Baseline Rows": {
       "main": [
         [
@@ -2005,6 +1986,17 @@
           }
         ]
       ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Explain Risk",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -2012,8 +2004,9 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "44b1d87f-1ee1-4eb9-bb88-f81c4fd36704",
+  "versionId": "f2b1543d-a9e6-4abf-b54b-6c25cec605e0",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "75fcd7e84008a7bc6d8634e6f5f0aeef3cc11569a8e4c5b0e2e834fc9112e9a8"
   },
   "nodeGroups": [
@@ -2067,9 +2060,9 @@
       "nodeIds": [
         "4e2bdee0-455b-426f-9cdc-8172dc7a4594",
         "2203b6f8-a03b-42a2-bb53-20108c4efce7",
-        "3634fa22-a7d3-43dd-8709-f00f80d5ec6c",
         "42f920d6-da1b-4931-b8ec-f2afd117a3d9",
-        "08bb65de-1540-479f-a54e-3cfc35a85e3d"
+        "08bb65de-1540-479f-a54e-3cfc35a85e3d",
+        "281ec88a-44cf-4820-a871-52a39de4e378"
       ],
       "description": "Amber and red segments get a two-sentence, number-citing note; all 5 and 10-year results are saved without duplicates"
     },
