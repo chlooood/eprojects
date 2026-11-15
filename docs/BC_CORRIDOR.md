@@ -27,7 +27,7 @@ The CER's interactive route map has redistribution restrictions; it was not copi
 | Input | Actual source and treatment |
 | --- | --- |
 | Route and crossings | OpenStreetMap geometry and waterways, checked against all 12 segments. Four segments intersect the mapped Coquihalla River; 11 intersect some mapped waterway. Intersections are screening candidates, not surveyed crossing locations. |
-| Climate | Open-Meteo archive 1995–2025 and three CMIP6 models, using the existing 2026–2030 and 2026–2035 windows and delta method. All segment centres fall in **49.40_-121.30**, so the climate signal is shared. This does not provide kilometre-resolution wildfire forecasts. Source URLs and raw-response SHA-256 hashes are retained. |
+| Climate | Open-Meteo archive 1995–2025 and three CMIP6 models, using W2's windows (now 2026–2030 and 2031–2035) and the delta method. All segment centres fall in **49.40_-121.30**, so the climate signal is shared. This does not provide kilometre-resolution wildfire forecasts. Source URLs and raw-response SHA-256 hashes are retained. |
 | Vegetation | Reprocessed Sentinel-2 **Collection 1** from Element84 Earth Search: 10 m red/NIR plus 20 m scene classification. The lowest tile cloud-cover scene for each June/July/August was selected before evaluating NDVI. C1 queries returned no 2022 scenes for this tile. All 12 segments have observations in 2021, 2023, 2024 and 2025, meeting W2's minimum four seasons with at least two months each. |
 | NDVI processing | C1 asset scale and offset applied once; SCL vegetation/bare classes 4/5 retained, clouds/shadows/water/snow excluded. Pixels 30–230 m from mapped line edges are sampled. At least 100 valid pixels and 60% valid coverage are required. Monthly means, coverage, acquisition IDs, asset checksums and raster-window hashes are retained. The older Sentinel-2 collection was avoided because of [documented offset inconsistencies](https://github.com/Element84/earth-search/issues/71). |
 | NDVI interpretation | Irregular acquisition dates and the missing 2022 season limit the trend. Clearing, construction, maintenance and climate can change vegetation. A decline is not proof of ground movement. No Edmonton observations were copied into BC. |
@@ -38,6 +38,8 @@ The CER's interactive route map has redistribution restrictions; it was not copi
 No satellite scenes or terrain tiles need downloading for normal builds; reviewed records and measurements are cached. Contains modified Copernicus Sentinel data (2021, 2023–2025). Copernicus DEM accessed 2026-11-15 through the AWS Open Data Registry under its linked licence. © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright). NASA POWER and Open-Meteo source URLs are stored with their inputs.
 
 ## Results with existing thresholds
+
+> **Pending rescore (2026-11-15).** The numbers below were computed on the old overlapping windows (2026-2030 and 2026-2035). W2 now uses 2026-2030 and 2031-2035. Do not quote them. Run `npm run refresh-bc-climate` from a network Open-Meteo has not rate-limited, then replace this table with the printed tier counts.
 
 Thresholds and weights were not tuned to produce more red: Medium >=40, High >=65, full ground-climate factor at +50%.
 
