@@ -7,16 +7,28 @@ const DEFAULTS = {
   segmentKm: 1,
   exclusionM: 30,          // CER prescribed area, each side of centreline
   studyStripM: 200,        // land studied beyond the exclusion band, each side
+  buildStripM: 60,         // assumption: total width actually leased for panels, outside the exclusion band (both sides combined)
   baselineYears: [1995, 2025],
   horizons: { y5: [2026, 2031], y10: [2026, 2036] },
   wetDayMm: 1,
   extremePct: 0.95,
   soilWetPct: 0.90,
+  soilDryPct: 0.10,        // dry-soil day: topsoil below the baseline's 10th percentile
+  fireWeather: { tmaxC: 25, rhMinPct: 35, dryMm: 1 },   // provisional fire-weather day: no rain, hot, dry air
+  fireDaysFull: 20,        // projected fire-weather days a year that count as full exposure
+  peakFlowFullM3s: 200,    // mean annual peak flow (m3/s) that counts as a large river at a crossing
+  crossingSize: { river: 1, canal: 0.6, stream: 0.4, drain: 0.3 },
+  hazardWeights: {         // each hazard is scored on its own; the segment's level is its worst hazard
+    drought: { drySoil: 0.6, drySpell: 0.4 },
+    wildfire: { change: 0.5, level: 0.4, fuel: 0.1 },
+    crossing: { size: 0.4, rain: 0.35, flow: 0.25 },
+  },
   weights: { rain: 0.35, freezeThaw: 0.20, saturation: 0.15, vegetation: 0.20, slope: 0.10 },
   tiers: { amber: 40, red: 65 },
   ndviDropFull: 0.10,      // NDVI drop over 5 years that counts as full vegetation loss
   slopeFullPct: 15,
   buildMaxSlopePct: 10,
+  workOrderDueDays: { P1: 14, P2: 60, P3: 180 },  // assumption: red within 2 weeks, amber within 2 months
   // Money (assumptions unless noted; all editable on the dashboard)
   money: {
     baseFailRatePerKmYr: 5e-5,  // assumption: rough natural-force rate, see docs
@@ -29,7 +41,7 @@ const DEFAULTS = {
     programCostYr: 50000,          // assumption: what an operator pays for TerraCorridor per corridor
     acresPerMW: 6,
     performanceRatio: 0.8,
-    leaseRatePerAcreYr: 600,
+    leaseRatePerAcreYr: 400,       // assumption: conservative solar land lease, per acre per year
     partnerShare: 0.5,
     gridEmissionFactor: 0.5,    // tCO2 per MWh, enter your grid's figure
   },
@@ -145,29 +157,56 @@ function baselineStats(daily, cfg = DEFAULTS) {
   const tmin = daily.temperature_2m_min || [], tmax = daily.temperature_2m_max || [];
   const soil = soilSeries(daily);
   const soilWetThreshold = soil ? quantile(soil, cfg.soilWetPct) : null;
-  const counts = countEvents(daily, { extremeMm, soilWetThreshold });
+  const soilDryThreshold = soil ? quantile(soil, cfg.soilDryPct) : null;
+  const rh = rhSeries(daily);
+  const counts = countEvents(daily, { extremeMm, soilWetThreshold, soilDryThreshold }, cfg);
   return {
     years,
     extremeMm: round(extremeMm, 1),
     soilWetThreshold: round(soilWetThreshold, 3),
+    soilDryThreshold: round(soilDryThreshold, 3),
     extremeDaysPerYr: round(counts.extreme / years, 2),
     freezeThawDaysPerYr: round(counts.freezeThaw / years, 2),
     wetSoilDaysPerYr: soil ? round(counts.wetSoil / years, 2) : null,
+    drySoilDaysPerYr: soil ? round(counts.drySoil / years, 2) : null,
+    drySpellDays: round(drySpell(daily, cfg), 1),
+    fireWeatherDaysPerYr: rh ? round(counts.fire / years, 2) : null,
     annualPrecipMm: round(pr.reduce((s, x) => s + (x || 0), 0) / years, 0),
   };
 }
 
-function countEvents(daily, th) {
+function countEvents(daily, th, cfg = DEFAULTS) {
   const pr = daily.precipitation_sum || [];
   const tmin = daily.temperature_2m_min || [], tmax = daily.temperature_2m_max || [];
-  const soil = soilSeries(daily);
-  let extreme = 0, freezeThaw = 0, wetSoil = 0;
+  const soil = soilSeries(daily), rh = rhSeries(daily), fw = cfg.fireWeather || DEFAULTS.fireWeather;
+  let extreme = 0, freezeThaw = 0, wetSoil = 0, drySoil = 0, fire = 0;
   for (let i = 0; i < (daily.time || []).length; i++) {
     if (th.extremeMm != null && pr[i] != null && pr[i] > th.extremeMm) extreme++;
     if (tmin[i] != null && tmax[i] != null && tmin[i] < 0 && tmax[i] > 0) freezeThaw++;
     if (soil && th.soilWetThreshold != null && soil[i] != null && soil[i] > th.soilWetThreshold) wetSoil++;
+    if (soil && th.soilDryThreshold != null && soil[i] != null && soil[i] < th.soilDryThreshold) drySoil++;
+    if (rh && rh[i] != null && tmax[i] != null && pr[i] != null && pr[i] < fw.dryMm && tmax[i] >= fw.tmaxC && rh[i] <= fw.rhMinPct) fire++;
   }
-  return { extreme, freezeThaw, wetSoil };
+  return { extreme, freezeThaw, wetSoil, drySoil, fire };
+}
+
+// Daily minimum relative humidity, when the source has it (two of the three climate models do).
+function rhSeries(daily) { return hasValues(daily.relative_humidity_2m_min) ? daily.relative_humidity_2m_min : null; }
+
+// Mean over years of each year's longest run of days with less than wetDayMm of rain.
+function drySpell(daily, cfg = DEFAULTS) {
+  const t = daily.time || [], pr = daily.precipitation_sum || [];
+  if (!t.length || !hasValues(pr)) return null;
+  const longest = {};
+  let run = 0, year = null;
+  for (let i = 0; i < t.length; i++) {
+    const y = t[i].slice(0, 4);
+    if (y !== year) { run = 0; year = y; }
+    run = pr[i] != null && pr[i] < cfg.wetDayMm ? run + 1 : 0;
+    longest[y] = Math.max(longest[y] || 0, run);
+  }
+  const v = Object.values(longest);
+  return v.reduce((a, x) => a + x, 0) / v.length;
 }
 
 // Filter an Open-Meteo daily block to [y0, y1] inclusive.
@@ -205,14 +244,22 @@ function projectedStats(dailyByModel, base, window, cfg = DEFAULTS) {
     const ref = own || base;
     const years = yearsSpanned(d.time);
     const soilOk = hasValues(soilSeries(d)) && ref.soilWetThreshold != null;
-    const c = countEvents(d, { extremeMm: ref.extremeMm, soilWetThreshold: soilOk ? ref.soilWetThreshold : null });
+    const dryOk = hasValues(soilSeries(d)) && ref.soilDryThreshold != null;
+    const rhOk = hasValues(rhSeries(d)) && ref.fireWeatherDaysPerYr != null;
+    const c = countEvents(d, { extremeMm: ref.extremeMm, soilWetThreshold: soilOk ? ref.soilWetThreshold : null, soilDryThreshold: dryOk ? ref.soilDryThreshold : null }, cfg);
     res[model] = {
       extremeDaysPerYr: round(c.extreme / years, 2),
       freezeThawDaysPerYr: round(c.freezeThaw / years, 2),
       wetSoilDaysPerYr: soilOk ? round(c.wetSoil / years, 2) : null,
+      drySoilDaysPerYr: dryOk ? round(c.drySoil / years, 2) : null,
+      drySpellDays: ref.drySpellDays != null ? round(drySpell(d, cfg), 1) : null,
+      fireWeatherDaysPerYr: rhOk ? round(c.fire / years, 2) : null,
       refExtremeDaysPerYr: ref.extremeDaysPerYr,
       refFreezeThawDaysPerYr: ref.freezeThawDaysPerYr,
       refWetSoilDaysPerYr: soilOk ? ref.wetSoilDaysPerYr : null,
+      refDrySoilDaysPerYr: dryOk ? ref.drySoilDaysPerYr : null,
+      refDrySpellDays: ref.drySpellDays ?? null,
+      refFireWeatherDaysPerYr: rhOk ? ref.fireWeatherDaysPerYr : null,
       method: own ? 'delta' : 'observed-threshold',
     };
   }
@@ -291,7 +338,7 @@ function riskScore(seg, horizonKey, cfg = DEFAULTS, model = null) {
   const agree = Math.max(up, down);
   const agreement = models.length < 2 ? 'low' : agree === models.length ? 'high' : agree >= 2 ? 'medium' : 'low';
 
-  const tier = score >= cfg.tiers.red ? 'red' : score >= cfg.tiers.amber ? 'amber' : 'green';
+  const tierOf = (v) => (v >= cfg.tiers.red ? 'red' : v >= cfg.tiers.amber ? 'amber' : 'green');
   const pct = (r) => (r == null ? null : Math.round((r - 1) * 100));
   const drivers = [
     { key: 'rain', label: 'Extreme-rain days', change: pct(rRain), base: base.extremeDaysPerYr, proj: round(projRain, 1), w: cfg.weights.rain * (factors.rain || 0) },
@@ -301,9 +348,23 @@ function riskScore(seg, horizonKey, cfg = DEFAULTS, model = null) {
     { key: 'slope', label: 'Slope', change: seg.slopePct, w: cfg.weights.slope * (factors.slope || 0) },
   ].sort((a, b) => b.w - a.w);
 
+  // Each natural hazard is scored on its own. The segment's level is its WORST hazard, never a blend,
+  // so a reader can always see which hazard made a kilometre red.
+  const top0 = drivers[0];
+  const ground = { key: 'ground', label: 'Ground failure', score: round(score, 1),
+    why: top0 && top0.change != null ? (top0.key === 'slope' ? `Slope ${top0.change}%` : top0.key === 'vegetation' ? `Plant cover ${top0.change} NDVI in 5 years` : `${top0.label} ${top0.change > 0 ? '+' : ''}${top0.change}%`) : 'No change from baseline' };
+  const list = [ground, crossingHazard(seg, rRain, cfg), wildfireHazard(seg, models, base, cfg, ratio), droughtHazard(models, base, cfg, ratio)]
+    .filter((h) => h && h.score != null);
+  for (const h of list) h.tier = tierOf(h.score);
+  const top = list.reduce((a, h) => (h.score > a.score ? h : a), ground);
+  const tier = tierOf(top.score);
+  const rainBased = top.key === 'ground' || top.key === 'crossing';
   return {
-    score: round(score, 1),
-    tier: tier === 'red' && agreement === 'low' ? 'red-uncertain' : tier,
+    score: top.score,
+    groundScore: ground.score,
+    tier: tier === 'red' && agreement === 'low' && rainBased ? 'red-uncertain' : tier,
+    hazard: top.key,
+    hazards: Object.fromEntries(list.map((h) => [h.key, h])),
     agreement,
     factors: Object.fromEntries(Object.entries(factors).map(([k, v]) => [k, round(v, 3)])),
     drivers,
@@ -311,14 +372,110 @@ function riskScore(seg, horizonKey, cfg = DEFAULTS, model = null) {
   };
 }
 
+// Weighted mean of the factors that have data; factors with no data are dropped and the rest re-weighted.
+function weightedScore(factors, weights) {
+  let s = 0, w = 0;
+  for (const [k, wt] of Object.entries(weights)) if (factors[k] != null) { s += wt * factors[k]; w += wt; }
+  return w ? round((100 * s) / w, 1) : null;
+}
+const sgn = (x) => (x > 0 ? '+' : '') + x;
+
+// Drought: more dry-soil days and longer dry spells than 1995-2025. Shrinking clay soils crack and settle
+// along the trench, and dry land feeds wildfire.
+function droughtHazard(models, base, cfg, ratio) {
+  const rSoil = mean(models.map((m) => ratio(m, 'drySoilDaysPerYr', 'refDrySoilDaysPerYr', 'drySoilDaysPerYr')));
+  const rSpell = mean(models.map((m) => ratio(m, 'drySpellDays', 'refDrySpellDays', 'drySpellDays')));
+  const f = { drySoil: rSoil == null ? null : clamp01(rSoil - 1), drySpell: rSpell == null ? null : clamp01(rSpell - 1) };
+  const score = weightedScore(f, cfg.hazardWeights.drought);
+  if (score == null) return null;
+  const pSoil = rSoil == null ? null : Math.round((rSoil - 1) * 100), pSpell = rSpell == null ? null : Math.round((rSpell - 1) * 100);
+  const why = pSoil != null && (pSpell == null || Math.abs(pSoil) >= Math.abs(pSpell)) ? `Dry-soil days ${sgn(pSoil)}%` : `Longest dry spell ${sgn(pSpell)}%`;
+  return { key: 'drought', label: 'Drought', score, factors: f, why,
+    change: { drySoil: pSoil, drySpell: pSpell },
+    base: { drySoilDaysPerYr: base.drySoilDaysPerYr ?? null, drySpellDays: base.drySpellDays ?? null },
+    proj: { drySoilDaysPerYr: rSoil != null && base.drySoilDaysPerYr != null ? round(rSoil * base.drySoilDaysPerYr, 1) : null,
+      drySpellDays: rSpell != null && base.drySpellDays != null ? round(rSpell * base.drySpellDays, 1) : null } };
+}
+
+// Wildfire weather: hot, dry, rainless days, how many there will be, and how much vegetation there is to burn.
+// Fire threatens valve sites and above-ground equipment, and burn scars make slopes slide.
+function wildfireHazard(seg, models, base, cfg, ratio) {
+  const rFire = mean(models.map((m) => ratio(m, 'fireWeatherDaysPerYr', 'refFireWeatherDaysPerYr', 'fireWeatherDaysPerYr')));
+  if (rFire == null || base.fireWeatherDaysPerYr == null) return null;
+  const proj = rFire * base.fireWeatherDaysPerYr;
+  const pts = (seg.ndviSeries || []).filter((p) => p.ndvi != null);
+  const ndviMean = pts.length ? pts.reduce((a, p) => a + p.ndvi, 0) / pts.length : null;
+  // Fire-weather days are few, so ratios jump: full weight only at three times the baseline (+200%).
+  const f = { change: clamp01((rFire - 1) / 2), level: clamp01(proj / cfg.fireDaysFull), fuel: ndviMean == null ? null : clamp01((ndviMean - 0.3) / 0.4) };
+  const score = weightedScore(f, cfg.hazardWeights.wildfire);
+  const ch = Math.round((rFire - 1) * 100);
+  return { key: 'wildfire', label: 'Wildfire weather', score, factors: f,
+    why: `Fire-weather days ${round(base.fireWeatherDaysPerYr, 1)} to ${round(proj, 1)} a year (${sgn(ch)}%)`,
+    change: { fireDays: ch }, base: { fireWeatherDaysPerYr: base.fireWeatherDaysPerYr }, proj: { fireWeatherDaysPerYr: round(proj, 1) },
+    fuelNdvi: round(ndviMean, 2) };
+}
+
+// River crossing: only where the pipe actually crosses water. Bigger rivers, higher historical peak flow,
+// and more projected heavy rain mean more scour and bank erosion at the crossing.
+function crossingHazard(seg, rRain, cfg) {
+  const xs = seg.crossings || [];
+  if (!xs.length) return null;
+  const size = Math.max(...xs.map((x) => cfg.crossingSize[x.kind] ?? 0.4));
+  const flows = xs.map((x) => x.peakFlowM3s).filter((v) => v != null);
+  const peak = flows.length ? Math.max(...flows) : null;
+  const f = { size, rain: rRain == null ? null : clamp01(rRain - 1), flow: peak == null ? null : clamp01(peak / cfg.peakFlowFullM3s) };
+  const score = weightedScore(f, cfg.hazardWeights.crossing);
+  const big = xs.reduce((a, x) => ((cfg.crossingSize[x.kind] ?? 0) > (cfg.crossingSize[a.kind] ?? 0) ? x : a), xs[0]);
+  const rainTxt = rRain == null ? '' : `, heavy rain ${sgn(Math.round((rRain - 1) * 100))}%`;
+  return { key: 'crossing', label: 'River crossing', score, factors: f,
+    why: `Crosses ${big.name || 'a ' + big.kind}${peak != null ? ` (peak flow ${Math.round(peak)} m³/s)` : ''}${rainTxt}`,
+    crossings: xs.map((x) => ({ name: x.name || null, kind: x.kind, peakFlowM3s: x.peakFlowM3s ?? null, at: x.at || null })) };
+}
+
+// Mean of each year's highest daily river discharge (m3/s), from the Open-Meteo Flood API (GloFAS).
+function peakFlow(daily) {
+  const t = daily.time || [], q = daily.river_discharge || [];
+  if (!hasValues(q)) return null;
+  const max = {};
+  t.forEach((d, i) => { if (q[i] != null) max[d.slice(0, 4)] = Math.max(max[d.slice(0, 4)] ?? -Infinity, q[i]); });
+  const v = Object.values(max);
+  return v.length ? round(v.reduce((a, x) => a + x, 0) / v.length, 1) : null;
+}
+
+// Where a pipeline segment crosses a mapped waterway. waterways: [{ name, kind, coords: [[lon,lat],...] }].
+function findCrossings(segments, waterways) {
+  const hit = (p1, p2, p3, p4) => {
+    const d = (p4[1] - p3[1]) * (p2[0] - p1[0]) - (p4[0] - p3[0]) * (p2[1] - p1[1]);
+    if (!d) return null;
+    const ua = ((p4[0] - p3[0]) * (p1[1] - p3[1]) - (p4[1] - p3[1]) * (p1[0] - p3[0])) / d;
+    const ub = ((p2[0] - p1[0]) * (p1[1] - p3[1]) - (p2[1] - p1[1]) * (p1[0] - p3[0])) / d;
+    return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1 ? [p1[0] + ua * (p2[0] - p1[0]), p1[1] + ua * (p2[1] - p1[1])] : null;
+  };
+  const out = {};
+  for (const s of segments) {
+    const line = s.centreline;
+    for (const w of waterways || []) {
+      const c = w.coords || [];
+      let at = null;
+      for (let i = 1; i < line.length && !at; i++) for (let j = 1; j < c.length && !at; j++) at = hit(line[i - 1], line[i], c[j - 1], c[j]);
+      if (at) (out[s.id] = out[s.id] || []).push({ name: w.name || null, kind: w.kind || 'stream', at: [round(at[0], 6), round(at[1], 6)] });
+    }
+  }
+  return out;
+}
+
 // Build layer: solar + storage potential outside the exclusion band.
 function buildScore(seg, risk10, cfg = DEFAULTS) {
   const m = cfg.money;
   if (seg.irradiance == null || seg.slopePct == null) return { score: null, tier: 'unverified' };
-  const usableAcres = seg.slopePct > cfg.buildMaxSlopePct ? 0 : seg.studyAreaAcres;
+  // Panels go on a narrow strip outside the exclusion band, never the whole study area.
+  const stripAcres = cfg.buildStripM == null ? seg.studyAreaAcres
+    : Math.min(seg.studyAreaAcres ?? Infinity, ((seg.lengthM || cfg.segmentKm * 1000) * cfg.buildStripM) / 4046.86);
+  const usableAcres = seg.slopePct > cfg.buildMaxSlopePct ? 0 : stripAcres;
   const mw = usableAcres / m.acresPerMW;
   const mwhYr = mw * seg.irradiance * 365 * m.performanceRatio;
-  const leaseYr = usableAcres * m.leaseRatePerAcreYr;
+  const leaseYr = Math.round(usableAcres * m.leaseRatePerAcreYr);
+  const partnerYr = Math.round(leaseYr * m.partnerShare);   // shares always add back up to leaseYr
   const sunF = clamp01((seg.irradiance - 2.5) / 2.5);           // 2.5 => 0, 5.0 kWh/m2/day => 1
   const slopeF = 1 - clamp01(seg.slopePct / cfg.buildMaxSlopePct);
   const gridF = seg.substationKm == null ? 0.5 : clamp01(1 - seg.substationKm / 20); // 0 km => 1, 20 km+ => 0
@@ -330,9 +487,9 @@ function buildScore(seg, risk10, cfg = DEFAULTS) {
     usableAcres: round(usableAcres, 1),
     mw: round(mw, 2),
     mwhYr: Math.round(mwhYr),
-    leaseYr: Math.round(leaseYr),
-    partnerYr: Math.round(leaseYr * m.partnerShare),
-    operatorYr: Math.round(leaseYr * (1 - m.partnerShare)),
+    leaseYr,
+    partnerYr,
+    operatorYr: leaseYr - partnerYr,
     avoidedTco2Yr: Math.round(mwhYr * m.gridEmissionFactor),
   };
 }
@@ -353,6 +510,63 @@ function moneyForSegment(risk, years, cfg = DEFAULTS) {
     avoidedIfFixed: Math.round(avoided),
     netIfFixed: Math.round(avoided - m.workOrderCost),
   };
+}
+
+// Work order: what a person approving a segment actually sends to the field.
+// Built from the engine's own numbers so the dashboard and n8n produce the same order.
+const WO_CHECKS = {
+  rain: 'Culverts and ditches: clear and undamaged? Look for erosion gullies crossing the right-of-way.',
+  freezeThaw: 'Frost heave: uneven ground, tilted markers or supports, reduced cover over the pipe.',
+  saturation: 'Soft or ponded ground, seepage on slopes, sinking along the trench line.',
+  vegetation: 'Fresh bare ground or dying vegetation, which can mark slope movement.',
+  slope: 'Tension cracks, bulges or scarps upslope of the pipe; leaning trees, posts or fences.',
+  crossing: 'River crossing: bank erosion, exposed or undermined pipe, debris against the crossing; measure cover at both banks.',
+  wildfire: 'Wildfire: clear dry fuel around valve sites and above-ground equipment; check access roads and firebreaks.',
+  drought: 'Drought: desiccation cracks or settlement along the trench line, and dry fuel building up on the right-of-way.',
+};
+function workOrder(seg, horizonKey = 'y10', cfg = DEFAULTS, opts = {}) {
+  const r = (seg.risk && seg.risk[horizonKey]) || {};
+  const tier = (seg.override && seg.override.tier) || r.tier || 'unverified';
+  const priority = tier === 'red' || tier === 'red-uncertain' ? 'P1' : tier === 'amber' || tier === 'unverified' ? 'P2' : 'P3';
+  const now = opts.now ? new Date(opts.now) : new Date();
+  const days = (cfg.workOrderDueDays || DEFAULTS.workOrderDueDays)[priority];   // configs saved before this setting existed
+  const due = new Date(now.getTime() + days * 86400000);
+  const drivers = (r.drivers || []).filter((d) => d.w > 0).slice(0, 3);
+  const hz = r.hazards || {};
+  // Hazards at medium or above lead the checklist, worst first; then the ground-failure drivers.
+  const hzKeys = Object.values(hz).filter((h) => h.key !== 'ground' && h.score >= cfg.tiers.amber).sort((a, b) => b.score - a.score).map((h) => h.key);
+  const checks = [...hzKeys.map((k) => WO_CHECKS[k]), ...drivers.map((d) => WO_CHECKS[d.key])].filter(Boolean).slice(0, 5);
+  if (!checks.length) checks.push(WO_CHECKS.slope);
+  checks.push('Photograph every finding with GPS, and measure depth of cover at the worst spot.');
+  const top = drivers[0];
+  const why = r.hazard && r.hazard !== 'ground' && hz[r.hazard] ? `${hz[r.hazard].label}: ${hz[r.hazard].why}`
+    : top == null ? (tier === 'unverified' ? 'Data missing: confirm conditions on site.' : 'Routine check.')
+    : top.key === 'slope' ? `Slope ${top.change}%`
+    : top.key === 'vegetation' ? `Plant cover change ${top.change} NDVI over 5 years`
+    : `${top.label} ${top.change > 0 ? '+' : ''}${top.change}% vs 1995-2025`;
+  const [lon, lat] = seg.mid || (seg.centreline && seg.centreline[0]) || [null, null];
+  const ymd = now.toISOString().slice(0, 10).replace(/-/g, '');
+  return {
+    id: `WO-${seg.id}-${ymd}`,
+    segment: seg.id, kmFrom: seg.kmFrom, kmTo: seg.kmTo,
+    lat, lon, mapUrl: lat == null ? null : `https://www.google.com/maps?q=${lat},${lon}`,
+    priority, dueBy: due.toISOString().slice(0, 10),
+    score: r.score ?? null, tier, hazard: r.hazard || 'ground', agreement: r.agreement ?? null, horizon: horizonKey,
+    why, checks, estCost: cfg.money.workOrderCost,
+    explanation: seg.explanation || null,
+    status: 'open', createdAt: now.toISOString(), approvedBy: opts.by || 'operator',
+  };
+}
+// Plain text for email or chat.
+function workOrderText(wo) {
+  return [
+    `${wo.priority} field inspection ${wo.segment} (km ${wo.kmFrom}-${wo.kmTo}), due ${wo.dueBy}`,
+    `Risk score ${wo.score ?? '-'} (${wo.tier}), model agreement ${wo.agreement ?? '-'}. Main driver: ${wo.why}`,
+    wo.explanation ? `Why: ${wo.explanation}` : null,
+    'Check:', ...wo.checks.map((c, i) => `  ${i + 1}. ${c}`),
+    wo.mapUrl ? `Location: ${wo.mapUrl}` : null,
+    `Work order ${wo.id}, approved by ${wo.approvedBy}. Estimated cost $${wo.estCost}.`,
+  ].filter(Boolean).join('\n');
 }
 
 // Corridor-level summary: concentration of risk, money headline, top risks.
@@ -402,7 +616,11 @@ function corridorSummary(segments, cfg = DEFAULTS, opts = {}) {
     // Years of the program one avoided failure pays for.
     yearsPaidByOneFailure: round(cfg.money.costOfFailure / cfg.money.programCostYr, 1),
     netValue: Math.round(avoided - woCost + inspectionSavingsYr * years - programCost),
-    top: top.map((x) => ({ id: x.s.id, score: x.r.score, tier: x.r.tier, agreement: x.r.agreement, driver: x.r.drivers[0], expectedLoss: x.money.expectedLoss })),
+    top: top.map((x) => ({ id: x.s.id, score: x.r.score, tier: x.r.tier, agreement: x.r.agreement, driver: x.r.drivers[0],
+      hazard: x.r.hazard || 'ground', why: x.r.hazards && x.r.hazards[x.r.hazard] ? x.r.hazards[x.r.hazard].why : null, expectedLoss: x.money.expectedLoss })),
+    hazardKm: ['ground', 'crossing', 'wildfire', 'drought'].reduce((o, k) => {
+      o[k] = rows.filter((x) => x.r && x.r.hazards && x.r.hazards[k] && x.r.hazards[k].score >= cfg.tiers.red).length; return o; }, {}),
+    crossings: rows.filter((x) => x.s.crossings && x.s.crossings.length).length,
   };
 }
 
@@ -416,7 +634,7 @@ function mergeConfig(over) {
   return c;
 }
 
-const ENGINE = { DEFAULTS, mergeConfig, haversine, segmentRoute, quantile, baselineStats, sliceYears, splitModels, projectedStats, ndviTrend, riskScore, buildScore, moneyForSegment, corridorSummary };
+const ENGINE = { DEFAULTS, mergeConfig, haversine, segmentRoute, quantile, baselineStats, sliceYears, splitModels, projectedStats, ndviTrend, riskScore, findCrossings, peakFlow, buildScore, moneyForSegment, workOrder, workOrderText, corridorSummary };
 
 // W1 Corridor setup. Input: one item with Overpass JSON (elements[].geometry). Output: one item per segment.
 const way = $input.first().json.elements.filter((e) => e.geometry).sort((a, b) => b.geometry.length - a.geometry.length)[0];

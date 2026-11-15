@@ -77,14 +77,10 @@
             {
               "keyName": "segment_id",
               "keyValue": "={{ $json.segment_id }}"
-            },
-            {
-              "keyName": "status",
-              "keyValue": "pending_approval"
             }
           ]
         },
-        "limit": 1
+        "returnAll": true
       },
       "id": "07f6bab8-7574-4d16-a2c9-f827f95e26d3",
       "name": "Find open work order",
@@ -143,14 +139,14 @@
           "conditions": [
             {
               "keyName": "work_order_id",
-              "keyValue": "={{ $('Find open work order').item.json.work_order_id }}"
+              "keyValue": "={{ $('Pick blocking order').item.json.work_order_id }}"
             }
           ]
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "priority": "={{ $('Build facts').item.json.priority === 'high' ? 'high' : $('Find open work order').item.json.priority }}"
+            "priority": "={{ $('Build facts').item.json.priority === 'high' ? 'high' : $('Pick blocking order').item.json.priority }}"
           },
           "schema": [
             {
@@ -190,10 +186,10 @@
             "action": "=work_order_duplicate_suppressed",
             "actor": "={{ 'n8n:' + $('Build facts').item.json.trigger_source }}",
             "segment_id": "={{ $('Build facts').item.json.segment_id }}",
-            "work_order_id": "={{ $('Find open work order').item.json.work_order_id }}",
+            "work_order_id": "={{ $('Pick blocking order').item.json.work_order_id }}",
             "source": "=workflow4",
             "ok": "={{ true }}",
-            "details_json": "={{ JSON.stringify({ incoming_priority: $('Build facts').item.json.priority, tier: $('Build facts').item.json.tier, score: $('Build facts').item.json.score }) }}"
+            "details_json": "={{ JSON.stringify({ blocked_by: $('Pick blocking order').item.json.block_reason, incoming_priority: $('Build facts').item.json.priority, tier: $('Build facts').item.json.tier, score: $('Build facts').item.json.score }) }}"
           },
           "schema": [
             {
@@ -1615,7 +1611,8 @@
         },
         "responsesApiEnabled": false,
         "options": {
-          "maxTokens": 400,
+          "maxTokens": 1500,
+          "reasoningEffort": "low",
           "timeout": 60000,
           "maxRetries": 2
         }
@@ -1635,6 +1632,19 @@
           "__aiGatewayManaged": true
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item out: the order that blocks a new draft for this segment, or {} if none.\n// Blocks when an order is pending approval, or was approved in the last 7 days.\nconst DAY = 24 * 3600 * 1000;\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.work_order_id);\nconst pending = rows.find((r) => r.status === 'pending_approval');\nconst recent = rows\n  .filter((r) => r.status === 'approved' && r.decided_at && Date.now() - new Date(r.decided_at).getTime() < 7 * DAY)\n  .sort((a, b) => String(b.decided_at).localeCompare(String(a.decided_at)))[0];\nconst b = pending || recent;\nreturn [{ json: b ? { ...b, block_reason: pending ? 'pending_approval' : 'approved_within_7_days' } : {}, pairedItem: { item: 0 } }];"
+      },
+      "id": "bb134a22-cd69-4bd5-8992-6decbff18da9",
+      "name": "Pick blocking order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        272
+      ]
     }
   ],
   "pinData": {},
@@ -1655,17 +1665,6 @@
         [
           {
             "node": "Find open work order",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Find open work order": {
-      "main": [
-        [
-          {
-            "node": "Work order already open?",
             "type": "main",
             "index": 0
           }
@@ -1941,6 +1940,28 @@
           }
         ]
       ]
+    },
+    "Find open work order": {
+      "main": [
+        [
+          {
+            "node": "Pick blocking order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick blocking order": {
+      "main": [
+        [
+          {
+            "node": "Work order already open?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -1949,7 +1970,8 @@
     "binaryMode": "separate",
     "timeSavedMode": "fixed",
     "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "timezone": "America/Vancouver"
   },
   "versionId": "d2871b69-97c1-4f53-a8d7-461e24696585",
   "meta": {

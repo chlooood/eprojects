@@ -129,8 +129,12 @@ test('buildScore: flat sunny land near a substation is green; steep land is excl
   const s = segWith(4, { irradiance: 4.5, slopePct: 1, substationKm: 1 });
   const b = E.buildScore(s, { tier: 'green' });
   assert.equal(b.tier, 'green');
-  assert.ok(Math.abs(b.mw - 98.8 / 6) < 0.01);
-  assert.equal(b.leaseYr, Math.round(98.8 * 600));
+  const acres = (1000 * E.DEFAULTS.buildStripM) / 4046.86; // panel strip only, not the 98.8-acre study area
+  assert.ok(Math.abs(b.mw - acres / 6) < 0.01);
+  assert.ok(Math.abs(b.leaseYr - acres * E.DEFAULTS.money.leaseRatePerAcreYr) <= 1);
+  // A strip wider than the study area is capped at the study area.
+  const wide = E.buildScore(s, { tier: 'green' }, E.mergeConfig({ buildStripM: 5000 }));
+  assert.ok(Math.abs(wide.usableAcres - 98.8) < 0.01);
   assert.equal(b.partnerYr + b.operatorYr, b.leaseYr);
   const halved = E.buildScore(s, { tier: 'red' });
   assert.ok(Math.abs(halved.score - b.score / 2) < 0.1);
@@ -170,6 +174,50 @@ test('corridorSummary counts lease only on green build stretches and inspection 
   assert.equal(sum.buildableKm, 1);
   // steep land at 12% slope still scores green on risk here (rain unchanged), so 2 green km
   assert.equal(sum.inspectionSavingsYr, Math.round(sum.greenKm * 500 * (2 / 3)));
+});
+
+test('workOrder: red is P1 due in 14 days with checks from its drivers; overrides change priority', () => {
+  // rain doubles, plant cover falling, steep: score 65 -> red, rain still the top driver
+  const s = segWith(8, { kmFrom: 1, kmTo: 2, mid: [-112.8, 53.3], slopePct: 20, ndvi: { change5yr: -0.12 } });
+  s.risk = { y10: E.riskScore(s, 'y10', E.mergeConfig({ tiers: { amber: 40, red: 60 } })) };
+  assert.equal(s.risk.y10.tier, 'red');
+  const wo = E.workOrder(s, 'y10', E.DEFAULTS, { now: '2026-11-15T12:00:00Z', by: 'tester' });
+  assert.equal(wo.id, 'WO-KP001-20261115');
+  assert.equal(wo.priority, 'P1');
+  assert.equal(wo.dueBy, '2026-11-29');
+  assert.match(wo.checks[0], /Culverts/);                   // top driver is extreme rain
+  assert.match(wo.checks[wo.checks.length - 1], /Photograph/);
+  assert.equal(wo.mapUrl, 'https://www.google.com/maps?q=53.3,-112.8');
+  assert.match(E.workOrderText(wo), /P1 field inspection KP001/);
+  const ovr = E.workOrder({ ...s, override: { tier: 'amber' } }, 'y10', E.DEFAULTS, { now: '2026-11-15T12:00:00Z' });
+  assert.equal(ovr.priority, 'P2');
+  assert.equal(ovr.dueBy, '2027-01-14');
+});
+
+test('hazards: drought, wildfire and river crossing are scored on their own; the level is the worst one', () => {
+  const s = segWith(4, { slopePct: 1 });   // rain unchanged, flat: ground failure ~0
+  s.baseline = { ...s.baseline, drySoilDaysPerYr: 36, drySpellDays: 20, fireWeatherDaysPerYr: 5 };
+  for (const m of Object.values(s.projections.y10)) Object.assign(m, { drySoilDaysPerYr: 72, refDrySoilDaysPerYr: 36, drySpellDays: 30, refDrySpellDays: 20, fireWeatherDaysPerYr: 7, refFireWeatherDaysPerYr: 5 });
+  const r = E.riskScore(s, 'y10');
+  assert.ok(r.groundScore < 5, String(r.groundScore));
+  assert.equal(r.hazards.drought.score, Math.round(100 * (0.6 * 1 + 0.4 * 0.5) * 10) / 10);   // 80: dry-soil days double, dry spell +50%
+  assert.equal(r.hazard, 'drought');
+  assert.equal(r.score, r.hazards.drought.score);
+  assert.equal(r.tier, 'red');
+  assert.match(r.hazards.wildfire.why, /5 to 7 a year \(\+40%\)/);
+  assert.equal(r.hazards.crossing, undefined);                    // no crossing: not applicable, never "low"
+  const x = E.riskScore({ ...s, crossings: [{ name: 'Test River', kind: 'river', peakFlowM3s: 200 }] }, 'y10');
+  assert.equal(x.hazards.crossing.score, Math.round(100 * (0.4 * 1 + 0.25 * 1) / 1 * 10) / 10);  // size 1, flow 1, rain 0
+  const wo = E.workOrder({ ...s, crossings: [{ name: 'Test River', kind: 'river', peakFlowM3s: 200 }], risk: { y10: x } }, 'y10');
+  assert.match(wo.checks[0], /Drought|River crossing/);
+  assert.match(wo.checks.join(' '), /River crossing/);
+});
+
+test('findCrossings: finds where a segment centreline crosses a waterway', () => {
+  const segs = [{ id: 'KP000', centreline: [[0, 0], [0.01, 0]] }, { id: 'KP001', centreline: [[0.01, 0], [0.02, 0]] }];
+  const xs = E.findCrossings(segs, [{ name: 'Creek', kind: 'stream', coords: [[0.015, -0.01], [0.015, 0.01]] }]);
+  assert.deepEqual(Object.keys(xs), ['KP001']);
+  assert.equal(xs.KP001[0].at[0], 0.015);
 });
 
 test('mergeConfig overrides nested money values without touching defaults', () => {

@@ -89,7 +89,9 @@ test('the dashboard engine consumes the feed end to end', () => {
   assert.equal(sum.segments, 3);
   assert.equal(sum.tiers.unverified, 1);
   assert.equal(d.segments[2].build.tier, 'unverified');
-  assert.ok(d.segments[0].build.usableAcres > 90);
+  // The engine leases a buildStripM-wide strip (60 m by default), not the whole 200 m study area, so a 1 km segment is about 14.8 acres.
+  const ua = d.segments[0].build.usableAcres;
+  assert.ok(ua > 10 && ua < 20, 'usableAcres ' + ua);
   JSON.stringify(d); // serialisable
 });
 

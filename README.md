@@ -12,16 +12,22 @@ Weather-driven ground failures are rare but expensive, and operators often see t
 
 ## What it does
 
-1. **Predict (5 and 10 years).** For each 1 km segment: observed baseline from the Open-Meteo archive (1995 to 2025), three CMIP6 models (MRI, EC-Earth, MPI) for 2026 to 2036, compared with each model's own history (delta method). Counts extreme-rain days, freeze-thaw days and wet-soil days; adds Sentinel-2 NDVI trend and slope. Score 0 to 100, tier, model agreement. Missing data means "unverified", never green.
-2. **Price it.** Expected loss per segment, loss avoided by a targeted inspection, risk-based inspection savings, break-even, and net value, with every assumption on a slider.
-3. **Build layer.** Solar plus storage potential outside the 30 m CER prescribed area: MW, MWh, lease revenue and the landowner partner's share. Rising risk halves the build score.
-4. **Humans in charge.** Approve or reject work orders, override a tier with a required reason. All of it goes to the audit log.
+1. **Predict (5 and 10 years).** For each 1 km segment: observed baseline from the Open-Meteo archive (1995 to 2025), three CMIP6 models (MRI, EC-Earth, MPI) for 2026 to 2036, compared with each model's own history (delta method). Four natural hazards, each scored 0 to 100 on its own; a segment's level is its worst one (never a blend):
+   - **Ground failure:** extreme-rain, freeze-thaw and wet-soil days vs baseline, Sentinel-2 NDVI trend, slope.
+   - **River crossing:** only where the pipe crosses a mapped river, stream or canal (OpenStreetMap): waterway size, historical peak flow (Open-Meteo Flood API, GloFAS) and projected heavy-rain change.
+   - **Wildfire weather:** change in fire-weather days (no rain, 25 °C or hotter, minimum humidity 35% or lower; two of the three models report humidity), how many there will be, and vegetation fuel.
+   - **Drought:** change in dry-soil days (below the baseline's 10th percentile) and in each year's longest dry spell.
+
+   Tier and model agreement per segment. Missing data means "unverified", never green; no crossing means "not applicable", never low.
+2. **Price it and recommend.** Expected loss per segment, loss avoided by a targeted inspection, risk-based inspection savings, plus the operator's share of solar lease revenue. The Money page adds both halves, says whether to run the program, and names the assumption the answer hinges on. Every assumption is on a slider.
+3. **Build layer.** Solar plus storage on a narrow panel strip (default 60 m total) outside the 30 m CER prescribed area: MW, MWh, lease revenue and the landowner partner's share, with a sunlight band on the map. Rising risk halves the build score.
+4. **Humans in charge.** Approving a kilometre creates a work order (priority and due date from its risk, a checklist from its drivers) that n8n stores and can send by email or Slack. Reject cancels it; overrides need a reason. All of it goes to the audit log.
 
 Real check (Nov 14, live APIs, a point in central Alberta): all three climate models agree extreme-rain days rise by 2036 (+7% to +37%, mean +26% vs each model's own history); wet-soil days +60% in the two models that report soil moisture.
 
 ## Honest numbers
 
-On the 169 km demo corridor at $430k per failure (sourced average), avoided failures alone do not pay for the program; inspection savings and new lease revenue do the work. At $11.7M per failure (one sourced geohazard rupture) the 10-year net turns positive. The dashboard shows both; we do not hide the slider.
+On the 169 km demo corridor at $430k per failure (sourced average), with all four hazards modelled, pipeline protection alone is about $328k short over 10 years: more kilometres are at risk, so fewer qualify for lighter inspection. Leasing a 60 m panel strip beside the 28 km of stable pipeline at $400 an acre (both our conservative assumptions) brings the operator about $830k, so the combined program is about $500k ahead. It stays positive while the lease is above about $159 an acre. Even at $11.7M per failure (one sourced geohazard rupture), protection alone is about $20k short. The dashboard shows all of it; we do not hide the slider.
 
 ## Repo layout
 
