@@ -32,9 +32,15 @@ Weather-driven ground failures are rare but expensive, and operators often see t
 
 5. **Works without n8n.** If the webhook cannot be reached, the deployed page loads a saved copy of a real n8n run, shows an "Offline snapshot" badge, and keeps approvals in the browser, labelled as a local demo. `dist/dashboard-demo.html` is a separate, synthetic corridor that needs no network at all.
 
-## Honest numbers
+## Honest numbers (live corridor, n8n run of Nov 15 2026)
 
-On the 169 km demo corridor at $430k per failure (sourced average), with all four hazards modelled, pipeline protection alone is about $328k short over 10 years: more kilometres are at risk, so fewer qualify for lighter inspection. Leasing a 60 m panel strip beside the 28 km of stable pipeline at $400 an acre (both our conservative assumptions) brings the operator about $830k, so the combined program is about $500k ahead. It stays positive while the lease is above about $159 an acre. Even at $11.7M per failure (one sourced geohazard rupture), protection alone is about $20k short. The dashboard shows all of it; we do not hide the slider.
+Measured by the run: 22.0 km in 23 segments, all verified. Six segments cross a mapped stream. At the 2036 view one segment is Medium (km 0 to 1, a stream crossing with heavy-rain days +21%, score 40.6) and 22 are Low; ground-failure scores run 23 to 38. No segment is High. The first review list is 3 segments instead of 23. Wildfire and drought are scored on the one climate cell cached with humidity; the other three cells say they need a refetch (`docs/HAZARD_DATA.md`).
+
+Scenario, not a measurement: at $430k per failure and a $50k a year program, pipeline protection on this 22 km is about $433k short over 10 years, and still about $424k short at $11.7M. One avoided failure would pay for 8.6 years. We show the negative number. The value on a low-hazard corridor is the ranked, explained shortlist.
+
+An earlier live configuration made every segment High at 10 years. That was a scale set too tight, not a finding. See `docs/THRESHOLDS.md`.
+
+The solar layer has no live numbers yet (W5 has not run on this corridor); it appears with figures only in the synthetic demo file.
 
 ## Repo layout
 
