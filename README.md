@@ -1,5 +1,7 @@
 # TerraCorridor
 
+BC comparison corridor: [evidence, results and activation](docs/BC_CORRIDOR.md). The new build includes Coquihalla and preserves Edmonton in the corridor selector. BC preparation and testing are complete locally; live imports/deployment are separate.
+
 A climate-resilience and cost-prioritization tool for oil and gas pipeline operators. Built for the UBC eProjects x n8n LOOP buildathon.
 
 **Who it is for:** the integrity or geohazard manager at a pipeline operator, and the field inspection coordinator who schedules the visits. **The decision it changes:** which kilometres get field attention first when the inspection budget is fixed.

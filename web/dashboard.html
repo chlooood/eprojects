@@ -36,7 +36,7 @@
   .muted { color:var(--ink-2); }
 
   /* ---------- header ---------- */
-  header.top { flex:none; display:flex; align-items:center; gap:28px; padding:0 28px; height:58px; background:var(--s1); border-bottom:1px solid var(--line); }
+  header.top { flex:none; display:flex; align-items:center; gap:14px; padding:8px 20px; min-height:58px; height:auto; flex-wrap:wrap; background:var(--s1); border-bottom:1px solid var(--line); }
   .mark { display:flex; align-items:center; gap:9px; font:600 16px/1 var(--sans); letter-spacing:-.02em; text-decoration:none; flex:none; }
   .mark em { font:italic 400 21px/1 var(--serif); letter-spacing:0; margin-left:-3px; }
   nav.pages { display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; }
@@ -73,7 +73,12 @@
   .stat p { margin:0; font-size:13px; color:var(--ink-2); line-height:1.5; }
 
   /* overview: the full-screen dashboard */
-  .ov-grid { display:grid; grid-template-rows:auto auto minmax(0,1fr) auto; height:100%; }
+  .ov-grid { display:grid; grid-template-rows:auto auto auto minmax(0,1fr) auto; height:100%; }
+  .ov-grid > .ledger { grid-row:1; }
+  #corridorContext { grid-row:2; }
+  .ov-grid > .hint { grid-row:3; }
+  .ov-grid > .ws-map { grid-row:4; }
+  .ov-grid > .ws-strip { grid-row:5; }
   .hint { display:flex; align-items:center; gap:16px; padding:9px 20px; border-bottom:1px solid var(--line); background:var(--s1); font-size:13px; color:var(--ink-2); line-height:1.45; }
   .hint b { color:var(--ink); font-weight:600; }
   .hint .k { font-weight:600; }
@@ -334,7 +339,7 @@
     body { height:auto; overflow:auto; display:block; }
     header.top { gap:12px; padding:0 16px; position:sticky; top:0; z-index:1000; }
     header .pill { display:none; }
-    header .pill.warn { display:inline-flex; font-size:0; padding:5px; } header .pill.warn .led { width:8px; height:8px; }
+    header .pill.warn, header .pill.live { display:inline-flex; font-size:11px; padding:5px; } header .pill.warn .led { width:8px; height:8px; }
     #views, .view { position:static; }
     .view.ws { overflow:visible; }
     .doc { padding:32px 16px 72px; }
@@ -374,11 +379,12 @@
     <a href="#/build" data-p="build">Build</a>
     <a href="#/log" data-p="log">Work orders <span class="count" id="logCount" data-n="0">0</span></a>
   </nav>
+  <label style="font-size:12px;display:flex;align-items:center;gap:6px">Corridor <select id="corridorSelect" aria-label="Study corridor" style="max-width:220px;background:var(--s2);color:var(--ink);border:1px solid var(--line-2);padding:6px;border-radius:6px"></select></label>
   <span class="spacer"></span>
   <span class="pill warn" id="synthBadge" hidden><span class="led"></span>Synthetic demo data</span>
   <span class="pill live" id="liveBadge" hidden><span class="led"></span>Live from n8n</span>
   <span class="pill warn" id="offBadge" hidden><span class="led"></span>Offline snapshot</span>
-  <span class="pill" id="genAt"></span>
+  <span class="pill" id="genAt" style="max-width:300px;overflow:hidden;text-overflow:ellipsis"></span>
 </header>
 
 <div id="views">
@@ -386,10 +392,11 @@
   <section class="view ws" id="view-overview" hidden>
     <div class="ov-grid" id="ovGrid">
       <section class="ledger" id="ovLedger" aria-label="Climate summary"></section>
+      <div id="corridorContext" class="cap" style="padding:10px 20px;border-bottom:1px solid var(--line)"></div>
       <div class="hint" id="ovHint">
         <span><b>How to read this:</b> the line is a <span id="hintKm">demo</span> pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.
-        <span class="k" style="color:var(--red)">Red</span> = inspect first, <span class="k" style="color:var(--amber)">amber</span> = plan a visit, <span class="k" style="color:var(--green)">green</span> = routine cycle. 2031 and 2036 are climate-frequency projections for planning, not weather forecasts.
-        Press <b>&#9654;</b> on the map to watch climate change shift it from today to 2031–35. Hover any number for what it means.</span>
+        <span class="k" style="color:var(--red)">Red</span> = inspect first, <span class="k" style="color:var(--amber)">amber</span> = plan a visit, <span class="k" style="color:var(--green)">green</span> = routine cycle. The 2026–30 and 2031–35 windows are separate five-year climate-frequency projections for planning, not weather forecasts.
+        Press <b>&#9654;</b> on the map to compare the observed baseline and projected windows. Hover any number for what it means.</span>
         <button class="linkbtn" id="bHint">Got it</button>
       </div>
       <div class="ws-map"><div class="map-slot" data-map></div></div>
@@ -495,8 +502,16 @@
 <script>
 // Where data comes from. When n8n serves this page it sets window.TC_API to its webhook base.
 let API = window.TC_API || new URLSearchParams(location.search).get('api') || '';
-let OFFLINE = false;   // true when n8n could not be reached and the page runs on the snapshot built into this file
-const DATA_URL = API ? API + '/corridor' : '../data/demo/corridor.json';
+let OFFLINE = false;
+let offlineReason = '';   // true when n8n could not be reached and the page runs on the snapshot built into this file
+const PARAMS = new URLSearchParams(location.search);
+const CATALOG = window.TC_CATALOG || { default:'ab-strathcona-demo', corridors:[{id:'ab-strathcona-demo',name:'Edmonton · reference corridor'}] };
+const legacyEdmontonLink = /^#\/(?:segment|triage)\/seg_[a-z0-9]+(?:$|[?&])/.test(location.hash);
+const requestedCorridor = PARAMS.get('corridor') || (legacyEdmontonLink ? 'ab-strathcona-demo' : CATALOG.default);
+const CORRIDOR_ID = CATALOG.corridors.some(c => c.id === requestedCorridor) ? requestedCorridor : CATALOG.default;
+const DATA_URL = API ? API + '/corridor?corridor=' + encodeURIComponent(CORRIDOR_ID) : '../data/demo/corridor.json';
+const STATE_KEY = 'tc-state:' + CORRIDOR_ID;
+const getSavedState = () => localStorage.getItem(STATE_KEY) || (CORRIDOR_ID === 'ab-strathcona-demo' ? localStorage.getItem('tc-state') : null);
 
 // Hex mirrors of the CSS tokens (SVG attributes and Leaflet need literal colours).
 const C = { green:'#6fd08f', amber:'#f2a93b', red:'#ff5d4f', 'red-uncertain':'#ff5d4f', unverified:'#5d625a', grey:'#5d625a', excluded:'#3a3e38',
@@ -522,6 +537,7 @@ const sliderFromCost = (c) => Math.round(100 * Math.log(c / 430000) / Math.log(1
 let D, cfg, segs, page = null, stop = 'y10', layer = 'risk', selected = null, hover = null, filter = 'attn', hazardFilter = 'all', buildFilter = 'ready';
 let map, baseLayers = {}, lines = {}, casings = {}, sunBands = {}, sunLayer, crossLayer, crossMarkers = [], annoLayer, audit = [], firstDraw = true, anim = null, playing = false;
 const byId = (id) => D.segments.find((s) => s.id === id);
+const segmentLabel = s => 'km ' + s.kmFrom + '–' + s.kmTo;
 const years = () => stop === 'y5' ? 5 : 10;
 const kmOf = (n) => n * ((D.config && D.config.segmentKm) || 1);
 
@@ -769,10 +785,10 @@ function flyTo(id, instant) {
   if (instant || REDUCED) map.fitBounds(b, { ...opts, animate: false }); else map.flyToBounds(b, { ...opts, duration: .8 });
 }
 function tipText(s) {
-  if (layer === 'build') return `<b>${s.id}</b> · ${TIER_LABEL[s.build.tier] === 'Low' ? 'Build-ready' : s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier] || s.build.tier}${s.build.mw ? ' · ' + s.build.mw + ' MW' : ''}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
+  if (layer === 'build') return `<b>${segmentLabel(s)}</b> · ${TIER_LABEL[s.build.tier] === 'Low' ? 'Build-ready' : s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier] || s.build.tier}${s.build.mw ? ' · ' + s.build.mw + ' MW' : ''}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
   const v = scoreAt(s);
   const r = s.risk[stop];
-  return `<b>${s.id}</b> · ${TIER_LABEL[tierOf(s)]} risk · ${v == null ? '–' : v.toFixed(0)}${r && r.hazard ? ' · ' + esc(whyText(r)) : ''}`;
+  return `<b>${segmentLabel(s)}</b> · ${TIER_LABEL[tierOf(s)]} risk · ${v == null ? '–' : v.toFixed(0)}${r && r.hazard ? ' · ' + esc(whyText(r)) : ''}`;
 }
 function paint() {
   if (!map) return;
@@ -995,10 +1011,10 @@ function readoutFor(id) {
   const s = byId(id), v = scoreAt(s), b = s.build, t = tierOf(s);
   if (page === 'overview') {
     const c = (k) => { const x = climateAt(s, k); return x == null ? '–' : sign(Math.round(x)) + '%'; };
-    readout.innerHTML = `<b>${s.id}</b> · km ${s.kmFrom}–${s.kmTo} · <span style="color:${C[t]};font-weight:600">${TIER_LABEL[t]} ${v == null ? '' : v.toFixed(0)}</span> · heavy rain ${c('rain')} · freeze-thaw ${c('freezeThaw')} · soaked ground ${c('saturation')} · fire weather ${c('fire')} · dry soil ${c('drySoil')} vs the past 30 years${s.crossings && s.crossings.length ? ' · river crossing' : ''}`;
+    readout.innerHTML = `<b>${segmentLabel(s)}</b> · <span style="color:${C[t]};font-weight:600">${TIER_LABEL[t]} ${v == null ? '' : v.toFixed(0)}</span> · heavy rain ${c('rain')} · freeze-thaw ${c('freezeThaw')} · soaked ground ${c('saturation')} · fire weather ${c('fire')} · dry soil ${c('drySoil')} vs the past 30 years${s.crossings && s.crossings.length ? ' · river crossing' : ''}`;
     return;
   }
-  readout.innerHTML = `<b>${s.id}</b> · km ${s.kmFrom}–${s.kmTo} · <span style="color:${C[t]};font-weight:600">${TIER_LABEL[t]} ${v == null ? '' : v.toFixed(0)}</span> · slope ${s.slopePct ?? '–'}% · vegetation ${s.ndvi ? sign(s.ndvi.change5yr) : '–'} · ${b && b.mw ? b.mw + ' MW solar' : 'no build'}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
+  readout.innerHTML = `<b>${segmentLabel(s)}</b> · <span style="color:${C[t]};font-weight:600">${TIER_LABEL[t]} ${v == null ? '' : v.toFixed(0)}</span> · slope ${s.slopePct ?? '–'}% · vegetation ${s.ndvi ? sign(s.ndvi.change5yr) : '–'} · ${b && b.mw ? b.mw + ' MW solar' : 'no build'}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
 }
 function stripIndex(ev) {
   const r = strip.getBoundingClientRect(), xPx = (ev.clientX - r.left) * (G.W / r.width);
@@ -1024,11 +1040,11 @@ function driverText(d) {
 }
 function fallbackExplain(s, r) {
   const d = r.drivers[0];
-  if (!d) return `${s.id} is unverified: missing ${(r.missing || []).join(', ')}. Missing data is never treated as safe.`;
-  if (stop === 'y0') return `${s.id} scores ${r.score} on today's conditions, where only slope and vegetation change count. Its biggest factor is ${d.label.toLowerCase()} (${driverText(d)}).`;
+  if (!d) return `${segmentLabel(s)} is unverified: missing ${(r.missing || []).join(', ')}. Missing data is never treated as safe.`;
+  if (stop === 'y0') return `${segmentLabel(s)} scores ${r.score} on today's conditions, where only slope and vegetation change count. Its biggest factor is ${d.label.toLowerCase()} (${driverText(d)}).`;
   const what = d.key === 'slope' ? `a ${d.change}% grade` : d.key === 'vegetation' ? `an NDVI change of ${d.change} over 5 years` : `${d.base} days a year historically, ${d.proj} projected (${sign(d.change)}%)`;
-  if (r.hazard && r.hazard !== 'ground' && r.hazards[r.hazard]) return `${s.id} scores ${r.score} (${TIER_LABEL[r.tier].toLowerCase()}) by ${STOP_LABEL[stop]}, set by its worst hazard, ${HAZ[r.hazard].toLowerCase()}: ${r.hazards[r.hazard].why}. Ground failure alone scores ${r.groundScore}.`;
-  return `${s.id} scores ${r.score} (${TIER_LABEL[r.tier].toLowerCase()}) by ${STOP_LABEL[stop]}. The biggest driver is ${d.label.toLowerCase()}: ${what}. Model agreement is ${r.agreement}.`;
+  if (r.hazard && r.hazard !== 'ground' && r.hazards[r.hazard]) return `${segmentLabel(s)} scores ${r.score} (${TIER_LABEL[r.tier].toLowerCase()}) by ${STOP_LABEL[stop]}, set by its worst hazard, ${HAZ[r.hazard].toLowerCase()}: ${r.hazards[r.hazard].why}. Ground failure alone scores ${r.groundScore}.`;
+  return `${segmentLabel(s)} scores ${r.score} (${TIER_LABEL[r.tier].toLowerCase()}) by ${STOP_LABEL[stop]}. The biggest driver is ${d.label.toLowerCase()}: ${what}. Model agreement is ${r.agreement}.`;
 }
 function hazardsHTML(s, r) {
   const hz = r.hazards || {};
@@ -1065,8 +1081,9 @@ function gaugeHTML(r) {
     <div class="ticks"><span style="left:0">0</span><span style="left:${cfg.tiers.amber}%">${cfg.tiers.amber}</span><span style="left:${cfg.tiers.red}%">${cfg.tiers.red}</span><span style="left:100%">100</span></div></div>`;
 }
 function explainHTML(s, r) {
+  const terrain = s.terrain ? `<div class="cap">Terrain: ${s.terrain.netGradePct}% net endpoint grade; ${s.terrain.maxSampleGradePct}% maximum sampled grade; ${s.terrain.reliefM} m relief over this kilometre. DEM surface elevations at roughly 100 m intervals. The existing priority calculation uses net grade; the profile is supplementary evidence.</div>` : '';
   return `<div class="explain">${esc(s.explanation && stop !== 'y0' ? s.explanation : fallbackExplain(s, r))}
-    <div class="src">${s.explanation && stop !== 'y0' ? 'AI explanation, restating engine numbers only.' : 'Template text built from the engine numbers. n8n writes an AI explanation only for medium and high segments.'}</div></div>`;
+    ${terrain}<div class="src">${s.explanation && stop !== 'y0' ? 'AI explanation, restating engine numbers only.' : 'Template text built from the engine numbers. n8n writes an AI explanation only for medium and high segments.'}</div></div>`;
 }
 function driversHTML(r, n = 5) {
   const maxW = Math.max(...r.drivers.map((d) => d.w), .0001);
@@ -1080,7 +1097,7 @@ function rainBars(s) {
   const rows = [['Observed', b.extremeDaysPerYr, C.ink3], ...models.map(([m, v]) => [m.split('_').slice(0, 2).join(' ').replace('3P', '3'), corr(v), corr(v) > b.extremeDaysPerYr ? C.amber : C.green])];
   const max = Math.max(...rows.map((r) => r[1]), 1) * 1.08, basePct = (b.extremeDaysPerYr / max) * 100;
   return rows.map(([l, v, c], i) => `<div class="hb"><span class="lab">${esc(l)}</span><span class="bar"><i style="width:${(v / max) * 100}%;background:${c}"></i>${i ? `<b style="left:${basePct}%"></b>` : ''}</span><span class="val">${v}</span></div>`).join('') +
-    `<div class="cap">Extreme-rain days a year. Observed 1995–2025 against each CMIP6 model for ${k === 'y5' ? '2026–2030' : '2031–2035'}, bias-corrected against the model's own history. The black tick marks the observed value.${stop === 'y0' ? ' Showing 2036 because Today has no projection.' : ''}</div>`;
+    `<div class="cap">Extreme-rain days a year. Observed 1995–2025 against each CMIP6 model for ${(cfg.horizons[k] || []).join('–')}, bias-corrected against the model's own history. The black tick marks the observed value.${stop === 'y0' ? ' Showing 2031–35 because Today has no projection.' : ''}</div>`;
 }
 function ndviSpark(s) {
   const pts = (s.ndviSeries || []).filter((p) => p.ndvi != null);
@@ -1097,7 +1114,7 @@ function ndviSpark(s) {
     <polyline fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" points="${line}"/>
     <text x="0" y="${H + 15}" fill="${C.ink3}" font-size="11" font-family="JetBrains Mono, monospace">${x0}</text>
     <text x="${W}" y="${H + 15}" text-anchor="end" fill="${C.ink3}" font-size="11" font-family="JetBrains Mono, monospace">${x1 - 1}</text></svg>
-    <div class="cap">Sentinel-2 NDVI (vegetation greenness), growing season. Five-year change <b class="num" style="color:${col}">${ch != null ? sign(ch) : '–'}</b>. Falling greenness on a slope can mean the ground is moving.</div>`;
+    <div class="cap">Sentinel-2 NDVI (vegetation greenness), growing season. Five-year change <b class="num" style="color:${col}">${ch != null ? sign(ch) : '–'}</b>. Greenness change can reflect clearing, maintenance, seasonal sampling or vegetation stress; it does not establish ground movement.${D.meta.corridorId === 'bc-coquihalla' ? ' Collection 1 observations: June–August 2021, 2023, 2024 and 2025; 2022 is missing.' : ''}</div>`;
 }
 function moneyHTML(s, r) {
   const m = ENGINE.moneyForSegment(r, years(), cfg);
@@ -1166,14 +1183,16 @@ function wireActions(root, s) {
   });
   const q = (k) => root.querySelector(`[data-o="${k}"]`);
   if (!q('apply')) return;
-  q('apply').onclick = () => {
+  q('apply').onclick = async () => {
     const tier = q('tier').value, reason = q('reason').value.trim();
     q('tier').classList.toggle('bad', !tier); q('reason').classList.toggle('bad', !reason);
     if (!tier || !reason) { q('err').hidden = false; (tier ? q('reason') : q('tier')).focus(); return; }
-    const from = s.risk[stop].tier;
-    s.override = { tier, reason, stop };
-    act(s, 'override_tier', { from, to: tier, reason, stop, horizon: STOP_LABEL[stop] });
-    saveLocal(); refresh();
+    if (stop === 'y0') { q('err').textContent = 'Select a five- or ten-year projection to override.'; q('err').hidden = false; return; }
+    const from = s.risk[stop].tier, selectedStop = stop;
+    q('apply').disabled = true;
+    const confirmed = await act(s, 'override_tier', { from, to: tier, reason, stop: selectedStop, horizon: selectedStop === 'y5' ? 5 : 10 });
+    if (confirmed) { s.override = { tier, reason, stop: selectedStop }; saveLocal(); refresh(); }
+    q('apply').disabled = false;
   };
 }
 // Approve = a real work order: priority and due date from the tier, a checklist from the score's own drivers.
@@ -1212,7 +1231,7 @@ function saveLocal() {
   try {
     const decisions = {};
     for (const s of D.segments) if (s.wo || s.override) decisions[s.id] = { wo: s.wo || null, workOrder: s.workOrder || null, override: s.override || null };
-    localStorage.setItem('tc-state', JSON.stringify({ decisions, audit: audit.slice(0, 200) }));
+    localStorage.setItem(STATE_KEY, JSON.stringify({ decisions, audit: audit.slice(0, 200) }));
   } catch (e) {}
 }
 function loadSaved() {
@@ -1239,7 +1258,7 @@ function loadSaved() {
     if (API) return;
   }
   try {
-    const st = JSON.parse(localStorage.getItem('tc-state') || 'null'); if (!st) return;
+    const st = JSON.parse(getSavedState() || 'null'); if (!st) return;
     for (const [id, d] of Object.entries(st.decisions || {})) { const s = byId(id); if (s) Object.assign(s, { wo: d.wo || undefined, workOrder: d.workOrder || undefined, override: d.override || undefined }); }
     audit = st.audit || [];
   } catch (e) {}
@@ -1273,6 +1292,8 @@ const HELP = {
 };
 // Overview: observed and projected climate only. No money, no build.
 function renderOverview() {
+  corridorContext.textContent = D.meta.corridorId === 'bc-coquihalla' ? '12 km of public mapped pipeline near Coquihalla Canyon. The 2021 floods provide regional context; this is a future screening assessment, not evidence of current pipe damage. Terrain profile and vegetation sampling limitations are disclosed in each report.' : 'Edmonton reference corridor: the preserved lower-exposure assessment. All applicable hazards are evaluated with the same thresholds as the BC corridor.';
+  if (D.meta.corridorId === 'bc-coquihalla') corridorContext.insertAdjacentHTML('beforeend', ' <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Mapped route © OpenStreetMap contributors</a>.');
   mapBox.classList.remove("has-card");
   const t = D.live.tiers, hi = (t.red || 0) + (t['red-uncertain'] || 0), mod = t.amber || 0, unv = t.unverified || 0;
   const hw = (cfg.horizons || {})[stop] || [];
@@ -1323,7 +1344,7 @@ function renderTriage() {
     ${hasHaz ? `<div class="chips" style="margin-bottom:8px">${Object.entries(HF).map(([k, l]) => `<button data-h="${k}" class="${k === hazardFilter ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
     <div class="chips">${Object.entries(F).map(([k, [l, f]]) => `<button data-f="${k}" class="${k === filter ? 'on' : ''}">${l}<small>${all.filter(f).length}</small></button>`).join('')}</div>
     ${rows.length ? rows.slice(0, 80).map((s, i) => { const r = s.risk[stop], t = tierOf(s); return `<button class="qrow ${s.id === selected ? 'sel' : ''} ${s.id === hover ? 'hov' : ''}" data-id="${s.id}">
-      <span class="rk">${String(i + 1).padStart(2, '0')}</span><span class="id">${s.id}</span><span class="why">${esc(hazardFilter === 'all' ? whyText(r) : ((r.hazards || {})[hazardFilter] || {}).why || '')} ${statusOf(s)}</span>
+      <span class="rk">${String(i + 1).padStart(2, '0')}</span><span class="id">${segmentLabel(s)}</span><span class="why">${esc(hazardFilter === 'all' ? whyText(r) : ((r.hazards || {})[hazardFilter] || {}).why || '')} ${statusOf(s)}</span>
       <span class="sc">${Math.round(hs(s))}<span class="mbar"><i style="width:${hs(s)}%;background:${C[hazardFilter === 'all' ? t : (r.hazards[hazardFilter].tier)]}"></i></span></span></button>`; }).join('') : '<div class="empty">Nothing here.</div>'}`;
   triageList.querySelectorAll('[data-f]').forEach((b) => b.onclick = () => { filter = b.dataset.f; renderTriage(); });
   triageList.querySelectorAll('[data-h]').forEach((b) => b.onclick = () => { hazardFilter = b.dataset.h; renderTriage(); });
@@ -1339,7 +1360,7 @@ function renderCard(el, mode) {
   el.hidden = false;
   if (!wasHidden) el.style.animation = 'none';
   el.innerHTML = `<button class="x" aria-label="Close">×</button>
-    <div class="label">Kilometre post</div><div class="kp">${s.id}</div><div class="km">km ${s.kmFrom}–${s.kmTo} · ${s.lengthM} m</div>
+    <div class="label">Kilometre post</div><div class="kp">${segmentLabel(s)}</div><div class="km">km ${s.kmFrom}–${s.kmTo} · ${s.lengthM} m</div>
     <div style="margin-top:14px">${mode === 'build' ? `<span class="chip" style="color:${C.build};background:${C.build}1f"><span class="led"></span>${s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier]}</span> ` : ''}${chipHTML(t)}</div>
     ${s.override && s.override.stop === stop ? `<div class="note">Overridden to ${TIER_LABEL[s.override.tier]}: “${esc(s.override.reason)}”</div>` : ''}
     ${mode === 'build' ? `<div class="blk"><h3>Solar + storage</h3>${buildHTML(s)}</div><div class="cap">Build potential is halved where 2031–35 risk is high. Stays outside the ${cfg.exclusionM} m prescribed area.</div>
@@ -1354,10 +1375,10 @@ function renderSegment() {
   const s = byId(selected); if (!s) return;
   const r = s.risk[stop], t = tierOf(s), i = segs.indexOf(s), prev = segs[i - 1], next = segs[i + 1];
   segHead.innerHTML = `<div class="crumbs"><a href="#/triage/${s.id}">← Triage</a><span class="label">/</span><span class="label">${s.id}</span></div>
-    <div class="seghead"><div><div class="label">Kilometre post</div><div class="kp" style="font-size:64px">${s.id}</div><div class="km">km ${s.kmFrom}–${s.kmTo} · ${s.lengthM} m · cell ${esc(s.cell || '–')} · ${s.studyAreaAcres ?? '–'} acre study strip</div></div>
+    <div class="seghead"><div><div class="label">Kilometre post</div><div class="kp" style="font-size:48px">${segmentLabel(s)}</div><div class="km">km ${s.kmFrom}–${s.kmTo} · ${s.lengthM} m · climate cell ${esc(s.cell || '–')} · ${s.studyAreaAcres ?? '–'} acre study strip</div></div>
       <div style="display:grid;gap:12px;justify-items:end">${stopSeg()}<div class="pager">
-        <a class="btn ghost" ${prev ? `href="#/segment/${prev.id}"` : 'aria-disabled="true" style="opacity:.35"'}>← ${prev ? prev.id : ''}</a>
-        <a class="btn ghost" ${next ? `href="#/segment/${next.id}"` : 'aria-disabled="true" style="opacity:.35"'}>${next ? next.id : ''} →</a></div></div></div>`;
+        <a class="btn ghost" ${prev ? `href="#/segment/${prev.id}"` : 'aria-disabled="true" style="opacity:.35"'}>← ${prev ? segmentLabel(prev) : ''}</a>
+        <a class="btn ghost" ${next ? `href="#/segment/${next.id}"` : 'aria-disabled="true" style="opacity:.35"'}>${next ? segmentLabel(next) : ''} →</a></div></div></div>`;
   segBody.innerHTML = `<div class="cols c2" style="margin-top:48px">
     <div>
       <div>${chipHTML(t)}</div>
@@ -1458,7 +1479,7 @@ function renderBuild() {
     </div>
     <div class="chips"><button data-bf="ready" class="${buildFilter === 'ready' ? 'on' : ''}">Build-ready</button><button data-bf="all" class="${buildFilter === 'all' ? 'on' : ''}">Include marginal</button></div>
     ${rows.length ? rows.map((s, i) => `<button class="qrow ${s.id === selected ? 'sel' : ''}" data-id="${s.id}">
-      <span class="rk">${String(i + 1).padStart(2, '0')}</span><span class="id">${s.id}</span><span class="why">${s.build.mw} MW · ${fmt$(s.build.leaseYr)} a year</span>
+      <span class="rk">${String(i + 1).padStart(2, '0')}</span><span class="id">${segmentLabel(s)}</span><span class="why">${s.build.mw} MW · ${fmt$(s.build.leaseYr)} a year</span>
       <span class="sc">${s.build.score}<span class="mbar"><i style="width:${s.build.score}%;background:${s.build.tier === 'green' ? C.build : C.buildDim}"></i></span></span></button>`).join('') : '<div class="empty">No build-ready stretches with these assumptions.</div>'}`;
   buildList.querySelectorAll('[data-bf]').forEach((b) => b.onclick = () => { buildFilter = b.dataset.bf; renderBuild(); });
   wireRows(buildList);
@@ -1471,7 +1492,7 @@ function renderLog() {
   logCount.textContent = open; logCount.dataset.n = open;
   if (page !== 'log') return;
   logDoc.innerHTML = `<p class="kicker">Work orders</p><h1 class="ph">${open ? open + ' inspection' + (open === 1 ? '' : 's') + ' approved' : 'No inspections approved yet'}</h1>
-    <p class="dek">Approving a kilometre creates a work order: priority from its risk level (High = P1 within ${cfg.workOrderDueDays.P1} days, Medium = P2 within ${cfg.workOrderDueDays.P2}), and a checklist built from what drives its score. ${API ? 'Owner: the integrity manager approves. n8n stores each order in its corridor_work_orders table with status approved and logs the decision. Destination: the inspection coordinator. Each order shows whether email is queued, accepted by the mail provider, or needs review. CSV is also available below. Scheduling and crew dispatch remain with the coordinator.' : (OFFLINE ? 'n8n could not be reached, so this page is running on a saved snapshot. ' : 'n8n is not connected in this demo file. ') + 'Approvals here are a local demo: saved in this browser only, never sent.'}</p>
+    <p class="dek">Approving a kilometre creates a work order: priority from its risk level (High = P1 within ${cfg.workOrderDueDays.P1} days, Medium = P2 within ${cfg.workOrderDueDays.P2}), and a checklist built from what drives its score. ${API ? 'Owner: the integrity manager approves. n8n stores each order in its corridor_work_orders table with status approved and logs the decision. Destination: the inspection coordinator. Each order shows whether email is queued, accepted by the mail provider, or needs review. CSV is also available below. Scheduling and crew dispatch remain with the coordinator.' : (OFFLINE ? 'Live data is unavailable for this corridor, so this page is showing a saved real-data assessment. ' : 'n8n is not connected in this demo file. ') + 'Approvals here are a local demo: saved in this browser only, never sent.'}</p>
     <div style="margin:24px 0 16px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:none" id="bCsv" ${wos.length ? '' : 'disabled'}>Download work orders (CSV)</button><button class="btn" style="flex:none" id="bExport" ${audit.length ? '' : 'disabled'}>Download audit log (JSON)</button></div>
     ${wos.length ? `<table class="log"><thead><tr><th>Work order</th><th>Priority</th><th>Due</th><th>Main driver</th><th>Checks</th><th>Status</th></tr></thead><tbody>${wos.map((w) => `<tr style="${w.status === 'cancelled' ? 'opacity:.55' : ''}">
       <td class="m"><a href="#/segment/${w.segment}">${esc(w.id)}</a><div class="cap" style="margin-top:2px">km ${w.kmFrom}–${w.kmTo}${w.mapUrl ? ` · <a href="${esc(w.mapUrl)}" target="_blank" rel="noopener">map ↗</a>` : ''}</div></td>
@@ -1523,6 +1544,7 @@ async function act(s, action, details) {
     } catch (e) { item.note = 'n8n unreachable, kept in this browser only'; if (s.workOrder && s.workOrder.delivery === 'sending') s.workOrder.delivery = 'failed'; toast('Not recorded: n8n could not be reached. Kept in this browser only.'); }
     renderLog(); renderPage();
   }
+  return !API || item.note === 'stored in n8n';
 }
 
 /* ---------- input ---------- */
@@ -1532,6 +1554,10 @@ function stepSel(d) {
   go(['triage', 'build', 'segment'].includes(page) ? page : 'triage', segs[j].id);
 }
 function wire() {
+  corridorSelect.innerHTML = CATALOG.corridors.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  corridorSelect.value = CORRIDOR_ID;
+  corridorSelect.closest('label').hidden = !!window.TC_DATA;
+  corridorSelect.onchange = () => { const url = new URL(location.href); url.searchParams.set('corridor', corridorSelect.value); url.hash = '#/'; location.assign(url.href); };
   addEventListener('hashchange', onRoute);
   document.addEventListener('click', (e) => { const b = e.target instanceof Element && e.target.closest('[data-stop]'); if (b) setStop(b.dataset.stop); });
   bPlay.onclick = play;
@@ -1571,21 +1597,27 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigat
       const res = await fetch(DATA_URL, { signal: ctl.signal }); clearTimeout(timer);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       D = await res.json();
-      if (!D || !Array.isArray(D.segments) || !D.segments.length) throw new Error('empty feed');
+      if (!D || !Array.isArray(D.segments) || !D.segments.length) throw new Error('No stored assessment for this corridor');
+      if (D.meta?.corridorId !== CORRIDOR_ID) throw new Error('API returned a different corridor');
     } catch (e) {
+      offlineReason = e.message;
       // No n8n, no network: run on the saved copy of the last real n8n run. Actions become local-only and say so.
-      if (!window.TC_SNAPSHOT) { document.body.insertAdjacentHTML('beforeend', `<div class="empty" style="position:fixed;inset:80px 20px auto;z-index:9">Could not load corridor data (${esc(e.message)}), and this file has no built-in snapshot. Open dist/dashboard-demo.html for the synthetic demo.</div>`); return; }
-      D = window.TC_SNAPSHOT; OFFLINE = true; API = '';
+      const snapshot = window.TC_SNAPSHOTS?.[CORRIDOR_ID] || (window.TC_SNAPSHOT?.meta?.corridorId === CORRIDOR_ID ? window.TC_SNAPSHOT : null);
+      if (!snapshot) { document.body.insertAdjacentHTML('beforeend', `<div class="empty" style="position:fixed;inset:80px 20px auto;z-index:9">Could not load corridor data (${esc(e.message)}), and this file has no built-in snapshot. Open dist/dashboard-demo.html for the synthetic demo.</div>`); return; }
+      D = snapshot; OFFLINE = true; API = '';
     }
   }
   segs = [...D.segments].sort((a, b) => a.kmFrom - b.kmFrom);
   synthBadge.hidden = !D.meta.synthetic; liveBadge.hidden = !!D.meta.synthetic || OFFLINE || !API;
   offBadge.hidden = !OFFLINE;
-  if (OFFLINE) offBadge.title = `n8n could not be reached. Showing the saved assessment of ${String(D.meta.generatedAt || '').slice(0, 16).replace('T', ' ')} UTC that is built into this file. ${D.meta.snapshot?.note || 'Real cached data, not synthetic.'} Approvals are saved in this browser only.`;
+  if (OFFLINE && D.meta.snapshot?.recomputed) offBadge.innerHTML = '<span class="led"></span>Prepared assessment · local actions';
+  document.title = 'TerraCorridor · ' + D.meta.name;
+  if (OFFLINE) offBadge.title = `Live data unavailable for this corridor (${offlineReason}). Showing the saved assessment of ${String(D.meta.generatedAt || '').slice(0, 16).replace('T', ' ')} UTC that is built into this file. ${D.meta.snapshot?.note || 'Real cached data, not synthetic.'} Approvals are saved in this browser only.`;
   { const hk = document.getElementById('hintKm'); if (hk) { const km = D.segments.reduce((t, x) => t + (x.lengthM || 0), 0) / 1000; hk.textContent = (km >= 10 ? Math.round(km) : km.toFixed(1)) + ' km'; } }
   if (D.meta.synthetic) synthBadge.title = D.meta.note;
-  genAt.textContent = 'Run ' + D.meta.generatedAt.slice(0, 16).replace('T', ' ') + ' UTC';
-  sourcesSec.innerHTML = `<b style="font-weight:600;color:var(--ink-2)">Sources.</b> ${D.meta.synthetic ? '<b style="color:var(--amber);font-weight:600">Synthetic demo.</b> ' : ''}Open-Meteo archive and CMIP6 projections (${esc((D.meta.models || []).join(', '))}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. The $430k figure is an average ground-movement failure cost from water mains (not oil and gas) and $11.7M is one sourced rupture; other inputs are our assumptions. Thresholds and weights are provisional, for expert review.${D.meta.source === 'n8n Data Tables' ? ` ${OFFLINE ? 'Offline snapshot of an' : 'Live'} n8n run. ${esc(D.meta.note || '')} Hazards scored in n8n W2 for this run: ${esc((D.meta.hazardsScored || ['ground']).join(', '))}${(D.meta.hazardsScored || []).length < 4 ? '; the others show why they have no score' : ''}. Waterway crossings checked on ${D.meta.crossingsChecked ?? 0} of ${D.meta.segmentsTotal} segments.` : ''} Scores are 0–100 priority indices, not failure probabilities. Climate inputs are on a 10 km grid, so neighbouring kilometres share them; slope, plant cover and crossings are what differ per kilometre.`;
+  genAt.textContent = D.meta.name + ' · ' + D.meta.generatedAt.slice(0, 16).replace('T', ' ') + ' UTC';
+  sourcesSec.innerHTML = `<b style="font-weight:600;color:var(--ink-2)">Sources.</b> ${D.meta.synthetic ? '<b style="color:var(--amber);font-weight:600">Synthetic demo.</b> ' : ''}Open-Meteo archive and CMIP6 projections (${esc((D.meta.models || []).join(', '))}), Sentinel-2 NDVI (${esc(D.meta.dataSources?.ndvi || 'Copernicus Data Space')}), NASA POWER irradiance, OpenStreetMap. The $430k figure is an average ground-movement failure cost from water mains (not oil and gas) and $11.7M is one sourced rupture; other inputs are our assumptions. Thresholds and weights are provisional, for expert review.${D.meta.source === 'n8n Data Tables' ? ` ${OFFLINE ? 'Saved copy of' : 'Data served from'} n8n tables. ${esc(D.meta.note || '')} Hazards stored for this assessment: ${esc((D.meta.hazardsScored || ['ground']).join(', '))}${(D.meta.hazardsScored || []).length < 4 ? '; the others show why they have no score' : ''}. Waterway crossings checked on ${D.meta.crossingsChecked ?? 0} of ${D.meta.segmentsTotal} segments.` : ''} ${esc(D.meta.assessmentMethod || '')} ${D.meta.source !== 'n8n Data Tables' ? esc(D.meta.note || '') : ''} Scores are 0–100 priority indices, not failure probabilities. Climate inputs are on a 10 km grid, so neighbouring kilometres share them; slope, plant cover and crossings are what differ per kilometre.`;
+  if (D.meta.evidence?.length) sourcesSec.innerHTML += '<div style="margin-top:8px">Historical context: ' + D.meta.evidence.filter(e => /^https:\/\//.test(e.url)).map(e => `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a>`).join(' · ') + '. Historical disruption is context, not a claim of current damage.</div>';
   readConfig();
   addObservedStop();
   for (const s of D.segments) s.build = ENGINE.buildScore(s, s.risk.y10, cfg);
