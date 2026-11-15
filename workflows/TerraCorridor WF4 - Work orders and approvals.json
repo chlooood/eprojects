@@ -67,9 +67,9 @@
         "operation": "get",
         "dataTableId": {
           "__rl": true,
-          "cachedResultName": "tc_work_orders",
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "matchType": "allConditions",
         "filters": {
@@ -131,8 +131,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "matchType": "allConditions",
         "filters": {
@@ -176,8 +176,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -319,8 +319,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -475,8 +475,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -615,8 +615,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "matchType": "allConditions",
         "filters": {
@@ -690,8 +690,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -796,7 +796,9 @@
         "httpMethod": "POST",
         "path": "terracorridor/action",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "aa3a5f15-5d93-4e02-884d-6617e9a02d0e",
       "name": "POST /terracorridor/action",
@@ -920,12 +922,12 @@
     },
     {
       "parameters": {
-        "operation": "update",
+        "operation": "upsert",
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "e5ieUxeA0K3kjn14",
-          "cachedResultName": "tc_segments"
+          "value": "SET_ID_corridor_watch",
+          "cachedResultName": "corridor_watch"
         },
         "matchType": "allConditions",
         "filters": {
@@ -939,6 +941,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
+            "segment_id": "={{ $json.segment }}",
             "override_tier": "={{ $json.to_tier }}",
             "override_reason": "={{ $json.reason }}",
             "override_horizon": "={{ $json.horizon }}",
@@ -946,6 +949,15 @@
             "override_at": "={{ $json.received_at }}"
           },
           "schema": [
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
             {
               "id": "override_tier",
               "displayName": "override_tier",
@@ -991,7 +1003,8 @@
               "type": "dateTime",
               "canBeUsedToMatch": true
             }
-          ]
+          ],
+          "matchingColumns": []
         },
         "options": {}
       },
@@ -1010,8 +1023,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1135,8 +1148,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "matchType": "allConditions",
         "filters": {
@@ -1224,8 +1237,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1347,8 +1360,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1470,8 +1483,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1960,7 +1973,7 @@
     "availableInMCP": true,
     "timezone": "America/Vancouver"
   },
-  "versionId": "502f556c-3822-4472-a7f6-9a0739fd8a40",
+  "versionId": "d2871b69-97c1-4f53-a8d7-461e24696585",
   "meta": {
     "aiBuilderAssisted": true,
     "builderVariant": "mcp",
@@ -1973,7 +1986,6 @@
       "nodeIds": [
         "b08ff931-f28c-4562-81e4-b92d993e1011",
         "07f6bab8-7574-4d16-a2c9-f827f95e26d3",
-        "bb134a22-cd69-4bd5-8992-6decbff18da9",
         "4bc5b30a-1196-48c5-aa89-21cde728d718",
         "dac37e18-8df9-43e2-bd15-5fe915977208",
         "43bc0968-336b-4864-98ae-740c70068406",
