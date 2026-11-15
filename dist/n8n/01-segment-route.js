@@ -472,7 +472,7 @@ function findCrossings(segments, waterways) {
 // Build layer: solar + storage potential outside the exclusion band.
 function buildScore(seg, risk10, cfg = DEFAULTS) {
   const m = cfg.money;
-  if (seg.irradiance == null || seg.slopePct == null) return { score: null, tier: 'unverified' };
+  if (seg.irradiance == null || seg.slopePct == null || !risk10 || risk10.tier === 'unverified') return { score: null, tier: 'unverified' };
   // Panels go on a narrow strip outside the exclusion band, never the whole study area.
   const stripAcres = cfg.buildStripM == null ? seg.studyAreaAcres
     : Math.min(seg.studyAreaAcres ?? Infinity, ((seg.lengthM || cfg.segmentKm * 1000) * cfg.buildStripM) / 4046.86);

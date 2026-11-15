@@ -165,6 +165,10 @@ function buildCorridor(t, opts) {
       ? { tier: w.override_tier, reason: w.override_reason || '', horizon: w.override_horizon === 'y5' ? 5 : 10, by: w.override_by || null, at: w.override_at || null }
       : null;
     const wo = workOrders[s.segment_id];
+    const facts = wo ? parseJson(wo.facts_json, []) : [];
+    const fact = (prefix) => (Array.isArray(facts) ? facts : []).find((x) => typeof x === 'string' && x.startsWith(prefix))?.slice(prefix.length) || null;
+    const due = fact('Due by: ');
+    const checks = (Array.isArray(facts) ? facts : []).filter((x) => typeof x === 'string' && /^Check \d+: /.test(x)).map((x) => x.replace(/^Check \d+: /, ''));
     const p10 = (preds[s.segment_id] || {})['10'], p5 = (preds[s.segment_id] || {})['5'];
     return {
       id: s.segment_id, index: idx, kmFrom, kmTo, lengthM: Math.round(lengthM),
@@ -179,8 +183,10 @@ function buildCorridor(t, opts) {
       // What n8n actually recorded. 'approved' means stored in corridor_work_orders with that status, nothing more:
       // no email, no maintenance-system ticket and no crew dispatch happens in this MVP.
       workOrder: wo ? { id: wo.work_order_id, status: wo.status, priority: wo.priority, tier: wo.tier,
+        score: num(wo.score), dueBy: due ? due.slice(0, 10) : null, why: fact('Main driver: '),
+        checks: checks.length ? checks : null, mapUrl: fact('Location: '), hazard: fact('Worst hazard: '),
         summary: wo.summary || '', draftedAt: wo.drafted_at || null, decidedAt: wo.decided_at || null, decidedBy: wo.decided_by || null,
-        triggerSource: wo.trigger_source || null, storedIn: 'corridor_work_orders (n8n Data Table)',
+        triggerSource: wo.trigger_source || null, deliveryState: wo.delivery_state || 'not_configured', deliveryRecipient: wo.delivery_recipient || null, deliveryAcceptedAt: wo.delivery_accepted_at || null, storedIn: 'corridor_work_orders (n8n Data Table)',
         nextStep: wo.status === 'approved' ? 'Inspection coordinator exports the CSV from the Work orders page into the maintenance system' : wo.status === 'pending_approval' ? 'Waiting for the integrity manager to approve or reject' : 'None' } : null,
       sourceKind: s.source_kind || null,
     };
@@ -201,6 +207,7 @@ function buildCorridor(t, opts) {
     horizons: { y5: windowOf('y5') || [2026, 2030], y10: windowOf('y10') || [2026, 2035] },
     money,
   };
+  if (num(saved.buildStripM) !== null) config.buildStripM = num(saved.buildStripM);
   if (num(saved.maxBuildSlopePct) !== null) config.buildMaxSlopePct = num(saved.maxBuildSlopePct);
   if (num(saved.exclusionBandM) !== null) config.exclusionM = num(saved.exclusionBandM);
   if (num(saved.studyStripWidthM) !== null) config.studyStripM = num(saved.studyStripWidthM);
@@ -221,6 +228,7 @@ function buildCorridor(t, opts) {
     config,
     substations: [],
     segments,
+    audit: real(t.audit).filter((a) => segments.some((s) => s.id === a.segment_id)).map((a) => ({ at: a.logged_at, segment: a.segment_id, action: a.action || 'unknown', by: a.actor, details: parseJson(a.details_json, {}), note: 'stored in n8n' })),
   };
 }
 

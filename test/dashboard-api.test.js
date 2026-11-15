@@ -135,3 +135,12 @@ test('work order rows say what was recorded and what happens next, not that anyt
   assert.match(w.storedIn, /corridor_work_orders/); assert.match(w.nextStep, /coordinator exports the CSV/);
   assert.doesNotMatch(JSON.stringify(w), /sent|dispatch|delivered/i);
 });
+
+test('feed preserves approved work order facts, email status and corridor audit', () => {
+  const t = tables();
+  t.workOrders = [{ segment_id:'seg_1',work_order_id:'WO-facts',status:'approved',score:72,tier:'red',delivery_state:'provider_accepted',delivery_recipient:'coordinator@example.com',facts_json:JSON.stringify(['Due by: 2026-12-01 (P1)','Check 1: inspect culvert','Main driver: Heavy rain','Worst hazard: crossing','Location: https://www.google.com/maps?q=53,-113']) }];
+  t.audit = [{ segment_id:'seg_1',action:'inspection_email_accepted',logged_at:'2026-11-15T08:00:00Z',details_json:'{"dispatched":false}' }, { segment_id:'old_route',action:'approve' }];
+  const d=buildCorridor(t),w=d.segments[1].workOrder;
+  assert.equal(w.dueBy,'2026-12-01'); assert.equal(w.score,72); assert.deepEqual(w.checks,['inspect culvert']);
+  assert.equal(w.deliveryState,'provider_accepted'); assert.equal(d.audit.length,1); assert.equal(d.audit[0].details.dispatched,false);
+});

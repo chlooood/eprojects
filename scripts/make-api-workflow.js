@@ -15,7 +15,7 @@ const tref = (name) => ({ __rl: true, mode: 'id', value: wiring.tables[name] || 
 const HOOK = 'GET /terracorridor/corridor';
 const reads = [
   ['Get segments', 'corridor_segments'], ['Get baselines', 'corridor_baselines'], ['Get predictions', 'corridor_predictions'],
-  ['Get build', 'corridor_build'], ['Get build config', 'corridor_build_config'], ['Get watch state', 'corridor_watch'], ['Get work orders', 'corridor_work_orders'],
+  ['Get build', 'corridor_build'], ['Get build config', 'corridor_build_config'], ['Get watch state', 'corridor_watch'], ['Get work orders', 'corridor_work_orders'], ['Get audit', 'corridor_audit'],
 ];
 const code = `${src}
 
@@ -24,7 +24,7 @@ const rows = (name) => { try { return $(name).all().map((i) => i.json).filter((j
 const q = $('${HOOK}').first().json.query || {};
 return [{ json: buildCorridor({
   segments: rows('Get segments'), baselines: rows('Get baselines'), predictions: rows('Get predictions'), build: rows('Get build'),
-  buildConfig: rows('Get build config'), watch: rows('Get watch state'), workOrders: rows('Get work orders'),
+  buildConfig: rows('Get build config'), watch: rows('Get watch state'), workOrders: rows('Get work orders'), audit: rows('Get audit'),
 }, { corridorId: q.corridor || undefined, name: q.name || undefined }) }];
 `;
 

@@ -135,10 +135,12 @@ test('buildScore: flat sunny land near a substation is green; steep land is excl
   // A strip wider than the study area is capped at the study area.
   const wide = E.buildScore(s, { tier: 'green' }, E.mergeConfig({ buildStripM: 5000 }));
   assert.ok(Math.abs(wide.usableAcres - 98.8) < 0.01);
+  assert.equal(E.buildScore(s, { tier: 'unverified' }).tier, 'unverified');
+  assert.equal(E.buildScore(s, null).tier, 'unverified');
   assert.equal(b.partnerYr + b.operatorYr, b.leaseYr);
   const halved = E.buildScore(s, { tier: 'red' });
   assert.ok(Math.abs(halved.score - b.score / 2) < 0.1);
-  assert.equal(E.buildScore({ ...s, slopePct: 12 }, null).tier, 'excluded');
+  assert.equal(E.buildScore({ ...s, slopePct: 12 }, { tier: 'green' }).tier, 'excluded');
 });
 
 test('moneyForSegment: higher score means higher expected loss; a work order avoids 75% of it', () => {
