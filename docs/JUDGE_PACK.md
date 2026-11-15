@@ -6,7 +6,7 @@ Audit and verification of Sun Nov 15 2026, about 1:00 AM PT. Everything here was
 
 The core journey runs end to end on real cached data, the scoring is consistent across the engine, the API and n8n, and the page tells the truth about what an approval does. Three things to disclose or fix before recording:
 
-1. **Deployed page.** `hilarious-truffle-59e8b1.netlify.app` served the old build when last checked. Deploy `deploy/index.html` from `main`. The other site (`snazzy-profiterole-8a4e56`) is behind a Netlify password wall: judges cannot open it.
+1. **Use the right link.** `hilarious-truffle-59e8b1.netlify.app` serves the new build and was verified live. The other site (`snazzy-profiterole-8a4e56`) is behind a Netlify password wall: judges cannot open it. Do not submit that one.
 2. **Wildfire and drought have scores on 1 of 23 segments.** Three of the four climate cells were cached before humidity was added, and Open-Meteo's free daily limit ran out. Those rows say why. `docs/HAZARD_DATA.md` is the 5-minute fix from another network.
 3. **The Build (solar) tab is empty on the live corridor.** W5 has not written `corridor_build`, so there is no irradiance. Show solar on the synthetic demo file only, and say it is a screening layer.
 
@@ -37,7 +37,8 @@ Critical journeys:
 | Flagged segment to recorded work order | PASS, live | `POST /webhook/terracorridor/action` returned 200 and `WO-seg_6d571cf3a55233b2-MWHJKNED` |
 | Duplicate approval suppressed | PASS, live | Second identical POST returned the same ID, `duplicate: true` |
 | Refused action logged | PASS, live | Unknown action returned 400 with the allowed list |
-| Work order visible on the Work orders page and in the CSV | PASS on the built page offline; UNVERIFIED on the deployed site | Headless Chrome run of `deploy/index.html` with the network off |
+| Work order visible on the Work orders page | PASS, live | Deployed page lists `WO-seg_6d571cf3a55233b2-MWHJKNED` as "Approved · recorded in n8n · awaiting CSV export". The CSV button was exercised offline only |
+| Approve button clicked on the deployed page | UNVERIFIED | The test order was sent with the same payload by API call, not by clicking, to keep a fresh segment for the recording |
 | WF3 dry run against a real forecast | UNVERIFIED | Not executed. Open-Meteo refuses n8n Cloud, so it would log "unverified" |
 | WF4 Wait and resume path (WF3 draft, then approve) | UNVERIFIED after import | Worked before the import (audit rows of 06:05 to 06:44 UTC). Code unchanged |
 | AI explanation for a flagged segment | PASS, live | Gemini text on km 0 to 1 restates the stored numbers |
@@ -106,7 +107,9 @@ Quantifiable result to state: **22.0 km assessed, 23 of 23 segments verified, 6 
 
 ## 7. Evidence
 
-- **Deployed UI viewed in the browser pane:** `hilarious-truffle-59e8b1.netlify.app/#/triage/seg_845aa328f339f748` (old build). Saw 23 of 23 segments High at 2036, all "heavy rain +15%", hazard rows "no data", and a console error in `updateAnnotations`. The new build was exercised in headless Chrome from the repo, online data and offline, with no console errors; it has not been clicked through on Netlify.
+- **Deployed UI, before:** `hilarious-truffle-59e8b1.netlify.app/#/triage/seg_845aa328f339f748` in the browser pane. 23 of 23 segments High at 2036, all "heavy rain +15%", hazard rows "no data", a console error in `updateAnnotations`.
+- **Deployed UI, after (same site, new build):** badge "Live from n8n", run 07:55 UTC. Today, 2031 and 2036 each show 1 Medium and 22 Low. km 0 to 1 shows four scored hazard rows (ground 31, crossing 41, wildfire 27, drought 0), the Gemini explanation and the horizon note. A segment in an older cache cell shows ground and crossing scores and "unavailable" with the reason for the other two. Overview, Triage, Money, Build and Work orders opened with no new page errors. Build shows 0 MW (no irradiance). The Work orders audit list is empty in live mode because the feed does not serve `corridor_audit`.
+- **Offline:** the built page was run in headless Chrome with the network off: "Offline snapshot" badge, 23 segments, local-only approval wording, no errors.
 - **snazzy-profiterole-8a4e56.netlify.app:** HTTP 401, password wall. Not viewed.
 - **n8n, read through the owner's signed-in session:** 9 workflows, 11 Data tables. Published: API feed, WF4, WF3, W2. Unpublished: W1, W5, both seed workflows. One archived older WF4.
 - **Executions:** 80 (Seed, success), 81 (W2, success, 31 s), 79 (WF4 webhook, the refused test action).
