@@ -13,6 +13,7 @@ Three things it does, in order of importance:
 2. **Cost prioritization.** A ranked shortlist for a limited inspection budget, with scenario maths for expected loss. Scenarios, not measured savings.
 3. **Conditional solar screening.** Never counted in the pipeline-protection case.
 4. **Renewables screening page** (`renewables.html`): solar and wind map layers for both pipelines, a transparent score with input coverage, fail-closed missing data, and editable revenue scenarios. Separate from pipeline risk. See [docs/RENEWABLES.md](docs/RENEWABLES.md).
+5. **Offline judge walkthrough** (`deploy/demo.html`): problem, solution, the n8n workflow loop, approval, renewables money and the buildathon requirements, with every number read from the repo at build time (`scripts/make-demo-page.js`, run by `npm run build`).
 
 **AI explains. Rules (or a small, visible learned model) decide. People approve.**
 

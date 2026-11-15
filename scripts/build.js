@@ -147,3 +147,6 @@ Write exactly two sentences: what is driving the risk, and what a field crew sho
 };
 for (const [name, body] of Object.entries(nodes)) write(`dist/n8n/${name}`, header + body.trimStart());
 console.log('built dist/dashboard.html' + (snap ? ' (with offline snapshot)' : ' (no snapshot yet)') + (wiring.apiBase ? ', deploy/index.html' : '') + ', dist/dashboard-demo.html, dist/n8n/', Object.keys(nodes).join(', '));
+
+// Offline judge walkthrough (deploy/demo.html, dist/demo.html), numbers read from the repo.
+require('./make-demo-page.js');
