@@ -64,7 +64,7 @@ function buildCorridor(t, opts) {
   const cfgRow = real(t.buildConfig).filter((r) => !r.corridor_id || r.corridor_id === corridorId)[0];
   const saved = cfgRow ? parseJson(cfgRow.config_json, {}) || {} : {};
 
-  let kmCursor = 0, latestComputed = '', synthetic = false;
+  let kmCursor = 0, latestComputed = '', synthetic = false, cachedOsm = false;
   const segments = segs.map((s, idx) => {
     const lengthM = num(s.length_m) || 0;
     const kmFrom = rnd(kmCursor, 3);
@@ -72,6 +72,7 @@ function buildCorridor(t, opts) {
     const kmTo = rnd(kmCursor, 3);
     const g = geometryOf(s);
     if (/fixture|fallback|synthetic/i.test(String(s.source_kind || ''))) synthetic = true;
+    if (/osm_cached/i.test(String(s.source_kind || ''))) cachedOsm = true;
 
     const b = baselines[s.segment_id] || {};
     const bd = build[s.segment_id] || {};
@@ -164,7 +165,7 @@ function buildCorridor(t, opts) {
   if (num(saved.gridEmissionFactor) !== null) money.gridEmissionFactor = num(saved.gridEmissionFactor);
   const config = {
     weights: { rain: W_RAIN, freezeThaw: W_FT, saturation: W_SAT, vegetation: W_VEG, slope: W_SLOPE },
-    tiers: { amber: 40, red: 65 }, ndviDropFull: 0.1, slopeFullPct: 10,
+    tiers: { amber: 40, red: 50 }, ndviDropFull: 0.1, slopeFullPct: 10,
     horizons: { y5: [2026, 2031], y10: [2026, 2036] },
     money,
   };
@@ -178,7 +179,9 @@ function buildCorridor(t, opts) {
       name: opts.name || corridorId, corridorId, synthetic,
       note: synthetic
         ? 'Route is the embedded fallback fixture (Overpass failed or was not used). Weather history is cached from a laptop run. Scores come from n8n W2.'
-        : 'Route from OpenStreetMap via W1. Scores come from n8n W2.',
+        : cachedOsm
+          ? 'Route is real OpenStreetMap data (Trans-Northern pipeline), cached from a laptop run because Overpass times out from n8n Cloud. Weather history is also cached from a laptop run. Scores come from n8n W2.'
+          : 'Route from OpenStreetMap via W1. Scores come from n8n W2.',
       models: MODELS, generatedAt: latestComputed || now, servedAt: now,
       source: 'n8n Data Tables', segmentsTotal: segments.length, segmentsVerified: verified,
     },
