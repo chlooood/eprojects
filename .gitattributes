@@ -1,0 +1,4 @@
+# Keep data and JSON byte-identical on every OS.
+# The BC integrity check hashes these files, so Windows CRLF conversion breaks it.
+data/** text eol=lf
+*.json text eol=lf
