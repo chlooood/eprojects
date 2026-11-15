@@ -117,9 +117,10 @@ test('WF4 turns an escalated WF3 item into a fact sheet and a work order', async
 
 test('WF4 manager-requested inspection: approve with no pending draft records one approved order, and a repeat is suppressed', async () => {
   const body = { at: 'x', segment: 'seg_g', action: 'approve_work_order', score: 38.2, by: 'operator (demo)',
-    details: { stop: 'y10', tier: 'green', priority: 'P3', dueBy: '2027-05-14', hazard: 'ground', why: 'Wet-soil days +40%', checks: ['Walk the right-of-way', 'x'.repeat(999)], mapUrl: 'https://www.openstreetmap.org/?mlat=53.4&mlon=-113.4#map=15/53.4/-113.4' } };
+    details: { stop: 'y10', tier: 'green', priority: 'P3', dueBy: '2027-05-14', hazard: 'ground', why: 'Wet-soil days +40%', checks: ['Walk the right-of-way', 'x'.repeat(999)], mapUrl: 'https://www.google.com/maps?q=53.3381665,-113.480958' } };   // the exact form src/engine.js workOrder() builds
   const v = (await run(WF4, 'Validate action', { input: [{ body }] }))[0].json;
   assert.equal(v.ok, true); assert.equal(v.req_priority, 'P3'); assert.equal(v.req_checks[1].length, 240);
+  assert.equal(v.req_map, body.details.mapUrl, 'the map link the dashboard sends is kept');
   assert.equal((await run(WF4, 'Validate action', { input: [{ body: { ...body, details: { ...body.details, mapUrl: 'https://evil.example/x' } } }] }))[0].json.req_map, '');
   const fresh = (await run(WF4, 'Build manager work order', { nodes: { 'Validate action': [v] }, input: [{}] }))[0].json;
   assert.equal(fresh.duplicate, false); assert.equal(fresh.status, 'approved'); assert.equal(fresh.trigger_source, 'manager');
