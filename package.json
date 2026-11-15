@@ -28,7 +28,8 @@
     "check-bc-forecast": "node scripts/check-bc-forecast.js",
     "verify-bc-inputs": "node scripts/verify-bc-inputs.js",
     "record-bc-inputs": "node scripts/verify-bc-inputs.js --record",
-    "verify-bc-route": "node scripts/verify-bc-route.js"
+    "verify-bc-route": "node scripts/verify-bc-route.js",
+    "refresh-bc-climate": "node scripts/refresh-bc-climate.js"
   },
   "devDependencies": {
     "playwright": "1.62.1"

@@ -41,6 +41,7 @@ async function main(){
   const centroid=[(s.centreline[0][0]+s.centreline.at(-1)[0])/2,(s.centreline[0][1]+s.centreline.at(-1)[1])/2];
   const cell=(Math.round(centroid[1]*10)/10).toFixed(2)+'_'+(Math.round(centroid[0]*10)/10).toFixed(2);
   if(!climate.some(c=>c.cell_key===cell))throw Error('Missing climate cell '+cell);
+  { const c=climate.find(x=>x.cell_key===cell); if(!/\|v3$/.test(c.config_signature||'')) throw Error('Climate cell '+cell+' was condensed with the old overlapping windows ('+String(c.config_signature).split('|').pop()+'). Run: npm run refresh-bc-climate'); }
   const xs=crossings.segments[s.id];if(!Array.isArray(xs))throw Error('Crossing evidence missing');
   inputSegments.push({segment_id:s.id,corridor_id:CID,segment_index:i,length_m:s.lengthM,centroid_lat:centroid[1],centroid_lon:centroid[0],cell_key:cell,valid:true,validation_errors:[],elevation_url:elevation.url,segment_source_hash:sha(s.centreline),crossings_json:JSON.stringify(xs.map(x=>({...x,peakFlowM3s:null}))),prior_ndvi_series_json:JSON.stringify(series),prior_ndvi_hash:sha(series),prior_ndvi_source:'earthsearch_c1_sentinel2_cached'});
   const raw=JSON.stringify({elevation:[values[0],values.at(-1)]});elevInputs.push({data:raw,raw_hash:sha(raw)});
