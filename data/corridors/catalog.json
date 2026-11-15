@@ -1,7 +1,7 @@
 {
-  "default": "ab-strathcona-demo",
+  "default": "bc-coquihalla",
   "corridors": [
-    { "id": "bc-coquihalla", "name": "Coquihalla · scores pending rescore", "snapshot": "data/corridors/bc-coquihalla/assessment.json" },
+    { "id": "bc-coquihalla", "name": "Coquihalla · mountain corridor", "snapshot": "data/corridors/bc-coquihalla/assessment.json" },
     { "id": "ab-strathcona-demo", "name": "Edmonton · reference corridor", "snapshot": "data/snapshot/live-snapshot.json" }
   ]
 }

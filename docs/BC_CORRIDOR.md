@@ -101,8 +101,8 @@ Current evidence: 53 tests pass; both browser suites pass; 11 top-level workflow
 
 ## Suggested demonstration
 
-1. BC at five years: 12 Medium; each hazard has real inputs or its limitation.
-2. Switch to ten years: four river-crossing segments reach High. Open km 6–7 and show crossing score 67.6, ground score 27.9, 12.7% net grade and 33.2% maximum sampled grade.
+1. BC, 2026–30: 12 Medium; each hazard has real inputs or its limitation.
+2. Switch to 2031–35: four river-crossing segments reach High. Open km 6–7 and show crossing score 79, ground score 38.6 and 12.7% net grade (check the maximum sampled grade on the page).
 3. Explain the one shared climate cell and the missing discharge/2022 imagery. Historical floods motivate the geography; this model did not predict or reproduce that incident.
 4. Switch to Edmonton: 23 preserved segments, mostly Low under identical thresholds.
 5. Show the actual approval/CSV/email journey only in live n8n mode; use the prepared badge and offline state to demonstrate resilience separately.
