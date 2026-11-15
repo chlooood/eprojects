@@ -1,0 +1,266 @@
+{
+  "name": "TerraCorridor Seed - Solar inputs",
+  "nodes": [
+    {
+      "id": "solar-trigger",
+      "name": "Load solar inputs",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "solar-code",
+      "name": "Real solar build rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// NASA POWER climatology + live W2 terrain/risk, calculated with W5 calcBuild. No dispatch or land-rights claim.\nconst rows=[{\"segment_id\":\"seg_6d571cf3a55233b2\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":59.8,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.3,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"amber\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_51da2a98f4cc6bf0\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":59.8,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.3,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_59c95053d75fc7c4\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":59.2,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.5,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_df19fceaf79e73fc\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":58.9,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.6,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_4e670052ff543951\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":60.1,\"build_tier\":\"green\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.2,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_845aa328f339f748\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":60.4,\"build_tier\":\"green\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.1,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_312ff0223dd91553\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":60.4,\"build_tier\":\"green\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.1,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_4cf3c2ccdc852418\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":60.4,\"build_tier\":\"green\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.1,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_c6329a1d128b3b13\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":57.1,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":1.2,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_b8c9a6ba853a2ede\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":60.4,\"build_tier\":\"green\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.1,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_31e17a2ec605926e\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":58.9,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.6,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_b912011359d1ca1e\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":58.3,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.8,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_256569ab8a09736e\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":58.6,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.7,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_d2ee6bc89f017ed2\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":59.2,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.5,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_77fb173e94fdf499\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":60.7,\"build_tier\":\"green\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_5cf71be59789f5f4\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":59.2,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.5,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_704bc3cea3492f8f\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":59.5,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.4,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_280090cdc09bd806\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":59.5,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.4,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_3c6cddf80e4d0321\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":58.9,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.6,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_0716777699fe8121\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":58.6,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.7,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_afc19907173cd40e\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":60.1,\"build_tier\":\"green\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.2,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_b629ccc517af6147\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":59.2,\"build_tier\":\"amber\",\"usable_acres\":14.826,\"irradiance\":3.513,\"slope_pct\":0.5,\"substation_km\":null,\"mw\":2.4711,\"mwh_per_year\":2534.5,\"annual_lease_revenue\":8895.79,\"partner_annual_revenue\":4447.9,\"operator_annual_revenue\":4447.9,\"avoided_tco2_per_year\":1267.3,\"gross_power_value\":152070.51,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]},{\"segment_id\":\"seg_cb5ad322b2cc12de\",\"corridor_id\":\"ab-strathcona-demo\",\"build_score\":60.7,\"build_tier\":\"green\",\"usable_acres\":0.297,\"irradiance\":3.513,\"slope_pct\":0,\"substation_km\":null,\"mw\":0.0494,\"mwh_per_year\":50.7,\"annual_lease_revenue\":177.92,\"partner_annual_revenue\":88.96,\"operator_annual_revenue\":88.96,\"avoided_tco2_per_year\":25.3,\"gross_power_value\":3041.41,\"risk10_tier\":\"green\",\"data_status\":\"provisional\",\"data_labels\":\"{\\\"irradiance\\\":\\\"cached_nasa_power\\\",\\\"slope\\\":\\\"w2_live\\\",\\\"risk10\\\":\\\"w2_provisional_model\\\",\\\"substation\\\":\\\"unavailable\\\",\\\"geometry\\\":\\\"w1_live\\\",\\\"usable_area_method\\\":\\\"approximation: length_m x total panel width (60 m default), capped by both study strips; outside the exclusion band\\\",\\\"power_price\\\":\\\"sample assumption\\\"}\",\"calculated_at\":\"2026-11-15T09:06:06.914Z\",\"missing_inputs\":[]}];\nreturn rows.map(json=>({json}));"
+      }
+    },
+    {
+      "id": "solar-save",
+      "name": "Upsert real build rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "E1GpvXaFTP4qLjsW",
+          "cachedResultName": "corridor_build"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "segment_id",
+              "keyValue": "={{ $json.segment_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "segment_id": "={{ $json.segment_id }}",
+            "corridor_id": "={{ $json.corridor_id }}",
+            "build_score": "={{ $json.build_score }}",
+            "build_tier": "={{ $json.build_tier }}",
+            "usable_acres": "={{ $json.usable_acres }}",
+            "irradiance": "={{ $json.irradiance }}",
+            "slope_pct": "={{ $json.slope_pct }}",
+            "substation_km": "={{ $json.substation_km }}",
+            "mw": "={{ $json.mw }}",
+            "mwh_per_year": "={{ $json.mwh_per_year }}",
+            "annual_lease_revenue": "={{ $json.annual_lease_revenue }}",
+            "partner_annual_revenue": "={{ $json.partner_annual_revenue }}",
+            "operator_annual_revenue": "={{ $json.operator_annual_revenue }}",
+            "avoided_tco2_per_year": "={{ $json.avoided_tco2_per_year }}",
+            "gross_power_value": "={{ $json.gross_power_value }}",
+            "risk10_tier": "={{ $json.risk10_tier }}",
+            "data_status": "={{ $json.data_status }}",
+            "data_labels": "={{ $json.data_labels }}",
+            "calculated_at": "={{ $json.calculated_at }}"
+          },
+          "schema": [
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "corridor_id",
+              "displayName": "corridor_id",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "build_score",
+              "displayName": "build_score",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "build_tier",
+              "displayName": "build_tier",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "usable_acres",
+              "displayName": "usable_acres",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "irradiance",
+              "displayName": "irradiance",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "slope_pct",
+              "displayName": "slope_pct",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "substation_km",
+              "displayName": "substation_km",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mw",
+              "displayName": "mw",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mwh_per_year",
+              "displayName": "mwh_per_year",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "annual_lease_revenue",
+              "displayName": "annual_lease_revenue",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "partner_annual_revenue",
+              "displayName": "partner_annual_revenue",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "operator_annual_revenue",
+              "displayName": "operator_annual_revenue",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "avoided_tco2_per_year",
+              "displayName": "avoided_tco2_per_year",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gross_power_value",
+              "displayName": "gross_power_value",
+              "type": "number",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "risk10_tier",
+              "displayName": "risk10_tier",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data_status",
+              "displayName": "data_status",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data_labels",
+              "displayName": "data_labels",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "calculated_at",
+              "displayName": "calculated_at",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Load solar inputs": {
+      "main": [
+        [
+          {
+            "node": "Real solar build rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Real solar build rows": {
+      "main": [
+        [
+          {
+            "node": "Upsert real build rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
