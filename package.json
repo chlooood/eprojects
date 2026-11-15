@@ -4,7 +4,7 @@
   "private": true,
   "description": "Self-running pipeline corridor risk dashboard. UBC eProjects x n8n LOOP buildathon.",
   "scripts": {
-    "test": "node --test test/engine.test.js test/dashboard-api.test.js test/workflows.test.js",
+    "test": "node --test test/engine.test.js test/dashboard-api.test.js test/workflows.test.js test/corridors.test.js",
     "demo": "node scripts/make-demo.js",
     "build": "node scripts/build.js && node scripts/make-api-workflow.js",
     "features": "node ml/features.js",
@@ -21,7 +21,15 @@
     "fetch-forecasts": "node scripts/fetch-forecasts.js",
     "fetch-solar": "node scripts/fetch-solar.js",
     "check-forecast": "node scripts/check-forecast.js",
-    "test:browser": "node scripts/smoke-browser.js"
+    "test:browser": "node scripts/smoke-browser.js",
+    "prepare-bc": "node scripts/prepare-bc-corridor.js && node scripts/make-bc-seed.js",
+    "test:corridors": "node scripts/smoke-corridors.js",
+    "refresh-bc-weather": "node scripts/refresh-bc-weather.js && npm run prepare-bc",
+    "check-bc-forecast": "node scripts/check-bc-forecast.js",
+    "verify-bc-inputs": "node scripts/verify-bc-inputs.js",
+    "record-bc-inputs": "node scripts/verify-bc-inputs.js --record",
+    "verify-bc-route": "node scripts/verify-bc-route.js",
+    "refresh-bc-climate": "node scripts/refresh-bc-climate.js"
   },
   "devDependencies": {
     "playwright": "1.62.1"

@@ -1,0 +1,15 @@
+[
+  {
+    "cell_key": "49.40_-121.30",
+    "cell_lat": 49.4,
+    "cell_lon": -121.3,
+    "config_signature": "1995-01-01|2025-12-31|2026-01-01|2035-12-31|MRI_AGCM3_2_S,EC_Earth3P_HR,MPI_ESM1_2_XR|v2",
+    "archive_hash": "8803d3bcb3c3d5528a8b28142f30541bd0665a10dc79e90c000cf2ac09a2b9d0",
+    "climate_hash": "c281a3c8b096e65882ccc312308ad4a3b4d7e078338f158d6f2cd1f0c494667a",
+    "archive_url": "https://archive-api.open-meteo.com/v1/archive?latitude=49.4&longitude=-121.3&start_date=1995-01-01&end_date=2025-12-31&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_7cm_mean,relative_humidity_2m_min&timezone=UTC",
+    "climate_url": "https://climate-api.open-meteo.com/v1/climate?latitude=49.4&longitude=-121.3&start_date=1995-01-01&end_date=2035-12-31&models=MRI_AGCM3_2_S,EC_Earth3P_HR,MPI_ESM1_2_XR&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_10cm_mean,relative_humidity_2m_min",
+    "archive_metrics_json": "{\"ok\":true,\"error\":\"\",\"hash\":\"8803d3bcb3c3d5528a8b28142f30541bd0665a10dc79e90c000cf2ac09a2b9d0\",\"rainP95\":25.319999999999983,\"soilP90\":0.419,\"soilP10\":0.238,\"base\":{\"rain\":8.580455709617592,\"ft\":119.54574759339398,\"sat\":36.2572639759781,\"dry\":36.28952132826989,\"spell\":20.741935483870968,\"fire\":19.773756954870617},\"fetched_at\":\"2026-11-15T09:26:34.886Z\"}",
+    "climate_metrics_json": "{\"ok\":true,\"error\":\"\",\"hash\":\"c281a3c8b096e65882ccc312308ad4a3b4d7e078338f158d6f2cd1f0c494667a\",\"models\":{\"MRI_AGCM3_2_S\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":1.0124058385676287,\"ft\":0.9395432971555643,\"sat\":1.0656172971760731,\"dry\":1.4248588605759938,\"spell\":1.1236673773987207,\"fire\":1.334197425398415},\"10\":{\"rain\":1.3076908748165201,\"ft\":0.9581156646574766,\"sat\":1.1903171936541246,\"dry\":1.2310780555376586,\"spell\":1.0840085287846482,\"fire\":1.2659714206905415}}},\"EC_Earth3P_HR\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":0.8792442497261773,\"ft\":0.9677265914546344,\"sat\":0.8085713140811583,\"dry\":1.286374705786395,\"spell\":0.8768571428571429,\"fire\":1.433561224369619},\"10\":{\"rain\":0.9255202628696603,\"ft\":0.9518622211029191,\"sat\":0.8260224935217588,\"dry\":1.3276046643051898,\"spell\":1.0628571428571427,\"fire\":1.377996835828161}}},\"MPI_ESM1_2_XR\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":1.2031763417305585,\"ft\":0.934715222658362,\"sat\":null,\"dry\":null,\"spell\":1.1932075471698114,\"fire\":null},\"10\":{\"rain\":1.2263143483023,\"ft\":0.8646115809589849,\"sat\":null,\"dry\":null,\"spell\":1.0255345911949687,\"fire\":null}}}},\"fetched_at\":\"2026-11-15T09:27:42.054Z\"}",
+    "fetched_at": "2026-11-15T09:27:42.056Z"
+  }
+]

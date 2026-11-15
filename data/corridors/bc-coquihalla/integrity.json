@@ -1,0 +1,26 @@
+{
+  "recordedAt": "2026-11-15T17:36:51.513Z",
+  "method": "SHA-256 of cached source records; audit URLs and raster-window hashes are retained separately",
+  "files": {
+    "climate-cells.json": "7499c906f9272443e2f371a9068147c18dbad4a75787eefc70cab57de726e3e9",
+    "crossings.json": "6ebd1a458762c3aa9f987324b42f3b6ea10f4635f0e46cdbb3531b780ee8a2d7",
+    "elevation.json": "2c8d70d79b585c405ae01be1f0ca535673c732815911c6adbaad595c3528d0e2",
+    "ndvi.json": "6d30a5d5c27ec1cd408f4ba4cd36e17550c4b75833f9106a2af4925519340550",
+    "raw/ndvi-2021-06.json": "2804415cea39b425b5c427059226faffebc4723b5cef285a0db827359671a1cd",
+    "raw/ndvi-2021-07.json": "a69f21f0046a84267cb342c561c48a1aa30a32f2f98cf12bcd3143839fc68b90",
+    "raw/ndvi-2021-08.json": "61c879494f7461eecf33b7f0ed05322e422df633fc0af3a7059e36910b9e0887",
+    "raw/ndvi-2023-06.json": "63445f3415e590d43059dfb3db8baf18052e644da86541d015b9b9c4449a3fa0",
+    "raw/ndvi-2023-07.json": "49f41f848a5988c49a3febf83abeade37ed4b5c63908df5acd0daaf73d4072e9",
+    "raw/ndvi-2023-08.json": "286a92a2558fece81cb3710f69983557fc4ed92b10703a5a8e79ddcf4d0f139e",
+    "raw/ndvi-2024-06.json": "642160692baeb5ea645ca5270350cdba744966456be6caf2a438dfde373c39e4",
+    "raw/ndvi-2024-07.json": "a7f513a32d9b16b08569d269e74fdc153b37d3d980946e6e672e32fc5aca3a8e",
+    "raw/ndvi-2024-08.json": "81cc67b2f6b565ff489fceb05694fac9cc414935b869308534e4926b55479c6c",
+    "raw/ndvi-2025-06.json": "fbef084faf5f0d3886027590a5730c1378516a1066ed09d5d8a5de71d5530ae8",
+    "raw/ndvi-2025-07.json": "62c82bc4e0aca6966cc62217baa9799acf3e5aa18bd42c483c45feb8561aee68",
+    "raw/ndvi-2025-08.json": "7fea4b678892dcfe91d2a75d1a440ace8387f5ce6a6a41aeda0319d011aafe1c",
+    "raw/osm-way.json": "7a11e89a41b55471618a867eba53bfc1027d89fc2e93b1b275bfd6a2a1dfc470",
+    "raw/waterways.json": "9df9ac39a7753f23c9383cfb795c714bb4d40fc70fc6f5eb4b4177b248a94c7f",
+    "route.json": "79342a3e5ee373bf07c03b94dc19672fe8e187bcfbd3266ee6a4d2ac45cb5dd4",
+    "solar.json": "012454e6621c53a1544ea7f9b0dd6e4ce67c54d74b11e97bbdefc626ebd113c6"
+  }
+}

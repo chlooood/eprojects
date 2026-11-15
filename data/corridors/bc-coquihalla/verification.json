@@ -1,0 +1,43 @@
+{
+  "corridorId": "bc-coquihalla",
+  "segments": 12,
+  "km": 12,
+  "climateCells": [
+    "49.40_-121.30"
+  ],
+  "ndviMonths": [
+    "2021-06",
+    "2021-07",
+    "2021-08",
+    "2023-06",
+    "2023-07",
+    "2023-08",
+    "2024-06",
+    "2024-07",
+    "2024-08",
+    "2025-06",
+    "2025-07",
+    "2025-08"
+  ],
+  "thresholds": {
+    "amber": 40,
+    "red": 65,
+    "ratioFull": 0.5
+  },
+  "tiers": {
+    "y5": {
+      "amber": 12
+    },
+    "y10": {
+      "red": 4,
+      "amber": 8
+    }
+  },
+  "sourceHashes": {
+    "route": "adb62fb4c4c89f4e5c2bf6587d28eeb8788f8ba39f2910e6457dfe6b98cfb182",
+    "climate": "430c3d3618618b4841c1dd57061ed95998cdc8aa54b5cd10ab6ce0cbc4c076b7",
+    "elevation": "3f14bc6db3c4d24d2686ae0728806493ed9cf512045b142ee1b09fb6049a69e3",
+    "ndvi": "2083a02ae0b029bc04faef6c2c03e06dff042248259fefecc7bb94e765948bf7",
+    "crossings": "023ff03642625498be37d627113cb74dcf01ef5317a74fecde6472e350aa2685"
+  }
+}

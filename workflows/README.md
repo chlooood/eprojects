@@ -51,3 +51,7 @@ You do not need to re-import W1 or W2 if they already run. The repo copy of W1 n
 - **Overrides are per horizon.** A tier override at `y10` does not change the `y5` tier.
 - **W6 is not in the repo.** W5's shared adapter block says there is an identical copy in W6. If W6 exists, run its copy of the block through `scripts/wire-workflows.js` too (it matches on the `integrations` object).
 - Each export has `active` set as its author left it. n8n ignores that on import. Publish what you need.
+
+## Coquihalla comparison corridor
+
+The new manual-only **TerraCorridor Seed - Coquihalla assessment** (15 nodes) upserts only BC rows, preserving Edmonton. The updated API has 12 nodes. See [BC evidence and activation](../docs/BC_CORRIDOR.md) before importing. The seed includes cached real inputs; it does not run other workflows or send mail.

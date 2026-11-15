@@ -41,7 +41,7 @@ function geometryOf(seg) {
   if (st && st.geometry && st.geometry.type === 'MultiPolygon') {
     for (const poly of st.geometry.coordinates) for (const ring of poly) { areaM2 += ringAreaM2(ring); studyPolygon = studyPolygon.concat(ring); }
   }
-  return { centreline, studyPolygon, studyAreaAcres: areaM2 > 0 ? rnd(areaM2 / 4046.8564224, 1) : null };
+  return { centreline, studyPolygon, terrain: cl?.properties?.terrain || null, studyAreaAcres: areaM2 > 0 ? rnd(areaM2 / 4046.8564224, 1) : null };
 }
 
 function buildCorridor(t, opts) {
@@ -174,7 +174,7 @@ function buildCorridor(t, opts) {
       id: s.segment_id, index: idx, kmFrom, kmTo, lengthM: Math.round(lengthM),
       centreline: g.centreline, studyPolygon: g.studyPolygon.length ? g.studyPolygon : g.centreline,
       studyAreaAcres: g.studyAreaAcres,
-      baseline, projections, slopePct, ndvi, ndviSeries, crossings, crossingsChecked,
+      cell: b.cell_key || null, baseline, projections, slopePct, terrain: g.terrain, ndvi, ndviSeries, crossings, crossingsChecked,
       irradiance: num(bd.irradiance), substationKm: num(bd.substation_km),
       risk,
       explanation: String((p10 && p10.explanation) || (p5 && p5.explanation) || ''),
@@ -200,6 +200,8 @@ function buildCorridor(t, opts) {
   if (num(saved.gridEmissionFactor) !== null) money.gridEmissionFactor = num(saved.gridEmissionFactor);
   const windowOf = (k) => { const s = segments.find((x) => x.risk[k] && x.risk[k].window && x.risk[k].window[0]); return s ? s.risk[k].window : null; };
   const hazardsLive = ['ground', 'crossing', 'wildfire', 'drought'].filter((k) => segments.some((x) => x.risk.y10.hazards && x.risk.y10.hazards[k]));
+  const manifestRow = real(t.sources).filter(r => r.corridor_id === corridorId && r.source_kind === 'corridor_manifest').sort((a,b) => String(b.fetched_at || '').localeCompare(String(a.fetched_at || '')))[0];
+  const manifest = manifestRow ? (parseJson(manifestRow.fallback_reason, {}) || {}) : {};
   const config = {
     weights: { rain: W_RAIN, freezeThaw: W_FT, saturation: W_SAT, vegetation: W_VEG, slope: W_SLOPE },
     tiers: TIERS, ratioFull: RATIO_FULL, ndviDropFull: 0.1, slopeFullPct: 10,
@@ -215,12 +217,15 @@ function buildCorridor(t, opts) {
   const verified = segments.filter((s) => s.risk.y10.tier !== 'unverified').length;
   return {
     meta: {
-      name: opts.name || corridorId, corridorId, synthetic,
-      note: synthetic
+      name: opts.name || manifest.name || corridorId, corridorId, synthetic,
+      assessmentMethod: manifest.assessmentMethod || null,
+      evidence: manifest.evidence || [],
+      dataSources: manifest.dataSources || null,
+      note: manifest.note || (synthetic
         ? 'Route is the embedded fallback fixture (Overpass failed or was not used). Weather history is cached from a laptop run. Scores come from n8n W2.'
         : cachedOsm
-          ? 'Route is a real pipeline way from OpenStreetMap near Edmonton (OSM tags it Trans-Northern; not verified, and no operator is involved), cached from a laptop run because Overpass times out from n8n Cloud. Weather history and climate projections are cached per 10 km cell from a laptop run. Scores come from n8n W2.'
-          : 'Route from OpenStreetMap via W1. Scores come from n8n W2.',
+          ? corridorId !== 'ab-strathcona-demo' ? 'Route from public OpenStreetMap mapping. Corridor-specific provenance was not loaded; do not infer operator verification.' : 'Route is a real pipeline way from OpenStreetMap near Edmonton (OSM tags it Trans-Northern; not verified, and no operator is involved), cached from a laptop run because Overpass times out from n8n Cloud. Weather history and climate projections are cached per 10 km cell from a laptop run. Scores come from n8n W2.'
+          : 'Route from OpenStreetMap via W1. Scores come from n8n W2.'),
       models: MODELS, generatedAt: latestComputed || now, servedAt: now,
       source: 'n8n Data Tables', segmentsTotal: segments.length, segmentsVerified: verified,
       hazardsScored: hazardsLive, crossingsChecked: segments.filter((x) => x.crossingsChecked).length,
