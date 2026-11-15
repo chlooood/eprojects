@@ -1603,33 +1603,23 @@
     },
     {
       "parameters": {
-        "model": {
-          "__rl": true,
-          "cachedResultName": "gpt-5.4-mini",
-          "mode": "list",
-          "value": "gpt-5.4-mini"
-        },
-        "responsesApiEnabled": false,
+        "modelName": "models/gemini-3.5-flash",
         "options": {
-          "maxTokens": 1500,
-          "reasoningEffort": "low",
-          "timeout": 60000,
-          "maxRetries": 2
+          "maxOutputTokens": 4000
         }
       },
       "id": "f968bc0c-cf7d-4736-9c26-df451c613551",
-      "name": "OpenAI model (work orders)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.3,
+      "name": "Gemini model (work orders)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
       "position": [
         1024,
         656
       ],
       "credentials": {
-        "openAiApi": {
-          "id": null,
-          "name": "Gateway credits",
-          "__aiGatewayManaged": true
+        "googlePalmApi": {
+          "id": "Y6jytyquvr05V31h",
+          "name": "Google Gemini(PaLM) Api account"
         }
       }
     },
@@ -2321,17 +2311,6 @@
         ]
       ]
     },
-    "OpenAI model (work orders)": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Write two-sentence summary",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Find open work order": {
       "main": [
         [
@@ -2429,6 +2408,17 @@
           {
             "node": "Respond manager order",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini model (work orders)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write two-sentence summary",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]
