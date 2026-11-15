@@ -28,9 +28,9 @@ fs.writeFileSync(EDM, before);   // the Edmonton cache is left exactly as it was
 if (!row || !/\|v3$/.test(row.config_signature)) { console.error('No v3 row for ' + CELL + ' was produced.'); process.exit(1); }
 fs.writeFileSync(BC, JSON.stringify([row], null, 1) + '\n');
 console.log('\nWrote ' + path.relative(ROOT, BC) + ' (' + row.config_signature.split('|').pop() + ', fetched ' + row.fetched_at + ')');
+run([path.join('scripts', 'verify-bc-inputs.js'), '--record']);   // the climate file changed on purpose: record its new hash first
 run([path.join('scripts', 'prepare-bc-corridor.js')]);
 run([path.join('scripts', 'make-bc-seed.js')]);
-run([path.join('scripts', 'verify-bc-inputs.js'), '--record']);
 run([path.join('scripts', 'build.js')]);
 run([path.join('scripts', 'make-api-workflow.js')]);
 const v = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'corridors', 'bc-coquihalla', 'verification.json'), 'utf8'));
