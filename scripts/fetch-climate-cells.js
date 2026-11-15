@@ -25,11 +25,16 @@ const helper = code.slice(0, code.indexOf('// ===== Condense the'));
 if (!helper.includes('function seriesMetrics')) throw new Error('W2 helper block not found in the export');
 const { seriesMetrics, ratio, HORIZONS, MODELS } = new Function('$', helper + '\nreturn { seriesMetrics, ratio, HORIZONS, MODELS };')(() => ({ first: () => ({ json: cfg }) }));
 
-const CELL_FILE = path.join(ROOT, 'data', 'cache', 'cells', 'trans-northern-cells.json');
+const args = process.argv.slice(2);
+const corridorFlag = args.indexOf('--corridor');
+const corridorId = corridorFlag >= 0 ? args[corridorFlag + 1] : 'ab-strathcona-demo';
+if (!['ab-strathcona-demo','bc-coquihalla'].includes(corridorId)) throw new Error('Unknown corridor ID');
+if (corridorFlag >= 0) args.splice(corridorFlag, 2);
+const CELL_FILE = corridorId === 'bc-coquihalla' ? path.join(ROOT, 'data/corridors/bc-coquihalla/climate-cells.json') : path.join(ROOT, 'data', 'cache', 'cells', 'trans-northern-cells.json');
 const saved = fs.existsSync(CELL_FILE) ? JSON.parse(fs.readFileSync(CELL_FILE, 'utf8')) : [];
-const wanted = process.argv.slice(2);
+const wanted = args;
 // The four 10 km cells the live 22 km corridor crosses (W2 "Select Batch Segments" rounds each segment centroid to 0.1 degree).
-const CORRIDOR_CELLS = ['53.30_-113.50', '53.40_-113.50', '53.40_-113.40', '53.50_-113.40'];
+const CORRIDOR_CELLS = corridorId === 'bc-coquihalla' ? ['49.40_-121.30'] : ['53.30_-113.50', '53.40_-113.50', '53.40_-113.40', '53.50_-113.40'];
 const CELLS = (wanted.length ? wanted : [...new Set(CORRIDOR_CELLS.concat(saved.map((r) => r.cell_key)))]).map((k) => ({ cell_key: k, lat: Number(k.split('_')[0]), lon: Number(k.split('_')[1]) }));
 const SLEEP_MS = Number(process.env.SLEEP_MS || 65000);
 const OUT_DIR = process.env.OUT_DIR || path.join(ROOT, 'work', 'climate-seed');
@@ -40,7 +45,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function download(url, label) {
   for (let attempt = 1; attempt <= 6; attempt++) {
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'TerraCorridor-laptop-seed/1.0' } });
+      const res = await fetch(url, { signal: AbortSignal.timeout(90000), headers: { 'User-Agent': 'TerraCorridor-laptop-seed/1.0' } });
       const buf = Buffer.from(await res.arrayBuffer());
       if (res.status === 200) return buf;
       console.log('  ' + label + ': HTTP ' + res.status + ' ' + buf.toString('utf8').slice(0, 120));

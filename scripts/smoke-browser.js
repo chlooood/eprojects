@@ -21,7 +21,7 @@ async function main() {
   const context=await browser.newContext({acceptDownloads:true});
   const page=await context.newPage(); const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/action',route=>route.fulfill({status:502,contentType:'application/json',body:'{"ok":false,"error":"test outage"}'}));
-  await page.goto(base+'/?api='+encodeURIComponent(base+'/api')+'#/segment/'+target);
+  await page.goto(base+'/?api='+encodeURIComponent(base+'/api')+'&corridor=ab-strathcona-demo#/segment/'+target);
   await page.locator('[data-act="approved"]').first().waitFor();
   await page.locator('[data-act="approved"]').first().click();
   await page.getByText('Retry inspection approval',{exact:true}).first().waitFor();
@@ -29,7 +29,7 @@ async function main() {
   await page.route('**/action',route=>route.fulfill({status:200,contentType:'application/json',body:'{"ok":true,"status":"approved","work_order_id":"WO-BROWSER-TEST"}'}));
   await page.getByText('Retry inspection approval',{exact:true}).first().click();
   await page.getByText('✓ Approved · recorded in n8n',{exact:true}).first().waitFor();
-  await page.goto(base+'/?api='+encodeURIComponent(base+'/api')+'#/log');
+  await page.goto(base+'/?api='+encodeURIComponent(base+'/api')+'&corridor=ab-strathcona-demo#/log');
   await page.locator('#bCsv:not([disabled])').waitFor();
   const [dl]=await Promise.all([page.waitForEvent('download'),page.locator('#bCsv').click()]);
   const csv=fs.readFileSync(await dl.path(),'utf8');assert.match(csv,/work_order|recordedIn/);assert.match(csv,/WO-/);
@@ -37,7 +37,7 @@ async function main() {
   await page.evaluate(()=>navigator.serviceWorker.ready.then(()=>new Promise(resolve=>navigator.serviceWorker.controller?resolve():navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}))));
   await context.setOffline(true);await page.reload();
   await page.locator('#offBadge:not([hidden])').waitFor();
-  await page.goto(base+'/?api='+encodeURIComponent(base+'/api')+'#/segment/'+target);
+  await page.goto(base+'/?api='+encodeURIComponent(base+'/api')+'&corridor=ab-strathcona-demo#/segment/'+target);
   await page.locator('[data-act="approved"]').first().click();
   await page.getByText('✓ Approved · local demo',{exact:true}).first().waitFor();
   await page.reload();await page.getByText('✓ Approved · local demo',{exact:true}).first().waitFor();

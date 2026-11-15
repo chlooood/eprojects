@@ -1,0 +1,182 @@
+{
+  "source": "OpenStreetMap waterways via OSM API map bbox -121.355,49.375,-121.26,49.455",
+  "fetchedAt": "2026-11-15T17:23:41.142Z",
+  "checkedSegments": 12,
+  "waterways": 273,
+  "segments": {
+    "bc_coq_eb371dcbe0c4": [
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.269071,
+          49.450444
+        ]
+      },
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.269898,
+          49.449235
+        ]
+      },
+      {
+        "name": "Coquihalla River",
+        "kind": "river",
+        "at": [
+          -121.266301,
+          49.451613
+        ]
+      },
+      {
+        "name": "Coquihalla River",
+        "kind": "river",
+        "at": [
+          -121.266134,
+          49.451675
+        ]
+      }
+    ],
+    "bc_coq_c30efb53a877": [
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.279076,
+          49.442937
+        ]
+      },
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.282518,
+          49.441348
+        ]
+      }
+    ],
+    "bc_coq_a2462e5ddaad": [
+      {
+        "name": "Coquihalla River",
+        "kind": "river",
+        "at": [
+          -121.296493,
+          49.439481
+        ]
+      }
+    ],
+    "bc_coq_7a375b6ff258": [
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.305143,
+          49.4351
+        ]
+      },
+      {
+        "name": "Coquihalla River",
+        "kind": "river",
+        "at": [
+          -121.303976,
+          49.436305
+        ]
+      }
+    ],
+    "bc_coq_75d4ede34f89": [
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.309527,
+          49.424466
+        ]
+      }
+    ],
+    "bc_coq_aab37ddac0dd": [
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.309392,
+          49.423469
+        ]
+      },
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.309641,
+          49.422628
+        ]
+      },
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.314937,
+          49.417274
+        ]
+      }
+    ],
+    "bc_coq_d4793118bb2b": [
+      {
+        "name": "Coquihalla River",
+        "kind": "river",
+        "at": [
+          -121.31631,
+          49.408779
+        ]
+      }
+    ],
+    "bc_coq_183a30c938d0": [
+      {
+        "name": "Railway Creek",
+        "kind": "stream",
+        "at": [
+          -121.316813,
+          49.403126
+        ]
+      }
+    ],
+    "bc_coq_0ddf5953c2f0": [
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.320637,
+          49.394156
+        ]
+      }
+    ],
+    "bc_coq_7c19a05c4940": [
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.320143,
+          49.387795
+        ]
+      }
+    ],
+    "bc_coq_e6d9d2903c25": [],
+    "bc_coq_932c043bec4f": [
+      {
+        "name": null,
+        "kind": "stream",
+        "at": [
+          -121.338272,
+          49.381984
+        ]
+      }
+    ]
+  },
+  "sourceUrl": "https://api.openstreetmap.org/api/0.6/map?bbox=-121.355,49.375,-121.26,49.455",
+  "responseSha256": "2ade9d0412558f2589b0964e60ca0d6f4779d31ee99a7a4b5d3a792334180f0c",
+  "flowExcluded": {
+    "reason": "River identity at snapped GloFAS point was not verified; not used in scores.",
+    "snapDistanceM": 2676,
+    "responseFile": "raw/river-flow.json"
+  }
+}

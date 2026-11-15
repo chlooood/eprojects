@@ -24,8 +24,10 @@ const page = (extra) => base.replace(LEAFLET_JS, () => inline('<script>', read('
 
 // dist/dashboard.html: reads the n8n feed (?api=...). If n8n cannot be reached it falls back to the snapshot below,
 // a saved copy of a real n8n run (data/snapshot/live-snapshot.json), and labels itself "Offline snapshot".
-const snapFile = path.join(root, 'data', 'snapshot', 'live-snapshot.json');
-const snap = fs.existsSync(snapFile) ? `<script>window.TC_SNAPSHOT = ${read('data/snapshot/live-snapshot.json').replace(/<\//g, '<\\/')};</script>` : '';
+const catalog = JSON.parse(read('data/corridors/catalog.json'));
+const snapshots = Object.fromEntries(catalog.corridors.map(c => [c.id, JSON.parse(read(c.snapshot))]));
+const safeJson = value => JSON.stringify(value).replace(/<\//g, '<\\/');
+const snap = `<script>window.TC_CATALOG = ${safeJson(catalog)}; window.TC_SNAPSHOTS = ${safeJson(snapshots)}; window.TC_SNAPSHOT = window.TC_SNAPSHOTS[${JSON.stringify(catalog.default)}];</script>`;
 const live = page(snap);
 write('dist/dashboard.html', live);
 
@@ -37,7 +39,7 @@ if (wiring.apiBase) {
   write('deploy/index.html', live.replace(needle, () => `new URLSearchParams(location.search).get('api') || ${JSON.stringify(wiring.apiBase)};`));
 }
 
-const sw = read('web/sw.js').replace('__BUILD_HASH__', crypto.createHash('sha256').update(live).digest('hex').slice(0, 16));
+const sw = read('web/sw.js').replace('__BUILD_HASH__', crypto.createHash('sha256').update(live + (wiring.apiBase || '')).digest('hex').slice(0, 16));
 write('deploy/sw.js', sw);
 write('dist/sw.js', sw);
 
