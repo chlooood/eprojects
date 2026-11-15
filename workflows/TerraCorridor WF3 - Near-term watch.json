@@ -744,10 +744,13 @@
     "binaryMode": "separate",
     "timeSavedMode": "fixed",
     "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "timezone": "America/Vancouver"
   },
   "versionId": "dd215d9a-74d1-4994-9917-f92f788b2429",
   "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
     "instanceId": "608c111ba4b6ac7598ed19f2e72ecca4bf53cce83410fbe4a9cf1d5631b94faa"
   },
   "nodeGroups": [
