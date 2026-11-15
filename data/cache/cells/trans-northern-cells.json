@@ -1,0 +1,41 @@
+[
+ {
+  "cell_key": "53.40_-113.40",
+  "cell_lat": 53.4,
+  "cell_lon": -113.4,
+  "config_signature": "1995-01-01|2025-12-31|2026-01-01|2035-12-31|MRI_AGCM3_2_S,EC_Earth3P_HR,MPI_ESM1_2_XR|v1",
+  "archive_hash": "f2ff8bc4c30f03d27724ad4bb7f29e6019292228439bbe1873b2e70aa11cc102",
+  "climate_hash": "d05e2db1267e9f844a476e938f15199b61e81fd7bca69536eb396c20f892338e",
+  "archive_url": "https://archive-api.open-meteo.com/v1/archive?latitude=53.4&longitude=-113.4&start_date=1995-01-01&end_date=2025-12-31&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_7cm_mean&timezone=UTC",
+  "climate_url": "https://climate-api.open-meteo.com/v1/climate?latitude=53.4&longitude=-113.4&start_date=1995-01-01&end_date=2035-12-31&models=MRI_AGCM3_2_S,EC_Earth3P_HR,MPI_ESM1_2_XR&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_10cm_mean",
+  "archive_metrics_json": "{\"ok\":true,\"error\":\"\",\"hash\":\"f2ff8bc4c30f03d27724ad4bb7f29e6019292228439bbe1873b2e70aa11cc102\",\"rainP95\":15.9,\"soilP90\":0.372,\"base\":{\"rain\":4.580544025434955,\"ft\":91.22379228119756,\"sat\":35.80566104389296},\"fetched_at\":\"2026-11-15T06:58:45.961Z\"}",
+  "climate_metrics_json": "{\"ok\":true,\"error\":\"\",\"hash\":\"d05e2db1267e9f844a476e938f15199b61e81fd7bca69536eb396c20f892338e\",\"models\":{\"MRI_AGCM3_2_S\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":1.026653271726279,\"ft\":0.9840996820468102,\"sat\":1.4625999984518865},\"10\":{\"rain\":1.2319839260715348,\"ft\":1.0732475355969329,\"sat\":1.7556677884038565}}},\"EC_Earth3P_HR\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":0.8795724484009538,\"ft\":1.086888648185496,\"sat\":0.7835180564726908},\"10\":{\"rain\":1.3193586726014308,\"ft\":0.9827761566224642,\"sat\":1.040959703599432}}},\"MPI_ESM1_2_XR\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":0.920458823932092,\"ft\":0.9075240355360836,\"sat\":null},\"10\":{\"rain\":0.8962362233023001,\"ft\":1.0129305099184618,\"sat\":null}}}},\"fetched_at\":\"2026-11-15T06:59:50.042Z\"}",
+  "fetched_at": "2026-11-15T06:59:50.043Z"
+ },
+ {
+  "cell_key": "53.40_-113.50",
+  "cell_lat": 53.4,
+  "cell_lon": -113.5,
+  "config_signature": "1995-01-01|2025-12-31|2026-01-01|2035-12-31|MRI_AGCM3_2_S,EC_Earth3P_HR,MPI_ESM1_2_XR|v1",
+  "archive_hash": "e430a432b027e87732bea080e3d87d4e6dcaefea317b55858fcc76ce9fcbeb04",
+  "climate_hash": "f38f2c5c2fe7cc15f9f20a4b6a07bb8a11a9f9166baca8e5b82c8c0a60b40393",
+  "archive_url": "https://archive-api.open-meteo.com/v1/archive?latitude=53.4&longitude=-113.5&start_date=1995-01-01&end_date=2025-12-31&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_7cm_mean&timezone=UTC",
+  "climate_url": "https://climate-api.open-meteo.com/v1/climate?latitude=53.4&longitude=-113.5&start_date=1995-01-01&end_date=2035-12-31&models=MRI_AGCM3_2_S,EC_Earth3P_HR,MPI_ESM1_2_XR&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_10cm_mean",
+  "archive_metrics_json": "{\"ok\":true,\"error\":\"\",\"hash\":\"e430a432b027e87732bea080e3d87d4e6dcaefea317b55858fcc76ce9fcbeb04\",\"rainP95\":15.9,\"soilP90\":0.3808000000000011,\"base\":{\"rain\":4.580544025434955,\"ft\":93.19149077099709,\"sat\":36.54758014660426},\"fetched_at\":\"2026-11-15T07:02:09.827Z\"}",
+  "climate_metrics_json": "{\"ok\":true,\"error\":\"\",\"hash\":\"f38f2c5c2fe7cc15f9f20a4b6a07bb8a11a9f9166baca8e5b82c8c0a60b40393\",\"models\":{\"MRI_AGCM3_2_S\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":1.026653271726279,\"ft\":0.987726797843334,\"sat\":1.464275707481087},\"10\":{\"rain\":1.2319839260715348,\"ft\":1.0731143948531547,\"sat\":1.7721063959856338}}},\"EC_Earth3P_HR\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":0.8795724484009538,\"ft\":1.112120930348637,\"sat\":0.7813574551679786},\"10\":{\"rain\":1.3193586726014308,\"ft\":0.9993135818808961,\"sat\":1.0612053380472901}}},\"MPI_ESM1_2_XR\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":0.920458823932092,\"ft\":0.9330958317844263,\"sat\":null},\"10\":{\"rain\":0.8962362233023001,\"ft\":1.0369155603208804,\"sat\":null}}}},\"fetched_at\":\"2026-11-15T07:03:13.894Z\"}",
+  "fetched_at": "2026-11-15T07:03:13.895Z"
+ },
+ {
+  "cell_key": "53.30_-113.50",
+  "cell_lat": 53.3,
+  "cell_lon": -113.5,
+  "config_signature": "1995-01-01|2025-12-31|2026-01-01|2035-12-31|MRI_AGCM3_2_S,EC_Earth3P_HR,MPI_ESM1_2_XR|v1",
+  "archive_hash": "a59e39a5b705a41fcab670061d767ed98fad6574e30fbacb95ef7bd74b466cba",
+  "climate_hash": "52f9bbf0ec06dda970a8005e2c41435cbf9718196788436a4377120fb98b0b28",
+  "archive_url": "https://archive-api.open-meteo.com/v1/archive?latitude=53.3&longitude=-113.5&start_date=1995-01-01&end_date=2025-12-31&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_7cm_mean&timezone=UTC",
+  "climate_url": "https://climate-api.open-meteo.com/v1/climate?latitude=53.3&longitude=-113.5&start_date=1995-01-01&end_date=2035-12-31&models=MRI_AGCM3_2_S,EC_Earth3P_HR,MPI_ESM1_2_XR&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_10cm_mean",
+  "archive_metrics_json": "{\"ok\":true,\"error\":\"\",\"hash\":\"a59e39a5b705a41fcab670061d767ed98fad6574e30fbacb95ef7bd74b466cba\",\"rainP95\":16.29000000000001,\"soilP90\":0.367,\"base\":{\"rain\":4.612801377726751,\"ft\":94.5785569195443,\"sat\":35.67663163472578},\"fetched_at\":\"2026-11-15T07:05:00.412Z\"}",
+  "climate_metrics_json": "{\"ok\":true,\"error\":\"\",\"hash\":\"52f9bbf0ec06dda970a8005e2c41435cbf9718196788436a4377120fb98b0b28\",\"models\":{\"MRI_AGCM3_2_S\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":1.1014908917968522,\"ft\":0.9866737039429256,\"sat\":2.191490982045583},\"10\":{\"rain\":1.4278585634403642,\"ft\":1.0743280876645067,\"sat\":2.271131631769044}}},\"EC_Earth3P_HR\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":0.8297093624176605,\"ft\":1.1093916210690002,\"sat\":0.7869837914788193},\"10\":{\"rain\":1.3100674143436744,\"ft\":0.9944345416222123,\"sat\":1.0548931673013962}}},\"MPI_ESM1_2_XR\":{\"ok\":true,\"ratios\":{\"5\":{\"rain\":0.9062979189485213,\"ft\":0.9291460894245213,\"sat\":null},\"10\":{\"rain\":0.8824479737130339,\"ft\":1.02431469157582,\"sat\":null}}}},\"fetched_at\":\"2026-11-15T07:06:04.332Z\"}",
+  "fetched_at": "2026-11-15T07:06:04.333Z"
+ }
+]
