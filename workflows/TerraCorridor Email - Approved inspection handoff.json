@@ -1,0 +1,657 @@
+{
+  "name": "TerraCorridor Email - Approved inspection handoff",
+  "nodes": [
+    {
+      "id": "email-1",
+      "name": "Manual delivery check",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "email-2",
+      "name": "Every five minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "email-3",
+      "name": "Email delivery config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { enabled:false, from:'', to:'', maxPerRun:3 } }];"
+      }
+    },
+    {
+      "id": "email-4",
+      "name": "Delivery enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.enabled === true && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test($json.from) && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test($json.to) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "email-5",
+      "name": "Get queued approved orders",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "fWeMlbL9wQ5I7m3N",
+          "cachedResultName": "corridor_work_orders"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "keyValue": "approved"
+            },
+            {
+              "keyName": "delivery_state",
+              "keyValue": "queued"
+            }
+          ]
+        },
+        "limit": "={{ $(\"Email delivery config\").first().json.maxPerRun }}"
+      }
+    },
+    {
+      "id": "email-6",
+      "name": "Prepare inspection email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst cfg = $('Email delivery config').first().json;\nreturn $input.all().flatMap((item,i)=>{\n  const w=item.json;\n  if(w.status!=='approved'||w.delivery_state!=='queued'||!w.work_order_id)return [];\n  let facts=[];try{facts=JSON.parse(w.facts_json||'[]');}catch(_){}\n  return [{json:{\n    ...w,email_from:cfg.from,email_to:cfg.to,\n    email_subject:'[TerraCorridor] Approved inspection '+w.work_order_id,\n    email_body:[\n      'Approved inspection handoff',\n      'Work order: '+w.work_order_id,\n      'Segment: '+w.segment_id,\n      'Priority: '+w.priority,\n      'Approved by: '+(w.decided_by||'integrity manager'),\n      'Approved at: '+(w.decided_at||''),\n      '',w.summary||'','',\n      ...(Array.isArray(facts)?facts.filter(x=>typeof x==='string'&&!x.startsWith('Next step:')):[]),\n      '',\n      'Coordinator: review this order, import it into your maintenance system, and schedule the inspection.',\n      'This email is a handoff. No crew has been dispatched and no SAP/Maximo ticket has been created.'\n    ].join('\\n')\n  },pairedItem:{item:i}}];\n});"
+      }
+    },
+    {
+      "id": "email-7",
+      "name": "Claim queued order",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "fWeMlbL9wQ5I7m3N",
+          "cachedResultName": "corridor_work_orders"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "work_order_id",
+              "keyValue": "={{ $json.work_order_id }}"
+            },
+            {
+              "keyName": "status",
+              "keyValue": "approved"
+            },
+            {
+              "keyName": "delivery_state",
+              "keyValue": "queued"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "delivery_state": "sending",
+            "delivery_attempted_at": "={{ $now.toISO() }}",
+            "delivery_recipient": "={{ $json.email_to }}"
+          },
+          "schema": [
+            {
+              "id": "delivery_state",
+              "displayName": "delivery_state",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_attempted_at",
+              "displayName": "delivery_attempted_at",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_recipient",
+              "displayName": "delivery_recipient",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "email-8",
+      "name": "Send inspection email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1540,
+        0
+      ],
+      "parameters": {
+        "fromEmail": "={{ $(\"Prepare inspection email\").item.json.email_from }}",
+        "toEmail": "={{ $(\"Prepare inspection email\").item.json.email_to }}",
+        "subject": "={{ $(\"Prepare inspection email\").item.json.email_subject }}",
+        "emailFormat": "text",
+        "text": "={{ $(\"Prepare inspection email\").item.json.email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "email-9",
+      "name": "Record provider acceptance",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "fWeMlbL9wQ5I7m3N",
+          "cachedResultName": "corridor_work_orders"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "work_order_id",
+              "keyValue": "={{ $(\"Prepare inspection email\").item.json.work_order_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "delivery_state": "provider_accepted",
+            "delivery_accepted_at": "={{ $now.toISO() }}",
+            "delivery_error": ""
+          },
+          "schema": [
+            {
+              "id": "delivery_state",
+              "displayName": "delivery_state",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_accepted_at",
+              "displayName": "delivery_accepted_at",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_error",
+              "displayName": "delivery_error",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "email-10",
+      "name": "Record uncertain delivery",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "fWeMlbL9wQ5I7m3N",
+          "cachedResultName": "corridor_work_orders"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "work_order_id",
+              "keyValue": "={{ $(\"Prepare inspection email\").item.json.work_order_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "delivery_state": "needs_review",
+            "delivery_error": "SMTP failed or response uncertain. Check the execution and provider before manually requeuing."
+          },
+          "schema": [
+            {
+              "id": "delivery_state",
+              "displayName": "delivery_state",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_error",
+              "displayName": "delivery_error",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "email-11",
+      "name": "Log email acceptance",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        0
+      ],
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "usLWlVq3McK7sta2",
+          "cachedResultName": "corridor_audit"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "logged_at": "={{ $now.toISO() }}",
+            "action": "inspection_email_accepted",
+            "actor": "n8n:email-delivery",
+            "segment_id": "={{ $(\"Prepare inspection email\").item.json.segment_id }}",
+            "work_order_id": "={{ $(\"Prepare inspection email\").item.json.work_order_id }}",
+            "source": "smtp",
+            "ok": true,
+            "details_json": "={{ JSON.stringify({recipient:$(\"Email delivery config\").first().json.to,dispatched:false}) }}"
+          },
+          "schema": [
+            {
+              "id": "logged_at",
+              "displayName": "logged_at",
+              "type": "dateTime",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actor",
+              "displayName": "actor",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "work_order_id",
+              "displayName": "work_order_id",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ok",
+              "displayName": "ok",
+              "type": "boolean",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "details_json",
+              "displayName": "details_json",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "email-12",
+      "name": "Log delivery review needed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        0
+      ],
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "usLWlVq3McK7sta2",
+          "cachedResultName": "corridor_audit"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "logged_at": "={{ $now.toISO() }}",
+            "action": "inspection_email_needs_review",
+            "actor": "n8n:email-delivery",
+            "segment_id": "={{ $(\"Prepare inspection email\").item.json.segment_id }}",
+            "work_order_id": "={{ $(\"Prepare inspection email\").item.json.work_order_id }}",
+            "source": "smtp",
+            "ok": false,
+            "details_json": "={{ JSON.stringify({recipient:$(\"Email delivery config\").first().json.to,dispatched:false}) }}"
+          },
+          "schema": [
+            {
+              "id": "logged_at",
+              "displayName": "logged_at",
+              "type": "dateTime",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actor",
+              "displayName": "actor",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "work_order_id",
+              "displayName": "work_order_id",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ok",
+              "displayName": "ok",
+              "type": "boolean",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "details_json",
+              "displayName": "details_json",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Manual delivery check": {
+      "main": [
+        [
+          {
+            "node": "Email delivery config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every five minutes": {
+      "main": [
+        [
+          {
+            "node": "Email delivery config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email delivery config": {
+      "main": [
+        [
+          {
+            "node": "Delivery enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delivery enabled?": {
+      "main": [
+        [
+          {
+            "node": "Get queued approved orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get queued approved orders": {
+      "main": [
+        [
+          {
+            "node": "Prepare inspection email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare inspection email": {
+      "main": [
+        [
+          {
+            "node": "Claim queued order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim queued order": {
+      "main": [
+        [
+          {
+            "node": "Send inspection email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send inspection email": {
+      "main": [
+        [
+          {
+            "node": "Record provider acceptance",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record uncertain delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record provider acceptance": {
+      "main": [
+        [
+          {
+            "node": "Log email acceptance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record uncertain delivery": {
+      "main": [
+        [
+          {
+            "node": "Log delivery review needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

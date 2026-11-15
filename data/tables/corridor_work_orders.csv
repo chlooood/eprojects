@@ -1,2 +1,2 @@
-priority,work_order_id,segment_id,status,trigger_source,tier,horizon,score,summary,facts_json,resume_url,execution_id,drafted_at,decided_at,decided_by,decision_note
-sample,sample,sample,sample,sample,sample,sample,1,sample,sample,sample,sample,2026-11-14T12:00:00.000Z,2026-11-14T12:00:00.000Z,sample,sample
+delivery_state,delivery_attempted_at,delivery_recipient,delivery_accepted_at,delivery_error,priority,work_order_id,segment_id,status,trigger_source,tier,horizon,score,summary,facts_json,resume_url,execution_id,drafted_at,decided_at,decided_by,decision_note
+sample,sample,sample,sample,sample,sample,sample,sample,sample,sample,sample,sample,1,sample,sample,sample,sample,2026-11-14T12:00:00.000Z,2026-11-14T12:00:00.000Z,sample,sample

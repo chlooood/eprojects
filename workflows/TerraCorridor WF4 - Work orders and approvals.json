@@ -633,7 +633,8 @@
             "status": "={{ $json.status }}",
             "decided_at": "={{ $json.decided_at }}",
             "decided_by": "={{ $json.decided_by }}",
-            "decision_note": "={{ $json.decision_note }}"
+            "decision_note": "={{ $json.decision_note }}",
+            "delivery_state": "={{ $json.status === 'approved' ? 'queued' : 'cancelled' }}"
           },
           "schema": [
             {
@@ -670,6 +671,14 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_state",
+              "displayName": "delivery_state",
+              "type": "string",
+              "display": true,
+              "required": false,
               "canBeUsedToMatch": true
             }
           ]
@@ -1702,7 +1711,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Manager-requested inspection: the integrity manager approved a segment that has no automatic draft.\n// One item out. If this segment already has an order approved in the last 7 days, or one pending, reuse it (no duplicate row).\n// 'approved' here means recorded in corridor_work_orders. Nothing is emailed and no crew is dispatched by this workflow.\nconst v = $('Validate action').first().json;\nconst DAY = 24 * 3600 * 1000;\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.work_order_id);\nconst dup = rows.filter((r) => r.status === 'pending_approval' || (r.status === 'approved' && r.decided_at && Date.now() - new Date(r.decided_at).getTime() < 7 * DAY))\n  .sort((a, b) => String(b.drafted_at || '').localeCompare(String(a.drafted_at || '')))[0];\nconst now = new Date().toISOString();\nif (dup) return [{ json: { duplicate: true, work_order_id: dup.work_order_id, segment_id: v.segment, status: dup.status, block_reason: dup.status === 'approved' ? 'approved_within_7_days' : 'pending_approval' } }];\nconst facts = ['Segment: ' + v.segment, 'Requested by: ' + v.by + ' (integrity manager, from the dashboard)', 'Horizon: ' + v.req_horizon,\n  'Risk score (0-100): ' + (v.score != null ? v.score : 'not available'), 'Risk tier: ' + (v.req_tier || 'not available')];\nif (v.req_hazard) facts.push('Worst hazard: ' + v.req_hazard);\nif (v.req_why) facts.push('Main driver: ' + v.req_why);\nif (v.req_due) facts.push('Due by: ' + v.req_due + (v.req_priority ? ' (' + v.req_priority + ')' : ''));\nv.req_checks.forEach((c, i) => facts.push('Check ' + (i + 1) + ': ' + c));\nif (v.req_map) facts.push('Location: ' + v.req_map);\nfacts.push('Next step: inspection coordinator exports the CSV from the dashboard Work orders page. No external delivery in this MVP.');\nreturn [{ json: {\n  duplicate: false,\n  work_order_id: 'WO-' + v.segment + '-' + Date.now().toString(36).toUpperCase(),\n  segment_id: v.segment, status: 'approved', priority: v.req_priority === 'P1' ? 'high' : 'normal', trigger_source: 'manager',\n  tier: v.req_tier || 'unverified', horizon: v.req_horizon, score: v.score,\n  summary: 'Manager-requested inspection of ' + v.segment + (v.req_why ? '. ' + v.req_why : '') + '.' + (v.req_checks[0] ? ' First check: ' + v.req_checks[0] : ''),\n  facts_json: JSON.stringify(facts), drafted_at: now, decided_at: now, decided_by: v.by, decision_note: v.note || 'approved from the dashboard',\n} }];\n"
+        "jsCode": "// Manager-requested inspection: the integrity manager approved a segment that has no automatic draft.\n// One item out. If this segment already has an order approved in the last 7 days, or one pending, reuse it (no duplicate row).\n// 'approved' here means recorded in corridor_work_orders. Nothing is emailed and no crew is dispatched by this workflow.\nconst v = $('Validate action').first().json;\nconst DAY = 24 * 3600 * 1000;\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.work_order_id);\nconst dup = rows.filter((r) => r.status === 'pending_approval' || (r.status === 'approved' && r.decided_at && Date.now() - new Date(r.decided_at).getTime() < 7 * DAY))\n  .sort((a, b) => String(b.drafted_at || '').localeCompare(String(a.drafted_at || '')))[0];\nconst now = new Date().toISOString();\nif (dup) return [{ json: { duplicate: true, work_order_id: dup.work_order_id, segment_id: v.segment, status: dup.status, block_reason: dup.status === 'approved' ? 'approved_within_7_days' : 'pending_approval' } }];\nconst facts = ['Segment: ' + v.segment, 'Requested by: ' + v.by + ' (integrity manager, from the dashboard)', 'Horizon: ' + v.req_horizon,\n  'Risk score (0-100): ' + (v.score != null ? v.score : 'not available'), 'Risk tier: ' + (v.req_tier || 'not available')];\nif (v.req_hazard) facts.push('Worst hazard: ' + v.req_hazard);\nif (v.req_why) facts.push('Main driver: ' + v.req_why);\nif (v.req_due) facts.push('Due by: ' + v.req_due + (v.req_priority ? ' (' + v.req_priority + ')' : ''));\nv.req_checks.forEach((c, i) => facts.push('Check ' + (i + 1) + ': ' + c));\nif (v.req_map) facts.push('Location: ' + v.req_map);\nfacts.push('Next step: queued email handoff when SMTP delivery is configured, or CSV export for the inspection coordinator. No crew dispatch.');\nreturn [{ json: {\n  duplicate: false,\n  work_order_id: 'WO-' + v.segment + '-' + Date.now().toString(36).toUpperCase(),\n  segment_id: v.segment, status: 'approved', priority: v.req_priority === 'P1' ? 'high' : 'normal', trigger_source: 'manager',\n  tier: v.req_tier || 'unverified', horizon: v.req_horizon, score: v.score,\n  summary: 'Manager-requested inspection of ' + v.segment + (v.req_why ? '. ' + v.req_why : '') + '.' + (v.req_checks[0] ? ' First check: ' + v.req_checks[0] : ''),\n  facts_json: JSON.stringify(facts), drafted_at: now, decided_at: now, decided_by: v.by, decision_note: v.note || 'approved from the dashboard',\n} }];\n"
       },
       "id": "d7a83e5f-95bc-4a75-8af4-e659eec554a1",
       "name": "Build manager work order",
@@ -1771,7 +1780,8 @@
             "drafted_at": "={{ $json.drafted_at }}",
             "decided_at": "={{ $json.decided_at }}",
             "decided_by": "={{ $json.decided_by }}",
-            "decision_note": "={{ $json.decision_note }}"
+            "decision_note": "={{ $json.decision_note }}",
+            "delivery_state": "queued"
           },
           "schema": [
             {
@@ -1889,6 +1899,14 @@
               "defaultMatch": false,
               "display": true,
               "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "delivery_state",
+              "displayName": "delivery_state",
+              "type": "string",
+              "display": true,
+              "required": false,
               "canBeUsedToMatch": true
             }
           ]
@@ -2013,7 +2031,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ ok: true, action: 'approve_work_order', segment: $('Validate action').first().json.segment, work_order_id: $('Build manager work order').first().json.work_order_id, status: $('Build manager work order').first().json.status, trigger_source: 'manager', duplicate: $('Build manager work order').first().json.duplicate, stored_in: 'corridor_work_orders', external_delivery: 'none', next_step: 'Inspection coordinator exports the CSV from the Work orders page' }) }}",
+        "responseBody": "={{ JSON.stringify({ ok: true, action: 'approve_work_order', segment: $('Validate action').first().json.segment, work_order_id: $('Build manager work order').first().json.work_order_id, status: $('Build manager work order').first().json.status, trigger_source: 'manager', duplicate: $('Build manager work order').first().json.duplicate, stored_in: 'corridor_work_orders', external_delivery: $('Build manager work order').first().json.duplicate ? 'existing_order' : 'queued', next_step: 'Email handoff when configured; inspection coordinator can also export CSV' }) }}",
         "options": {
           "responseCode": 200
         }

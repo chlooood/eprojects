@@ -125,7 +125,7 @@ test('WF4 manager-requested inspection: approve with no pending draft records on
   const fresh = (await run(WF4, 'Build manager work order', { nodes: { 'Validate action': [v] }, input: [{}] }))[0].json;
   assert.equal(fresh.duplicate, false); assert.equal(fresh.status, 'approved'); assert.equal(fresh.trigger_source, 'manager');
   assert.match(fresh.work_order_id, /^WO-seg_g-/); assert.equal(fresh.decided_by, 'operator (demo)');
-  assert.match(fresh.facts_json, /No external delivery in this MVP/);
+  assert.match(fresh.facts_json, /No crew dispatch/);
   const again = (await run(WF4, 'Build manager work order', { nodes: { 'Validate action': [v] }, input: [{ work_order_id: 'WO-old', status: 'approved', decided_at: new Date().toISOString() }] }))[0].json;
   assert.equal(again.duplicate, true); assert.equal(again.work_order_id, 'WO-old');
   const conn = WF4.connections;
@@ -280,4 +280,36 @@ test('W2 Plan Grid Cells: a v2 cache row wins, a v1 row is a fallback, an unknow
   assert.match(out[1].cache_signature, /^v1/); assert.equal(out[1].fetch, false);
   assert.equal(out[2].fetch, true);
   assert.match(out[2].archive_url, /relative_humidity_2m_min/); assert.match(out[2].climate_url, /relative_humidity_2m_min/);
+});
+
+
+test('email workflow is disabled, selects queued approvals, and never automatically retries SMTP', async()=>{
+  const email=wf('TerraCorridor Email - Approved inspection handoff.json');
+  assert.equal(email.active,false);
+  const config=(await run(email,'Email delivery config'))[0].json;
+  assert.equal(config.enabled,false);
+  const item={
+    work_order_id:'WO-test',segment_id:'seg_test',
+    status:'approved',delivery_state:'queued',
+    facts_json:'["Check 1: inspect culvert"]'
+  };
+  const output=await run(email,'Prepare inspection email',{
+    nodes:{'Email delivery config':[{from:'sender@example.com',to:'coordinator@example.com'}]},
+    input:[item,{...item,status:'pending_approval'},{...item,delivery_state:'provider_accepted'}]
+  });
+  assert.equal(output.length,1);
+  assert.match(output[0].json.email_body,/inspect culvert/);
+  const claim=email.nodes.find(n=>n.name==='Claim queued order');
+  assert.ok(claim.parameters.filters.conditions.some(c=>c.keyName==='delivery_state'&&c.keyValue==='queued'));
+  assert.equal(claim.alwaysOutputData,undefined);
+  const send=email.nodes.find(n=>n.name==='Send inspection email');
+  assert.equal(send.retryOnFail,false);
+  assert.equal(email.connections[send.name].main[1][0].node,'Record uncertain delivery');
+});
+
+test('approved WF4 orders are queued and other outcomes cancel delivery',()=>{
+  const save=WF4.nodes.find(n=>n.name==='Save manager work order');
+  assert.equal(save.parameters.columns.value.delivery_state,'queued');
+  const update=WF4.nodes.find(n=>n.name==='Update work order status');
+  assert.match(update.parameters.columns.value.delivery_state,/status === 'approved' \? 'queued' : 'cancelled'/);
 });
