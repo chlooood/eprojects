@@ -278,15 +278,25 @@ test('B regression: the cached Trans-Northern climate cells do not turn the whol
   }
 });
 
-test('W2 Plan Grid Cells: a v2 cache row wins, a v1 row is a fallback, an unknown signature is refetched', async () => {
+test('W2 Plan Grid Cells: only a v3 (non-overlapping windows) cache row is reused; v1 and v2 rows are refetched', async () => {
   const segs = ['a', 'b', 'c'].map((k) => ({ segment_id: 's' + k, valid: true, cell_key: 'cell_' + k, cell_lat: 53.4, cell_lon: -113.4 }));
   const sig = (v) => [w2cfg.baseline_start, w2cfg.baseline_end, w2cfg.projection_start, w2cfg.projection_end, w2cfg.climate_models, v].join('|');
   const row = (k, v) => ({ cell_key: 'cell_' + k, config_signature: sig(v), archive_metrics_json: JSON.stringify({ ok: true, v }), climate_metrics_json: JSON.stringify({ ok: true }), fetched_at: 'x' });
-  const out = (await run(W2, 'Plan Grid Cells', { nodes: { 'W2 Config': [w2cfg], 'Select Batch Segments': segs, 'Get Cached Cells': [row('a', 'v1'), row('a', 'v2'), row('b', 'v1'), row('c', 'v0')] } })).map((o) => o.json);
-  assert.equal(out[0].cache_signature, 'v2'); assert.equal(out[0].archive.v, 'v2');
-  assert.match(out[1].cache_signature, /^v1/); assert.equal(out[1].fetch, false);
-  assert.equal(out[2].fetch, true);
-  assert.match(out[2].archive_url, /relative_humidity_2m_min/); assert.match(out[2].climate_url, /relative_humidity_2m_min/);
+  const out = (await run(W2, 'Plan Grid Cells', { nodes: { 'W2 Config': [w2cfg], 'Select Batch Segments': segs, 'Get Cached Cells': [row('a', 'v2'), row('a', 'v3'), row('b', 'v2'), row('c', 'v1')] } })).map((o) => o.json);
+  assert.equal(out[0].fetch, false); assert.equal(out[0].cache_signature, 'v3'); assert.equal(out[0].archive.v, 'v3');
+  assert.equal(out[1].cache_status === 'cached', false, 'a v2 row (overlapping windows) must not be relabelled as v3');
+  assert.equal(out[2].cache_status === 'cached', false);
+  assert.ok(out.every((o) => o.config_signature.endsWith('|v3')));
+});
+
+test('W2 horizons do not overlap: 5-year = 2026-2030, 10-year = 2031-2035, in every copy of the helper block', () => {
+  const copies = W2.nodes.filter((n) => (n.parameters?.jsCode || '').includes('const HORIZONS'));
+  assert.equal(copies.length, 3);
+  for (const n of copies) {
+    const js = n.parameters.jsCode; const i = js.indexOf('const HORIZONS'); const block = js.slice(i, js.indexOf('];', i) + 2);
+    const H = new Function('cfg', block + '; return HORIZONS;')(w2cfg);
+    assert.deepEqual(H.map((h) => [h.years, h.start, h.end]), [[5, '2026', '2030'], [10, '2031', '2035']], n.name);
+  }
 });
 
 test('WF3 uses a fresh cached forecast when the live request fails and refuses stale or incomplete data', async () => {

@@ -19,7 +19,7 @@ Weather-driven ground failures are rare but expensive, and operators often see t
 
 ## What it does
 
-1. **Predict (5 and 10 years).** For each 1 km segment: observed baseline from the Open-Meteo archive (1995 to 2025), three CMIP6 models (MRI, EC-Earth, MPI) for 2026 to 2036, compared with each model's own history (delta method). Four natural hazards, each scored 0 to 100 on its own; a segment's level is its worst one (never a blend):
+1. **Predict (5 and 10 years).** For each 1 km segment: observed baseline from the Open-Meteo archive (1995 to 2025), three CMIP6 models (MRI, EC-Earth, MPI) averaged over two separate five-year windows (2026 to 2030 and 2031 to 2035), compared with each model's own history (delta method). Four natural hazards, each scored 0 to 100 on its own; a segment's level is its worst one (never a blend):
    - **Ground failure:** extreme-rain, freeze-thaw and wet-soil days vs baseline, Sentinel-2 NDVI trend, slope.
    - **River crossing:** only where the pipe crosses a mapped river, stream or canal (OpenStreetMap): waterway size, historical peak flow (Open-Meteo Flood API, GloFAS) and projected heavy-rain change.
    - **Wildfire weather:** change in fire-weather days (no rain, 25 °C or hotter, minimum humidity 35% or lower; two of the three models report humidity), how many there will be, and vegetation fuel.

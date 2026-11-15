@@ -17,7 +17,7 @@ const w2node = (n) => W2.nodes.find((x) => x.name === n);
 const cfg = Object.fromEntries(w2node('W2 Config').parameters.assignments.assignments.filter((a) => typeof a.value !== 'string' || !a.value.startsWith('=')).map((a) => [a.name, a.value]));
 const BASE_START = cfg.baseline_start, BASE_END = cfg.baseline_end, PROJ_END = cfg.projection_end;
 const CLIMATE_MODELS = cfg.climate_models;
-const SIG = [cfg.baseline_start, cfg.baseline_end, cfg.projection_start, cfg.projection_end, cfg.climate_models, 'v2'].join('|'); // must match W2 "Plan Grid Cells"
+const SIG = [cfg.baseline_start, cfg.baseline_end, cfg.projection_start, cfg.projection_end, cfg.climate_models, 'v3'].join('|'); // must match W2 "Plan Grid Cells"
 
 // The shared helper block of W2 (seriesMetrics, ratio, HORIZONS, MODELS ...), evaluated with W2's own config.
 const code = w2node('Condense Archive').parameters.jsCode;

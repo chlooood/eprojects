@@ -27,9 +27,11 @@ This is a reasoned default, not a calibration. There is no failure data behind i
 
 Ground-failure scores are 23 to 38 at 10 years (Low). Segments that cross a mapped stream score 35 to 41 on the crossing hazard; one reaches Medium. No segment is High. That is the honest reading of this corridor: flat ground near Edmonton with a modest climate signal. The tool still ranks the kilometres, and the top of the ranking is explained by something physical (a stream crossing, vegetation loss).
 
-## Why 2031 and 2036 can differ a lot
+## The two projection windows
 
-Both projection windows start in 2026: "2031" is the mean of 2026-2030 and "2036" is the mean of 2026-2035. The second contains the first, so any difference comes from the model years 2031-2035. A five-year window of a noisy count can sit below baseline while the ten-year window sits above it. That is physically plausible and we do not force the two to agree. The dashboard shows both scores, the windows, and the driver that moved most. Both are climate-frequency projections for planning, not forecasts of weather in a given year.
+The two views are separate five-year windows: "2026-30" is the model average for 2026-2030 and "2031-35" is the average for 2031-2035. They do not overlap (until 2026-11-15 the second window was 2026-2035 and contained the first; cache signature v3 marks the change, and older v1/v2 cells are refetched rather than reused).
+
+Why averages and not a single year: a climate model does not forecast the weather of a particular year. Any one model year is simulated weather, so we average five years and compare with each model's own 1995-2025 history. Five years of a noisy count is still noisy: a hazard can rise in the first window and fall in the second. We do not force them to agree. Both are climate-frequency projections for planning, not forecasts.
 
 ## What a tier triggers
 

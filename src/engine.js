@@ -8,7 +8,7 @@ const DEFAULTS = {
   studyStripM: 200,        // land studied beyond the exclusion band, each side
   buildStripM: 60,         // assumption: total width actually leased for panels, outside the exclusion band (both sides combined)
   baselineYears: [1995, 2025],
-  horizons: { y5: [2026, 2031], y10: [2026, 2036] },
+  horizons: { y5: [2026, 2031], y10: [2031, 2036] },   // [start, end) years; non-overlapping, same as W2
   wetDayMm: 1,
   extremePct: 0.95,
   soilWetPct: 0.90,

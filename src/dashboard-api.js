@@ -203,8 +203,8 @@ function buildCorridor(t, opts) {
   const config = {
     weights: { rain: W_RAIN, freezeThaw: W_FT, saturation: W_SAT, vegetation: W_VEG, slope: W_SLOPE },
     tiers: TIERS, ratioFull: RATIO_FULL, ndviDropFull: 0.1, slopeFullPct: 10,
-    // The windows W2 actually averaged over. They overlap: the 10-year window contains the 5-year one.
-    horizons: { y5: windowOf('y5') || [2026, 2030], y10: windowOf('y10') || [2026, 2035] },
+    // The windows W2 actually averaged over (inclusive years). Non-overlapping: 2026-2030 and 2031-2035.
+    horizons: { y5: windowOf('y5') || [2026, 2030], y10: windowOf('y10') || [2031, 2035] },
     money,
   };
   if (num(saved.buildStripM) !== null) config.buildStripM = num(saved.buildStripM);

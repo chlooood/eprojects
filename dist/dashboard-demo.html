@@ -1050,7 +1050,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="hint" id="ovHint">
         <span><b>How to read this:</b> the line is a <span id="hintKm">demo</span> pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.
         <span class="k" style="color:var(--red)">Red</span> = inspect first, <span class="k" style="color:var(--amber)">amber</span> = plan a visit, <span class="k" style="color:var(--green)">green</span> = routine cycle. 2031 and 2036 are climate-frequency projections for planning, not weather forecasts.
-        Press <b>&#9654;</b> on the map to watch climate change shift it from today to 2036. Hover any number for what it means.</span>
+        Press <b>&#9654;</b> on the map to watch climate change shift it from today to 2031–35. Hover any number for what it means.</span>
         <button class="linkbtn" id="bHint">Got it</button>
       </div>
       <div class="ws-map"><div class="map-slot" data-map></div></div>
@@ -1133,8 +1133,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="stops">
         <i class="rail"><i id="tlFill"></i></i>
         <button data-stop="y0"><b>Today</b><span>past 30 years, measured</span></button>
-        <button data-stop="y5"><b>2031</b><span>models, 2026–30 mean</span></button>
-        <button data-stop="y10"><b>2036</b><span>models, 2026–35 mean</span></button>
+        <button data-stop="y5"><b>2026–30</b><span>model average</span></button>
+        <button data-stop="y10"><b>2031–35</b><span>model average</span></button>
       </div>
     </div>
   </div>
@@ -1167,7 +1167,7 @@ const DEFAULTS = {
   studyStripM: 200,        // land studied beyond the exclusion band, each side
   buildStripM: 60,         // assumption: total width actually leased for panels, outside the exclusion band (both sides combined)
   baselineYears: [1995, 2025],
-  horizons: { y5: [2026, 2031], y10: [2026, 2036] },
+  horizons: { y5: [2026, 2031], y10: [2031, 2036] },   // [start, end) years; non-overlapping, same as W2
   wetDayMm: 1,
   extremePct: 0.95,
   soilWetPct: 0.90,
@@ -1813,7 +1813,7 @@ const C = { green:'#6fd08f', amber:'#f2a93b', red:'#ff5d4f', 'red-uncertain':'#f
 const HAZ = { ground: 'Ground failure', crossing: 'River crossing', wildfire: 'Wildfire weather', drought: 'Drought' };
 const TIER_LABEL = { green:'Low', amber:'Medium', red:'High', 'red-uncertain':'High · models disagree', unverified:'Missing data', grey:'Poor site', excluded:'Too steep' };
 const STOPS = ['y0', 'y5', 'y10'];
-const STOP_LABEL = { y0:'Today', y5:'2031', y10:'2036' };
+const STOP_LABEL = { y0:'Today', y5:'2026–30', y10:'2031–35' };
 const DRIVER_WORD = { rain:'heavy rain', freezeThaw:'freeze-thaw', saturation:'soaked ground', vegetation:'plant loss', slope:'slope' };
 const PAGES = ['overview', 'triage', 'segment', 'money', 'build', 'log'];
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2184,7 +2184,7 @@ const BUILD_LANES = [
   { k: 'build', label: 'Solar MW', h: 40 },
   { k: 'sun', label: 'Sunlight', h: 20 },
   { k: 'slope', label: 'Slope', h: 20 },
-  { k: 'tier', label: 'Risk by 2036', h: 8, fixed: 'y10' },
+  { k: 'tier', label: 'Risk 2031–35', h: 8, fixed: 'y10' },
 ];
 // Overview strip: climate only.
 const CLIMATE_LANES = [
@@ -2351,13 +2351,13 @@ function hazardsHTML(s, r) {
     return `<div class="drv"><span class="l">${top ? '<b>' : ''}${HAZ[k]}${top ? '</b> · worst' : ''}<div class="cap" style="margin-top:2px">${esc(h.why)}</div></span><span class="n" style="color:${C[h.tier]}">${Math.round(h.score)}</span><span class="mbar"><i style="width:${h.score}%;background:${C[h.tier]}"></i></span></div>`;
   }).join('');
 }
-// Why 2031 and 2036 can differ a lot: both windows start in 2026, so the 2036 view is the 2031 years plus five more.
+// The two views are separate five-year windows (2026-2030 and 2031-2035), so a hazard can rise in one and fall in the other.
 function horizonHTML(s) {
   const a = s.risk.y5, b = s.risk.y10;
   if (stop === 'y0' || !a || !b || a.score == null || b.score == null) return '';
-  const hz = (cfg.horizons || {}), w5 = hz.y5 || [2026, 2030], w10 = hz.y10 || [2026, 2035];
+  const hz = (cfg.horizons || {}), w5 = hz.y5 || [2026, 2030], w10 = hz.y10 || [2031, 2035];
   const mv = (b.drivers || []).filter((d) => ['rain', 'freezeThaw', 'saturation'].includes(d.key)).map((d) => { const p = (a.drivers || []).find((x) => x.key === d.key); return p && p.change != null && d.change != null ? { label: d.label, from: p.change, to: d.change, delta: Math.abs(d.change - p.change) } : null; }).filter(Boolean).sort((x, y) => y.delta - x.delta)[0];
-  return `<div class="cap" style="margin-top:10px">Score ${Math.round(a.score)} for ${w5[0]}–${w5[1]}, ${Math.round(b.score)} for ${w10[0]}–${w10[1]}. The second window contains the first, so the change comes from the model years ${w5[1] + 1}–${w10[1]}${mv ? `: ${mv.label.toLowerCase()} ${sign(mv.from)}% → ${sign(mv.to)}% vs 1995–2025` : ''}. A change under about ±15% in heavy-rain days is within year-to-year sampling noise for a window this short. These are planning signals, not forecasts.</div>`;
+  return `<div class="cap" style="margin-top:10px">Score ${Math.round(a.score)} for ${w5[0]}–${w5[1]}, ${Math.round(b.score)} for ${w10[0]}–${w10[1]}. The windows do not overlap: each is its own five years of model output, compared with 1995–2025${mv ? `: ${mv.label.toLowerCase()} ${sign(mv.from)}% → ${sign(mv.to)}% vs 1995–2025` : ''}. Climate models give trends, not individual years, so each view is a five-year average. A change under about ±15% in heavy-rain days is within sampling noise for a window this short. These are planning signals, not forecasts.</div>`;
 }
 function coverageText(r) {
   const missing = ['ground', 'crossing', 'wildfire', 'drought'].filter((k) =>
@@ -2388,7 +2388,7 @@ function rainBars(s) {
   const rows = [['Observed', b.extremeDaysPerYr, C.ink3], ...models.map(([m, v]) => [m.split('_').slice(0, 2).join(' ').replace('3P', '3'), corr(v), corr(v) > b.extremeDaysPerYr ? C.amber : C.green])];
   const max = Math.max(...rows.map((r) => r[1]), 1) * 1.08, basePct = (b.extremeDaysPerYr / max) * 100;
   return rows.map(([l, v, c], i) => `<div class="hb"><span class="lab">${esc(l)}</span><span class="bar"><i style="width:${(v / max) * 100}%;background:${c}"></i>${i ? `<b style="left:${basePct}%"></b>` : ''}</span><span class="val">${v}</span></div>`).join('') +
-    `<div class="cap">Extreme-rain days a year. Observed 1995–2025 against each CMIP6 model for ${k === 'y5' ? '2026–2031' : '2026–2036'}, bias-corrected against the model's own history. The black tick marks the observed value.${stop === 'y0' ? ' Showing 2036 because Today has no projection.' : ''}</div>`;
+    `<div class="cap">Extreme-rain days a year. Observed 1995–2025 against each CMIP6 model for ${k === 'y5' ? '2026–2030' : '2031–2035'}, bias-corrected against the model's own history. The black tick marks the observed value.${stop === 'y0' ? ' Showing 2036 because Today has no projection.' : ''}</div>`;
 }
 function ndviSpark(s) {
   const pts = (s.ndviSeries || []).filter((p) => p.ndvi != null);
@@ -2650,7 +2650,7 @@ function renderCard(el, mode) {
     <div class="label">Kilometre post</div><div class="kp">${s.id}</div><div class="km">km ${s.kmFrom}–${s.kmTo} · ${s.lengthM} m</div>
     <div style="margin-top:14px">${mode === 'build' ? `<span class="chip" style="color:${C.build};background:${C.build}1f"><span class="led"></span>${s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier]}</span> ` : ''}${chipHTML(t)}</div>
     ${s.override && s.override.stop === stop ? `<div class="note">Overridden to ${TIER_LABEL[s.override.tier]}: “${esc(s.override.reason)}”</div>` : ''}
-    ${mode === 'build' ? `<div class="blk"><h3>Solar + storage</h3>${buildHTML(s)}</div><div class="cap">Build potential is halved where 2036 risk is high. Stays outside the ${cfg.exclusionM} m prescribed area.</div>
+    ${mode === 'build' ? `<div class="blk"><h3>Solar + storage</h3>${buildHTML(s)}</div><div class="cap">Build potential is halved where 2031–35 risk is high. Stays outside the ${cfg.exclusionM} m prescribed area.</div>
       <div class="linkrow" style="margin:20px 0 24px"><span></span><a href="#/segment/${s.id}">Full report →</a></div>`
     : `${gaugeHTML(r)}${explainHTML(s, r)}${horizonHTML(s)}<div class="blk"><h3>Natural hazards (worst sets the level)</h3>${hazardsHTML(s, r)}</div>${actionsHTML(s, true)}`}`;
   el.querySelector('.x').onclick = () => go(page);
@@ -2757,7 +2757,7 @@ function renderMoney() {
 function renderBuild() {
   const ok = (s) => s.build && (buildFilter === 'ready' ? s.build.tier === 'green' : ['green', 'amber'].includes(s.build.tier));
   const rows = segs.filter(ok).sort((a, b) => b.build.score - a.build.score), sum = D.live;
-  buildList.innerHTML = `<h2>Build</h2><p class="lede">Solar plus storage on stable ground outside the ${cfg.exclusionM} m prescribed area. A stretch's build score is halved if its 2036 risk is high.</p>
+  buildList.innerHTML = `<h2>Build</h2><p class="lede">Solar plus storage on stable ground outside the ${cfg.exclusionM} m prescribed area. A stretch's build score is halved if its 2031–35 risk is high.</p>
     <div class="totals">
       <div><div class="v">${sum.mw} MW</div><div class="label">${sum.buildableKm} km build-ready</div></div>
       <div><div class="v">${fmt$(sum.leaseRevenueYr)}</div><div class="label">lease a year</div></div>
