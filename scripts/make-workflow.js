@@ -6,7 +6,8 @@
 //      -> SHA-256 of every raw response -> score -> AI explanations -> save to static data
 //   B. GET  /webhook/terracorridor/corridor  -> latest corridor JSON (dashboard data)
 //   C. GET  /webhook/terracorridor/map       -> the dashboard page
-//   D. POST /webhook/terracorridor/action    -> approve / reject / override, appended to the audit log
+//   D. POST /webhook/terracorridor/action    -> approve / reject / override, appended to the audit log;
+//      approve builds a work order from the stored corridor, saves it, and hands it to email / Slack (disabled until set up)
 // Usage: node scripts/make-workflow.js   (run scripts/build.js first)
 const fs = require('fs');
 const path = require('path');
@@ -45,7 +46,9 @@ const NAME = 'Demo corridor (illustrative route)';
 const SYNTHETIC_ROUTE = true;
 const ROUTE = ${JSON.stringify(demo.route)};
 const SUBSTATIONS = ${JSON.stringify(demo.substations)};
-return [{ json: { name: NAME, syntheticRoute: SYNTHETIC_ROUTE, route: ROUTE, substations: SUBSTATIONS } }];` }, [240, 200]);
+const lons = ROUTE.map((p) => p[0]), lats = ROUTE.map((p) => p[1]);
+const BBOX = [Math.min(...lats), Math.min(...lons), Math.max(...lats), Math.max(...lons)].map((v) => v.toFixed(4)).join(','); // south,west,north,east
+return [{ json: { name: NAME, syntheticRoute: SYNTHETIC_ROUTE, route: ROUTE, substations: SUBSTATIONS, bbox: BBOX } }];` }, [240, 200]);
 for (const t of [tSchedule, tManual, tRun]) link(t, nRoute);
 
 const nSeg = node('Segment route', 'n8n-nodes-base.code', 2, { jsCode: code(`
@@ -77,14 +80,14 @@ const hashNode = (name, prop, pos) => node(name, 'n8n-nodes-base.crypto', 1,
   { action: 'hash', type: 'SHA256', value: '={{ JSON.stringify($json) }}', dataPropertyName: prop }, pos);
 
 const nArch = http('Open-Meteo archive 1995-2025',
-  "=https://archive-api.open-meteo.com/v1/archive?latitude={{ $('Group into 10 km cells').item.json.lat }}&longitude={{ $('Group into 10 km cells').item.json.lon }}&start_date=1995-01-01&end_date=2025-12-31&daily=precipitation_sum,temperature_2m_min,temperature_2m_max,soil_moisture_0_to_7cm_mean&timezone=UTC",
+  "=https://archive-api.open-meteo.com/v1/archive?latitude={{ $('Group into 10 km cells').item.json.lat }}&longitude={{ $('Group into 10 km cells').item.json.lon }}&start_date=1995-01-01&end_date=2025-12-31&daily=precipitation_sum,temperature_2m_min,temperature_2m_max,soil_moisture_0_to_7cm_mean,relative_humidity_2m_min&timezone=UTC",
   [960, 200]);
 link(nCells, nArch);
 const hArch = hashNode('SHA-256 archive', 'sha256', [1200, 200]);
 link(nArch, hArch);
 
 const nClim = http('CMIP6 climate 1995-2036',
-  `=https://climate-api.open-meteo.com/v1/climate?latitude={{ $('Group into 10 km cells').item.json.lat }}&longitude={{ $('Group into 10 km cells').item.json.lon }}&start_date=1995-01-01&end_date=2036-12-31&models=${MODELS.join(',')}&daily=precipitation_sum,temperature_2m_min,temperature_2m_max,soil_moisture_0_to_10cm_mean`,
+  `=https://climate-api.open-meteo.com/v1/climate?latitude={{ $('Group into 10 km cells').item.json.lat }}&longitude={{ $('Group into 10 km cells').item.json.lon }}&start_date=1995-01-01&end_date=2036-12-31&models=${MODELS.join(',')}&daily=precipitation_sum,temperature_2m_min,temperature_2m_max,soil_moisture_0_to_10cm_mean,relative_humidity_2m_min`,
   [1440, 200]);
 link(hArch, nClim);
 const hClim = hashNode('SHA-256 climate', 'sha256', [1680, 200]);
@@ -100,6 +103,28 @@ const nSun = http('NASA POWER irradiance',
   [2160, 200]);
 link(nElev, nSun);
 
+// River crossings: one Overpass call for the corridor's waterways, then one GloFAS river-flow call per crossing.
+const nWater = node('Overpass waterways', 'n8n-nodes-base.httpRequest', 4.2, {
+  url: "={{ 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent('[out:json][timeout:60];way[\"waterway\"~\"^(river|stream|canal)$\"](' + $('Route config').first().json.bbox + ');out geom;') }}",
+  options: { timeout: 120000 },
+}, [2400, 200], { executeOnce: true, retryOnFail: true, maxTries: 3, waitBetweenTries: 5000, onError: 'continueRegularOutput' });
+link(nSun, nWater);
+const nCross = node('Find crossings', 'n8n-nodes-base.code', 2, { jsCode: code(`
+// Where the pipe crosses a mapped river, stream or canal. One item per crossing (or one "none" item).
+const els = ($input.first().json.elements || []).filter((e) => e.geometry);
+const waterways = els.map((e) => ({ name: (e.tags && e.tags.name) || null, kind: (e.tags && e.tags.waterway) || 'stream', coords: e.geometry.map((g) => [g.lon, g.lat]) }));
+const segs = $('Segment route').all().map((i) => i.json);
+const found = ENGINE.findCrossings(segs, waterways);
+const items = [];
+for (const [segId, xs] of Object.entries(found)) for (const x of xs) items.push({ json: { segId, ...x, lat: x.at[1], lon: x.at[0] } });
+return items.length ? items : [{ json: { none: true, waterways: waterways.length } }];`) }, [2640, 200], { executeOnce: true });
+link(nWater, nCross);
+const nFlood = http('GloFAS river flow 1995-2025',
+  "={{ $json.none ? 'https://flood-api.open-meteo.com/v1/flood?latitude=0&longitude=0&daily=river_discharge&start_date=2025-01-01&end_date=2025-01-02' : 'https://flood-api.open-meteo.com/v1/flood?latitude=' + $json.lat + '&longitude=' + $json.lon + '&daily=river_discharge&start_date=1995-01-01&end_date=2025-12-31' }}",
+  [2880, 200]);
+nodes[nodes.length - 1].onError = 'continueRegularOutput';
+link(nCross, nFlood);
+
 const nScore = node('Score corridor', 'n8n-nodes-base.code', 2, { jsCode: code(`
 // Joins every API response back to its segments, scores, and saves the corridor document.
 const MODELS = ${JSON.stringify(MODELS)};
@@ -112,6 +137,8 @@ const arch = $('SHA-256 archive').all().map((i) => i.json);
 const clim = $('SHA-256 climate').all().map((i) => i.json);
 const elev = $('Elevation').all().map((i) => i.json);
 const sun = $('NASA POWER irradiance').all().map((i) => i.json);
+const crossItems = $('Find crossings').all().map((i) => i.json).filter((x) => !x.none);
+const flows = $('GloFAS river flow 1995-2025').all().map((i) => i.json);
 const byId = Object.fromEntries(segs.map((s) => [s.id, s]));
 const sources = [];
 const now = new Date().toISOString();
@@ -138,6 +165,11 @@ cells.forEach((c, k) => {
     s.ndvi = s.ndvi || null; // filled by the Sentinel-2 branch when it is connected
   });
 });
+crossItems.forEach((x, k) => {
+  const s = byId[x.segId]; if (!s) return;
+  const f = flows[k] && flows[k].daily ? ENGINE.peakFlow(flows[k].daily) : null;
+  (s.crossings = s.crossings || []).push({ name: x.name, kind: x.kind, at: x.at, peakFlowM3s: f });
+});
 for (const s of segs) {
   s.risk = { y5: ENGINE.riskScore(s, 'y5', cfg, MODEL), y10: ENGINE.riskScore(s, 'y10', cfg, MODEL) };
   s.build = ENGINE.buildScore(s, s.risk.y10, cfg);
@@ -146,14 +178,16 @@ for (const s of segs) {
 const doc = {
   meta: { name: routeCfg.name, synthetic: !!routeCfg.syntheticRoute, note: routeCfg.syntheticRoute ? 'Illustrative route; climate, elevation and irradiance are real API data.' : 'Live n8n run', generatedAt: now, models: MODELS, method: MODEL ? 'logistic-regression' : 'weighted-rules' },
   config: cfg, route: routeCfg.route, substations: routeCfg.substations, segments: segs, sources,
+  crossingsFound: crossItems.length,
   summary: { y5: ENGINE.corridorSummary(segs, cfg, { years: 5 }), y10: ENGINE.corridorSummary(segs, cfg, { years: 10 }) },
 };
 const store = $getWorkflowStaticData('global');
 store.corridor = doc;
 store.audit = store.audit || [];
 store.audit.unshift({ at: now, action: 'engine_run', by: 'n8n', details: { segments: segs.length, red: doc.summary.y10.tiers.red || 0, amber: doc.summary.y10.tiers.amber || 0 } });
-return [{ json: { saved: true, segments: segs.length, tiers: doc.summary.y10.tiers, top: doc.summary.y10.top.slice(0, 3) } }];`) }, [2400, 200]);
-link(nSun, nScore);
+return [{ json: { saved: true, segments: segs.length, tiers: doc.summary.y10.tiers, crossings: crossItems.length, top: doc.summary.y10.top.slice(0, 3) } }];`) }, [3120, 200]);
+link(nFlood, nScore);
+
 
 const nPrompts = node('Explanation prompts', 'n8n-nodes-base.code', 2, { jsCode: `// One prompt per amber/red segment. The model may only restate our numbers.
 const doc = $getWorkflowStaticData('global').corridor;
@@ -161,7 +195,7 @@ return doc.segments.filter((s) => s.risk.y10 && ['amber', 'red', 'red-uncertain'
   const r = s.risk.y10;
   const facts = r.drivers.slice(0, 3).map((d) => d.label + ': ' + (d.base != null ? 'baseline ' + d.base + ', projected ' + d.proj + ', ' : '') + 'change ' + d.change).join('; ');
   return { json: { id: s.id, prompt: 'You explain a pipeline corridor risk score to an operations engineer. Use only these numbers and add none. Segment ' + s.id + ', 10-year risk score ' + r.score + ' (' + r.tier + '), model agreement ' + r.agreement + '. Drivers: ' + facts + '. Slope ' + s.slopePct + '%. Write exactly two sentences: what drives the risk, and what a field crew should check first.' } };
-});` }, [2640, 200]);
+});` }, [3360, 200]);
 link(nScore, nPrompts);
 
 const nAI = node('AI explain (OpenAI-compatible)', 'n8n-nodes-base.httpRequest', 4.2, {
@@ -173,7 +207,7 @@ const nAI = node('AI explain (OpenAI-compatible)', 'n8n-nodes-base.httpRequest',
   specifyBody: 'json',
   jsonBody: "={{ JSON.stringify({ model: $env.AI_MODEL || 'meta-llama/Llama-3.3-70B-Instruct', max_tokens: 120, temperature: 0.2, messages: [{ role: 'user', content: $json.prompt }] }) }}",
   options: { timeout: 60000 },
-}, [2880, 200], { onError: 'continueRegularOutput' });
+}, [3600, 200], { onError: 'continueRegularOutput' });
 link(nPrompts, nAI);
 
 const nAttach = node('Attach explanations', 'n8n-nodes-base.code', 2, { jsCode: `// Saves AI text onto segments. If the AI call failed, the dashboard shows template text instead.
@@ -185,7 +219,7 @@ $input.all().forEach((it, k) => {
   const seg = store.corridor.segments.find((s) => s.id === (prompts[k] || {}).id);
   if (seg && text) { seg.explanation = text.trim(); n++; }
 });
-return [{ json: { explained: n, of: prompts.length } }];` }, [3120, 200]);
+return [{ json: { explained: n, of: prompts.length } }];` }, [3840, 200]);
 link(nAI, nAttach);
 
 // ---------- B. Corridor API ----------
@@ -193,7 +227,7 @@ const wCorr = node('GET /terracorridor/corridor', 'n8n-nodes-base.webhook', 2,
   { httpMethod: 'GET', path: 'terracorridor/corridor', responseMode: 'responseNode', options: {} }, [0, 700], { webhookId: uuid() });
 const cCorr = node('Read corridor', 'n8n-nodes-base.code', 2, { jsCode: `const store = $getWorkflowStaticData('global');
 if (!store.corridor) return [{ json: { error: 'No engine run saved yet. Activate the workflow and POST to /webhook/terracorridor/run.' } }];
-return [{ json: { ...store.corridor, audit: (store.audit || []).slice(0, 50) } }];` }, [240, 700]);
+return [{ json: { ...store.corridor, audit: (store.audit || []).slice(0, 50), workOrders: Object.values(store.workOrders || {}) } }];` }, [240, 700]);
 const rCorr = node('Respond corridor', 'n8n-nodes-base.respondToWebhook', 1.1, { respondWith: 'firstIncomingItem', options: {} }, [480, 700]);
 link(wCorr, cCorr); link(cCorr, rCorr);
 
@@ -214,22 +248,57 @@ link(wMap, cMap); link(cMap, rMap);
 // ---------- D. Human actions ----------
 const wAct = node('POST /terracorridor/action', 'n8n-nodes-base.webhook', 2,
   { httpMethod: 'POST', path: 'terracorridor/action', responseMode: 'responseNode', options: {} }, [0, 1200], { webhookId: uuid() });
-const cAct = node('Validate and log action', 'n8n-nodes-base.code', 2, { jsCode: `// Every human decision lands here. Overrides need a reason; unknown actions are refused.
+const cAct = node('Validate, log and create work order', 'n8n-nodes-base.code', 2, { jsCode: code(`
+// Every human decision lands here. Overrides need a reason; unknown actions are refused.
+// Approve builds the work order HERE from the stored corridor (the browser only says which segment),
+// so the order always carries the engine's own numbers.
 const b = $input.first().json.body || {};
 const ALLOWED = ['approve_work_order', 'reject_work_order', 'override_tier'];
 if (!ALLOWED.includes(b.action) || !b.segment) return [{ json: { ok: false, error: 'unknown action or missing segment' } }];
 if (b.action === 'override_tier' && !(b.details && String(b.details.reason || '').trim())) return [{ json: { ok: false, error: 'override needs a reason' } }];
 const store = $getWorkflowStaticData('global');
 store.audit = store.audit || [];
-const entry = { at: new Date().toISOString(), segment: b.segment, action: b.action, details: b.details || {}, score: b.score ?? null, by: b.by || 'operator' };
-store.audit.unshift(entry);
-if (store.corridor && b.action === 'override_tier') {
-  const s = store.corridor.segments.find((x) => x.id === b.segment);
-  if (s) s.override = { tier: b.details.to, reason: b.details.reason, horizon: b.details.horizon, at: entry.at };
+store.workOrders = store.workOrders || {};
+const seg = store.corridor && store.corridor.segments.find((x) => x.id === b.segment);
+if (!seg) return [{ json: { ok: false, error: 'segment not in the saved corridor; run the engine first' } }];
+const details = b.details || {};
+const stop = ['y5', 'y10'].includes(details.stop) ? details.stop : 'y10';
+const entry = { at: new Date().toISOString(), segment: b.segment, action: b.action, details, score: b.score ?? null, by: b.by || 'operator' };
+let wo = null;
+if (b.action === 'approve_work_order') {
+  wo = ENGINE.workOrder(seg, stop, store.corridor.config || DEFAULTS, { by: entry.by });
+  store.workOrders[b.segment] = wo;
+  entry.details = { ...details, workOrderId: wo.id, priority: wo.priority, dueBy: wo.dueBy };
+} else if (b.action === 'reject_work_order') {
+  const prev = store.workOrders[b.segment];
+  store.workOrders[b.segment] = prev ? { ...prev, status: 'cancelled', cancelledAt: entry.at } : { segment: b.segment, status: 'rejected', at: entry.at, by: entry.by };
+} else {
+  seg.override = { tier: details.to, reason: details.reason, stop: details.stop || stop, at: entry.at };
 }
-return [{ json: { ok: true, logged: entry, auditSize: store.audit.length } }];` }, [240, 1200]);
+store.audit.unshift(entry);
+return [{ json: { ok: true, logged: entry, workOrder: wo, workOrderText: wo ? ENGINE.workOrderText(wo) : null, auditSize: store.audit.length } }];`) }, [240, 1200]);
 const rAct = node('Respond action', 'n8n-nodes-base.respondToWebhook', 1.1, { respondWith: 'firstIncomingItem', options: {} }, [480, 1200]);
 link(wAct, cAct); link(cAct, rAct);
+
+// After responding, hand new work orders to the field. Both senders ship DISABLED: pick one,
+// add its credential, set the recipient, enable it. Until then the order is still stored and shown.
+const fNew = node('Only new work orders', 'n8n-nodes-base.code', 2, { jsCode: `return $input.all().filter((i) => i.json.ok && i.json.workOrder);` }, [720, 1200]);
+link(rAct, fNew);
+const nEmail = node('Email the field crew', 'n8n-nodes-base.emailSend', 2.1, {
+  fromEmail: "={{ $env.WORK_ORDER_FROM || 'terracorridor@example.com' }}",
+  toEmail: "={{ $env.WORK_ORDER_TO || 'field-crew@example.com' }}",
+  subject: "={{ $json.workOrder.priority + ' field inspection ' + $json.workOrder.segment + ', due ' + $json.workOrder.dueBy }}",
+  emailFormat: 'text',
+  text: '={{ $json.workOrderText }}',
+  options: {},
+}, [960, 1120], { disabled: true });
+const nSlack = node('Post to Slack', 'n8n-nodes-base.slack', 2.2, {
+  select: 'channel',
+  channelId: { __rl: true, value: '#field-crew', mode: 'name' },
+  text: '={{ $json.workOrderText }}',
+  otherOptions: {},
+}, [960, 1300], { disabled: true });
+link(fNew, nEmail); link(fNew, nSlack);
 
 const wf = {
   name: 'TerraCorridor',
