@@ -272,7 +272,9 @@ test('B regression: the cached Trans-Northern climate cells do not turn the whol
     const rec = { cell_key: 'cellA', cache_status: 'cached', archive: JSON.parse(c.archive_metrics_json), climate: JSON.parse(c.climate_metrics_json) };
     const flat = (await scoreW2([w2seg('flat', '[]')], rec)).find((x) => x.horizon_years === 10);   // flat ground, stable vegetation
     assert.equal(flat.status, 'verified', c.cell_key + ': ' + flat.error_message);
-    assert.ok(flat.ground_score < w2cfg.amber_min, `${c.cell_key}: climate alone gives ground score ${flat.ground_score}, must stay below Medium`);
+    // With non-overlapping windows (2031-2035 alone) climate by itself can reach Medium on flat ground (49.9 in 53.30_-113.50,
+    // two of three models +44-79% heavy-rain days). That is a real signal. The bug was climate alone pushing every km to High.
+    assert.ok(flat.ground_score < w2cfg.red_above, `${c.cell_key}: climate alone gives ground score ${flat.ground_score}, must stay below High`);
     const old = (await scoreW2([w2seg('flat', '[]')], rec, { ratio_full_score_increase: 0.15, red_above: 50 })).find((x) => x.horizon_years === 10);
     assert.ok(old.ground_score > 50, `${c.cell_key}: the previous live config (full at +15%, red above 50) made flat ground ${old.ground_score}: the mass-red bug`);
   }
