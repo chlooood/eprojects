@@ -1,0 +1,10 @@
+# Netlify serves the prebuilt dashboard. deploy/ is committed (npm run build regenerates it),
+# so no build step is needed on Netlify.
+[build]
+  publish = "deploy"
+  command = ""
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
