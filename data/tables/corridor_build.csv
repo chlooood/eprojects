@@ -1,0 +1,2 @@
+segment_id,corridor_id,build_score,build_tier,usable_acres,irradiance,slope_pct,substation_km,mw,mwh_per_year,annual_lease_revenue,partner_annual_revenue,operator_annual_revenue,avoided_tco2_per_year,gross_power_value,risk10_tier,data_status,data_labels,calculated_at
+sample,sample,1,sample,1,1,1,1,1,1,1,1,1,1,1,sample,sample,sample,sample

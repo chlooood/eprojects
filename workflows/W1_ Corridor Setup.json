@@ -1,0 +1,866 @@
+{
+  "name": "W1: Corridor Setup",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "890b9f95-6db9-4353-8da1-e3f5c27e5735",
+      "name": "Run Demo Init",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "corridor_id",
+              "value": "ab-strathcona-demo",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "operator_name",
+              "value": "TerraCorridor Demo",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "operator_filter",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "bbox_south",
+              "value": 53.5,
+              "type": "number"
+            },
+            {
+              "id": "c5",
+              "name": "bbox_west",
+              "value": -113.4,
+              "type": "number"
+            },
+            {
+              "id": "c6",
+              "name": "bbox_north",
+              "value": 53.6,
+              "type": "number"
+            },
+            {
+              "id": "c7",
+              "name": "bbox_east",
+              "value": -113.2,
+              "type": "number"
+            },
+            {
+              "id": "c8",
+              "name": "overpass_url",
+              "value": "https://overpass-api.de/api/interpreter",
+              "type": "string"
+            },
+            {
+              "id": "c9",
+              "name": "segment_length_m",
+              "value": 1000,
+              "type": "number"
+            },
+            {
+              "id": "c10",
+              "name": "exclusion_band_m",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "c11",
+              "name": "study_strip_m",
+              "value": 200,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4c585418-cde9-4f94-bf24-8791723df887",
+      "name": "Corridor Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        272,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "months",
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "id": "65e1c8ff-59b7-4627-bc0a-e19997956bd8",
+      "name": "Monthly Refresh",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.overpass_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "TerraCorridor-W1/1.0 (n8n)"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/text",
+        "body": "=[out:json][timeout:25];way[\"man_made\"=\"pipeline\"]{{ $json.operator_filter ? '[\"operator\"~\"' + $json.operator_filter + '\",i]' : '' }}({{ $json.bbox_south }},{{ $json.bbox_west }},{{ $json.bbox_north }},{{ $json.bbox_east }});out geom;",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "d9a90803-8529-4e76-a1cb-794c84404666",
+      "name": "Fetch Pipeline Route",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        496,
+        224
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Embedded fixture: corridor_route_fallback.json (used when Overpass times out, 429s or errors)\nconst corridor_route_fallback = {\n  \"version\": 0.6,\n  \"generator\": \"TerraCorridor embedded fallback fixture (corridor_route_fallback.json) - synthetic demo route, not live OSM data\",\n  \"elements\": [\n    {\n      \"type\": \"way\",\n      \"id\": 900000001,\n      \"tags\": {\n        \"man_made\": \"pipeline\",\n        \"substance\": \"oil\",\n        \"name\": \"TerraCorridor demo corridor\",\n        \"ref\": \"TC-DEMO-1\"\n      },\n      \"geometry\": [\n        {\n          \"lat\": 53.545,\n          \"lon\": -113.36\n        },\n        {\n          \"lat\": 53.548,\n          \"lon\": -113.33\n        },\n        {\n          \"lat\": 53.553,\n          \"lon\": -113.3\n        }\n      ]\n    },\n    {\n      \"type\": \"way\",\n      \"id\": 900000002,\n      \"tags\": {\n        \"man_made\": \"pipeline\",\n        \"substance\": \"oil\",\n        \"name\": \"TerraCorridor demo corridor\",\n        \"ref\": \"TC-DEMO-1\"\n      },\n      \"geometry\": [\n        {\n          \"lat\": 53.553,\n          \"lon\": -113.3\n        },\n        {\n          \"lat\": 53.56,\n          \"lon\": -113.27\n        },\n        {\n          \"lat\": 53.565,\n          \"lon\": -113.245\n        }\n      ]\n    }\n  ]\n};\nconst err = $input.first().json || {};\nconst reason = (err.error && (err.error.message || err.error.description)) || err.message || JSON.stringify(err.error || err).slice(0, 500);\nreturn [{ json: {\n  data: JSON.stringify(corridor_route_fallback),\n  source_kind: 'fallback_fixture',\n  source_url: 'n8n-embedded://corridor_route_fallback.json',\n  fallback_reason: String(reason || 'Overpass request failed'),\n} }];"
+      },
+      "id": "3e4a9445-9d5b-4535-b2f0-1217aef9a1be",
+      "name": "Load Fallback Fixture",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "value": "={{ $json.data }}",
+        "dataPropertyName": "source_hash"
+      },
+      "id": "729e09f8-cea8-453d-b708-24c51b7dbe82",
+      "name": "Hash Raw Response",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        944,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== TerraCorridor W1 Segmenter (deterministic, fail-closed) =====\nconst input = $input.first().json;\nconst cfg = $('Corridor Config').first().json;\n\nconst SEGMENT_LENGTH_M = Number(cfg.segment_length_m) || 1000;\nconst EXCLUSION_M = Number(cfg.exclusion_band_m) || 30;\nconst STUDY_M = Number(cfg.study_strip_m) || 200;\nconst R = 6371e3;\n\nconst fetchedAt = new Date().toISOString();\nconst sourceKind = input.source_kind || 'overpass_live';\nconst sourceUrl = input.source_url || cfg.overpass_url;\nconst sourceHash = input.source_hash;\n\nfunction deg2rad(deg) { return deg * (Math.PI / 180); }\nfunction getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {\n  const dLat = deg2rad(lat2 - lat1);\n  const dLon = deg2rad(lon2 - lon1);\n  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +\n    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *\n    Math.sin(dLon / 2) * Math.sin(dLon / 2);\n  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));\n}\nfunction r7(n) { return Math.round(n * 1e7) / 1e7; }\nfunction key(p) { return p.lat.toFixed(6) + ',' + p.lon.toFixed(6); }\n\n// Deterministic 64-bit FNV-1a style hash (two 32-bit lanes) -> 16 hex chars\nfunction stableHash(str) {\n  let h1 = 0x811c9dc5, h2 = 0x01000193 ^ 0x5bd1e995;\n  for (let i = 0; i < str.length; i++) {\n    const c = str.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ c, 0x5bd1e995) >>> 0;\n    h2 = (h2 ^ (h2 >>> 15)) >>> 0;\n  }\n  return h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');\n}\n\nfunction failClosed(message, extra) {\n  return [{ json: Object.assign({\n    batch_status: 'unverified',\n    error_message: message,\n    corridor_id: cfg.corridor_id,\n    source_hash: sourceHash || '',\n    source_url: sourceUrl,\n    source_kind: sourceKind,\n    fallback_reason: input.fallback_reason || '',\n    fetched_at: fetchedAt,\n    way_count: 0,\n    route_length_m: 0,\n    segment_count: 0,\n    segments: [],\n  }, extra || {}) }];\n}\n\n// ---- 1. Provenance + parse validation ----\nif (typeof sourceHash !== 'string' || !/^[0-9a-f]{64}$/.test(sourceHash)) {\n  return failClosed('Missing or invalid SHA-256 hash of the raw response');\n}\nlet parsed;\ntry {\n  parsed = typeof input.data === 'string' ? JSON.parse(input.data) : input.data;\n} catch (e) {\n  return failClosed('Raw response is not valid JSON: ' + e.message);\n}\nif (!parsed || !Array.isArray(parsed.elements)) {\n  return failClosed('Response has no elements array' + (parsed && parsed.remark ? ' (remark: ' + parsed.remark + ')' : ''));\n}\n\nconst ways = parsed.elements\n  .filter(el => el && el.type === 'way' && el.tags && el.tags.man_made === 'pipeline')\n  .sort((a, b) => a.id - b.id);\nif (ways.length === 0) {\n  return failClosed('No man_made=pipeline ways found in the corridor bbox');\n}\n\n// ---- 2. Strict coordinate validation (any bad coordinate fails the batch) ----\nconst cleanWays = [];\nfor (const w of ways) {\n  if (!Array.isArray(w.geometry) || w.geometry.length < 2) {\n    return failClosed('Way ' + w.id + ' has no usable geometry (need out geom)');\n  }\n  const pts = [];\n  for (const g of w.geometry) {\n    const lat = Number(g && g.lat), lon = Number(g && g.lon);\n    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {\n      return failClosed('Way ' + w.id + ' contains an invalid coordinate');\n    }\n    const p = { lat, lon };\n    if (pts.length === 0 || key(pts[pts.length - 1]) !== key(p)) pts.push(p);\n  }\n  const t = w.tags || {};\n  const ident = String(t.name || t.ref || ((t.operator || '') + '|' + (t.substance || '')) || 'unnamed').toLowerCase();\n  if (pts.length >= 2) cleanWays.push({ id: w.id, pts, ident });\n}\nif (cleanWays.length === 0) return failClosed('All pipeline ways collapsed to fewer than 2 points');\n\nfunction lineLength(pts) {\n  let d = 0;\n  for (let i = 1; i < pts.length; i++) d += getDistanceFromLatLonInMeters(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon);\n  return d;\n}\n\n// ---- 3. Stitch ways into continuous chains, keep the longest as the corridor ----\n// Only join ways of the same pipeline identity, and only through simple (degree-2) joints,\n// so separate pipelines or branches in a dense network are never chained together.\nconst degree = {};\nfor (const w of cleanWays) {\n  for (const p of [w.pts[0], w.pts[w.pts.length - 1]]) {\n    const k = w.ident + '#' + key(p);\n    degree[k] = (degree[k] || 0) + 1;\n  }\n}\nfunction joinable(ident, p) { return degree[ident + '#' + key(p)] === 2; }\nconst used = new Set();\nconst chains = [];\nconst byLen = cleanWays.slice().sort((a, b) => (lineLength(b.pts) - lineLength(a.pts)) || (a.id - b.id));\nfor (const seed of byLen) {\n  if (used.has(seed.id)) continue;\n  used.add(seed.id);\n  let chain = seed.pts.slice();\n  const wayIds = [seed.id];\n  let extended = true;\n  while (extended) {\n    extended = false;\n    for (const w of cleanWays) {\n      if (used.has(w.id) || w.ident !== seed.ident) continue;\n      const head = key(chain[0]), tail = key(chain[chain.length - 1]);\n      const ws = key(w.pts[0]), we = key(w.pts[w.pts.length - 1]);\n      const tailOk = joinable(seed.ident, chain[chain.length - 1]);\n      const headOk = joinable(seed.ident, chain[0]);\n      if (!tailOk && !headOk) break;\n      if (tailOk && ws === tail) chain = chain.concat(w.pts.slice(1));\n      else if (tailOk && we === tail) chain = chain.concat(w.pts.slice().reverse().slice(1));\n      else if (headOk && we === head) chain = w.pts.slice(0, -1).concat(chain);\n      else if (headOk && ws === head) chain = w.pts.slice().reverse().slice(0, -1).concat(chain);\n      else continue;\n      used.add(w.id); wayIds.push(w.id); extended = true;\n    }\n  }\n  chains.push({ pts: chain, wayIds, ident: seed.ident, length: lineLength(chain) });\n}\nchains.sort((a, b) => (b.length - a.length) || (Math.min(...a.wayIds) - Math.min(...b.wayIds)));\nlet route = chains[0].pts;\n// Canonical orientation: west -> east (then south -> north) so IDs are stable between runs\nconst s0 = route[0], e0 = route[route.length - 1];\nif (s0.lon > e0.lon || (s0.lon === e0.lon && s0.lat > e0.lat)) route = route.slice().reverse();\n\n// ---- 4. Cumulative haversine distance + 1 km cuts ----\nconst cum = [0];\nfor (let i = 1; i < route.length; i++) cum.push(cum[i - 1] + getDistanceFromLatLonInMeters(route[i - 1].lat, route[i - 1].lon, route[i].lat, route[i].lon));\nconst total = cum[cum.length - 1];\nif (!(total > 0)) return failClosed('Route has zero length');\n\nfunction pointAt(dist) {\n  let i = 1;\n  while (i < cum.length - 1 && cum[i] < dist) i++;\n  const span = cum[i] - cum[i - 1];\n  const t = span > 0 ? (dist - cum[i - 1]) / span : 0;\n  return { lat: route[i - 1].lat + t * (route[i].lat - route[i - 1].lat), lon: route[i - 1].lon + t * (route[i].lon - route[i - 1].lon) };\n}\nfunction sliceLine(d0, d1) {\n  const pts = [pointAt(d0)];\n  for (let i = 0; i < route.length; i++) if (cum[i] > d0 && cum[i] < d1) pts.push(route[i]);\n  pts.push(pointAt(d1));\n  return pts;\n}\n\n// ---- 5. Offset polygons in a local metric frame ----\nfunction offsetLine(pts, d) {\n  const lat0 = pts[0].lat, lon0 = pts[0].lon, k = Math.cos(deg2rad(lat0));\n  const xy = pts.map(p => ({ x: deg2rad(p.lon - lon0) * R * k, y: deg2rad(p.lat - lat0) * R }));\n  const out = [];\n  for (let i = 0; i < xy.length; i++) {\n    const prev = xy[Math.max(0, i - 1)], next = xy[Math.min(xy.length - 1, i + 1)];\n    const a = i > 0 ? norm(xy[i].x - prev.x, xy[i].y - prev.y) : null;\n    const b = i < xy.length - 1 ? norm(next.x - xy[i].x, next.y - xy[i].y) : null;\n    let nx, ny, scale = 1;\n    if (a && b) {\n      const n1 = { x: -a.y, y: a.x }, n2 = { x: -b.y, y: b.x };\n      const m = norm(n1.x + n2.x, n1.y + n2.y) || n2;\n      const cosHalf = m.x * n2.x + m.y * n2.y;\n      scale = Math.min(1 / Math.max(cosHalf, 1e-6), 4); // clamp sharp miters\n      nx = m.x; ny = m.y;\n    } else {\n      const t = a || b;\n      nx = -t.y; ny = t.x;\n    }\n    const ox = xy[i].x + nx * d * scale, oy = xy[i].y + ny * d * scale;\n    out.push([r7(lon0 + (ox / (R * k)) * 180 / Math.PI), r7(lat0 + (oy / R) * 180 / Math.PI)]);\n  }\n  return out;\n}\nfunction norm(x, y) { const l = Math.hypot(x, y); return l > 0 ? { x: x / l, y: y / l } : null; }\nfunction ring(inner, outer) { // inner forward + outer reversed, closed\n  const r = inner.concat(outer.slice().reverse());\n  r.push(r[0]);\n  return r;\n}\n\nconst segments = [];\nconst nSeg = Math.ceil(total / SEGMENT_LENGTH_M - 1e-9);\nfor (let s = 0; s < nSeg; s++) {\n  const d0 = s * SEGMENT_LENGTH_M;\n  const d1 = Math.min((s + 1) * SEGMENT_LENGTH_M, total);\n  if (d1 - d0 < 1) continue; // drop sub-metre slivers\n  const line = sliceLine(d0, d1);\n  const leftEx = offsetLine(line, EXCLUSION_M), rightEx = offsetLine(line, -EXCLUSION_M);\n  const leftSt = offsetLine(line, EXCLUSION_M + STUDY_M), rightSt = offsetLine(line, -(EXCLUSION_M + STUDY_M));\n  const all = leftSt.concat(rightSt);\n  const bbox = {\n    west: Math.min(...all.map(c => c[0])), east: Math.max(...all.map(c => c[0])),\n    south: Math.min(...all.map(c => c[1])), north: Math.max(...all.map(c => c[1])),\n  };\n  const a = line[0], b = line[line.length - 1];\n  const idSeed = [cfg.corridor_id, a.lat.toFixed(6), a.lon.toFixed(6), b.lat.toFixed(6), b.lon.toFixed(6)].join('|');\n  const geometry = {\n    type: 'FeatureCollection',\n    features: [\n      { type: 'Feature', properties: { zone: 'centreline' }, geometry: { type: 'LineString', coordinates: line.map(p => [r7(p.lon), r7(p.lat)]) } },\n      { type: 'Feature', properties: { zone: 'cer_exclusion_band', half_width_m: EXCLUSION_M }, geometry: { type: 'Polygon', coordinates: [ring(leftEx, rightEx)] } },\n      { type: 'Feature', properties: { zone: 'study_strip', inner_offset_m: EXCLUSION_M, outer_offset_m: EXCLUSION_M + STUDY_M }, geometry: { type: 'MultiPolygon', coordinates: [[ring(leftEx, leftSt)], [ring(rightEx, rightSt)]] } },\n    ],\n  };\n  segments.push({\n    segment_id: 'seg_' + stableHash(idSeed),\n    corridor_id: cfg.corridor_id,\n    segment_index: s,\n    lat_start: r7(a.lat), lon_start: r7(a.lon),\n    lat_end: r7(b.lat), lon_end: r7(b.lon),\n    length_m: Math.round((d1 - d0) * 100) / 100,\n    polygon_geometry_json: JSON.stringify(geometry),\n    bbox_south: bbox.south, bbox_west: bbox.west, bbox_north: bbox.north, bbox_east: bbox.east,\n    status: 'active',\n    source_hash: sourceHash,\n    source_kind: sourceKind,\n    generated_at: fetchedAt,\n  });\n}\nif (segments.length === 0) return failClosed('Segmentation produced no segments');\nconst ids = new Set(segments.map(x => x.segment_id));\nif (ids.size !== segments.length) return failClosed('Segment ID collision detected');\n\nreturn [{ json: {\n  batch_status: 'verified',\n  error_message: '',\n  corridor_id: cfg.corridor_id,\n  source_hash: sourceHash,\n  source_url: sourceUrl,\n  source_kind: sourceKind,\n  fallback_reason: input.fallback_reason || '',\n  fetched_at: fetchedAt,\n  way_count: chains[0].wayIds.length,\n  route_identity: chains[0].ident,\n  route_way_ids: chains[0].wayIds.slice().sort((x, y) => x - y),\n  route_length_m: Math.round(total * 100) / 100,\n  segment_count: segments.length,\n  segments,\n} }];\n"
+      },
+      "id": "14548aa5-02b1-4900-985d-7a256ae0743e",
+      "name": "Segment Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "NgF5zRkFD9AuQ0h0",
+          "cachedResultName": "corridor_sources"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "source_hash": "={{ $json.source_hash }}",
+            "source_url": "={{ $json.source_url }}",
+            "source_kind": "={{ $json.source_kind }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "corridor_id": "={{ $json.corridor_id }}",
+            "batch_status": "={{ $json.batch_status }}",
+            "way_count": "={{ $json.way_count }}",
+            "segment_count": "={{ $json.segment_count }}",
+            "route_length_m": "={{ $json.route_length_m }}",
+            "error_message": "={{ $json.error_message }}",
+            "fallback_reason": "={{ $json.fallback_reason }}"
+          },
+          "schema": [
+            {
+              "id": "source_hash",
+              "displayName": "source_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_url",
+              "displayName": "source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_kind",
+              "displayName": "source_kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "corridor_id",
+              "displayName": "corridor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "batch_status",
+              "displayName": "batch_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "way_count",
+              "displayName": "way_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_count",
+              "displayName": "segment_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "route_length_m",
+              "displayName": "route_length_m",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fallback_reason",
+              "displayName": "fallback_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cb16f09d-3cb4-4911-aa99-05847a85e03a",
+      "name": "Log Source Audit",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Segment Route').item.json.batch_status }}",
+              "rightValue": "verified",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "606f2267-4d3e-45a1-82f5-7d972519008d",
+      "name": "Batch Verified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const batch = $('Segment Route').first().json;\nreturn (batch.segments || []).map(s => ({ json: s }));"
+      },
+      "id": "419c9912-fdf2-488e-bf7b-fc678efd818f",
+      "name": "Expand Segments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "euUFpWZEDrrDJOkc",
+          "cachedResultName": "corridor_segments"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "segment_id",
+              "keyValue": "={{ $json.segment_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "segment_id": "={{ $json.segment_id }}",
+            "corridor_id": "={{ $json.corridor_id }}",
+            "segment_index": "={{ $json.segment_index }}",
+            "lat_start": "={{ $json.lat_start }}",
+            "lon_start": "={{ $json.lon_start }}",
+            "lat_end": "={{ $json.lat_end }}",
+            "lon_end": "={{ $json.lon_end }}",
+            "length_m": "={{ $json.length_m }}",
+            "polygon_geometry_json": "={{ $json.polygon_geometry_json }}",
+            "bbox_south": "={{ $json.bbox_south }}",
+            "bbox_west": "={{ $json.bbox_west }}",
+            "bbox_north": "={{ $json.bbox_north }}",
+            "bbox_east": "={{ $json.bbox_east }}",
+            "status": "={{ $json.status }}",
+            "source_hash": "={{ $json.source_hash }}",
+            "source_kind": "={{ $json.source_kind }}",
+            "generated_at": "={{ $json.generated_at }}"
+          },
+          "schema": [
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "corridor_id",
+              "displayName": "corridor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_index",
+              "displayName": "segment_index",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lat_start",
+              "displayName": "lat_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lon_start",
+              "displayName": "lon_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lat_end",
+              "displayName": "lat_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lon_end",
+              "displayName": "lon_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "length_m",
+              "displayName": "length_m",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "polygon_geometry_json",
+              "displayName": "polygon_geometry_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bbox_south",
+              "displayName": "bbox_south",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bbox_west",
+              "displayName": "bbox_west",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bbox_north",
+              "displayName": "bbox_north",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bbox_east",
+              "displayName": "bbox_east",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_hash",
+              "displayName": "source_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_kind",
+              "displayName": "source_kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "generated_at",
+              "displayName": "generated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "99093cda-aa0b-467b-a142-e9576d539554",
+      "name": "Upsert Segments",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "corridor_id",
+              "value": "={{ $('Segment Route').first().json.corridor_id }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "segment_ids",
+              "value": "={{ $('Segment Route').first().json.segments.map(s => s.segment_id) }}",
+              "type": "array"
+            },
+            {
+              "id": "b3",
+              "name": "segment_count",
+              "value": "={{ $('Segment Route').first().json.segment_count }}",
+              "type": "number"
+            },
+            {
+              "id": "b4",
+              "name": "source_hash",
+              "value": "={{ $('Segment Route').first().json.source_hash }}",
+              "type": "string"
+            },
+            {
+              "id": "b5",
+              "name": "source_kind",
+              "value": "={{ $('Segment Route').first().json.source_kind }}",
+              "type": "string"
+            },
+            {
+              "id": "b6",
+              "name": "triggered_by",
+              "value": "W1_corridor_setup",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c5e7f27e-1b2d-426e-95e3-be457bfca84a",
+      "name": "Build W2 Batch",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1776,
+        128
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "dBH4KH6tppTfvjLb",
+          "cachedResultName": "W2: Long-Range Engine"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "4a3bbd15-f2df-4fde-9deb-3c48c7b22f91",
+      "name": "Start W2 Long-Range Engine",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2000,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "errorMessage": "=Segment batch flagged UNVERIFIED for corridor {{ $('Segment Route').item.json.corridor_id }}: {{ $('Segment Route').item.json.error_message }}"
+      },
+      "id": "3503e759-e80f-4af7-9b23-3b19595d6e18",
+      "name": "Halt Unverified Batch",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        192
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Run Demo Init": {
+      "main": [
+        [
+          {
+            "node": "Corridor Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corridor Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Pipeline Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monthly Refresh": {
+      "main": [
+        [
+          {
+            "node": "Corridor Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Pipeline Route": {
+      "main": [
+        [
+          {
+            "node": "Hash Raw Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load Fallback Fixture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Fallback Fixture": {
+      "main": [
+        [
+          {
+            "node": "Hash Raw Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hash Raw Response": {
+      "main": [
+        [
+          {
+            "node": "Segment Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Segment Route": {
+      "main": [
+        [
+          {
+            "node": "Log Source Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Source Audit": {
+      "main": [
+        [
+          {
+            "node": "Batch Verified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch Verified?": {
+      "main": [
+        [
+          {
+            "node": "Expand Segments",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Halt Unverified Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Segments": {
+      "main": [
+        [
+          {
+            "node": "Upsert Segments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Segments": {
+      "main": [
+        [
+          {
+            "node": "Build W2 Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build W2 Batch": {
+      "main": [
+        [
+          {
+            "node": "Start W2 Long-Range Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "8f2d54f7-47d3-498a-ac89-a39db17302fd",
+  "meta": {
+    "instanceId": "75fcd7e84008a7bc6d8634e6f5f0aeef3cc11569a8e4c5b0e2e834fc9112e9a8"
+  },
+  "nodeGroups": [
+    {
+      "id": "bff41116-a12b-45cf-8900-ad88ac180678",
+      "name": "Fetch corridor route",
+      "nodeIds": [
+        "4c585418-cde9-4f94-bf24-8791723df887",
+        "d9a90803-8529-4e76-a1cb-794c84404666",
+        "3e4a9445-9d5b-4535-b2f0-1217aef9a1be",
+        "729e09f8-cea8-453d-b708-24c51b7dbe82"
+      ],
+      "description": "Queries OpenStreetMap for the Alberta corridor pipeline, falls back to the saved fixture, and fingerprints the raw reply"
+    },
+    {
+      "id": "20a12ac7-bc18-437a-8b62-fa5de2dd1778",
+      "name": "Build 1 km segments",
+      "nodeIds": [
+        "14548aa5-02b1-4900-985d-7a256ae0743e",
+        "cb16f09d-3cb4-4911-aa99-05847a85e03a",
+        "606f2267-4d3e-45a1-82f5-7d972519008d"
+      ],
+      "description": "Cuts the route into 1 km pieces with 30 m exclusion and 200 m study strips, logs provenance, fails closed on bad data"
+    },
+    {
+      "id": "4e9429c1-d831-4393-aac1-9a81db8fed30",
+      "name": "Publish segment batch",
+      "nodeIds": [
+        "419c9912-fdf2-488e-bf7b-fc678efd818f",
+        "99093cda-aa0b-467b-a142-e9576d539554",
+        "c5e7f27e-1b2d-426e-95e3-be457bfca84a",
+        "4a3bbd15-f2df-4fde-9deb-3c48c7b22f91"
+      ],
+      "description": "Saves segments without duplicates, then hands the segment ID list to the long-range engine (W2)"
+    }
+  ],
+  "id": "YqrrZT2zJicey7FX",
+  "tags": []
+}

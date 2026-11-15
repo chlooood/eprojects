@@ -1,0 +1,803 @@
+{
+  "name": "TerraCorridor WF3 - Near-term watch",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "f6a70d2f-a22c-4520-89cc-5e65f7cecd35",
+      "name": "Daily 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "7T6RlFe9HRFOfkCD",
+          "cachedResultName": "corridor_predictions"
+        },
+        "returnAll": true
+      },
+      "id": "0f0cbb0c-4754-4ac8-a1a9-2c05cf2d101b",
+      "name": "Get predictions",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        128
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SET_ID_corridor_watch",
+          "cachedResultName": "corridor_watch"
+        },
+        "returnAll": true
+      },
+      "id": "3e2385ba-2e72-4eb6-b446-8bd09df46843",
+      "name": "Get watch state",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        128
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "LckNoZvtBFwDnwM3",
+          "cachedResultName": "corridor_baselines"
+        },
+        "returnAll": true
+      },
+      "id": "1c21028f-7469-48ed-b704-8b8adc02ce86",
+      "name": "Get baselines",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        128
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads corridor state from the shared W2 tables and keeps segments whose 5- or 10-year tier is amber, red or red-uncertain.\n// An operator override for that horizon replaces the model tier. Segments are grouped by 10 km climate cell\n// so each cell needs one forecast call.\n// Tables: corridor_predictions (W2, one row per segment and horizon_years 5 or 10), corridor_baselines (W2, one row per segment),\n// corridor_watch (W3 near-term state and W4 tier overrides). Unverified predictions are skipped here: W2 already marks them unverified.\nconst FLAG = ['amber', 'red', 'red-uncertain'];\nconst RANK = { red: 3, 'red-uncertain': 3, amber: 2 };\nconst WEIGHT = { rain: 0.35, freezeThaw: 0.20, saturation: 0.15, vegetation: 0.20, slope: 0.10 }; // same weights as the W2 Config node\nconst rows = (name) => $(name).all().map((i) => i.json).filter((r) => r && !r.error && Object.keys(r).length > 0);\nconst n = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));\nconst r1 = (x) => (x == null ? null : Math.round(x * 10) / 10);\nconst watch = Object.fromEntries(rows('Get watch state').filter((s) => s.segment_id).map((s) => [s.segment_id, s]));\nconst baseBySeg = Object.fromEntries(rows('Get baselines').filter((b) => b.segment_id).map((b) => [b.segment_id, b]));\nconst segs = {};\nfor (const [id, b] of Object.entries(baseBySeg)) {\n  segs[id] = { ...(watch[id] || {}), segment_id: id, slope_pct: n(b.slope_pct), cell: b.cell_key || null, lat: n(b.centroid_lat), lon: n(b.centroid_lon) };\n}\n// One threshold set per climate cell (W2 stores the 1995-2025 annual rain p95 and soil p90; no monthly table, so the annual value is used).\nconst bases = {};\nfor (const b of Object.values(baseBySeg)) {\n  if (b.cell_key && !bases[b.cell_key]) bases[b.cell_key] = { cell: b.cell_key, lat: n(b.centroid_lat), lon: n(b.centroid_lon), extreme_mm: n(b.rain_p95_mm), soil_wet_threshold: n(b.soil_p90_m3m3), monthly_thresholds_json: '' };\n}\nconst parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch (e) { return d; } };\nconst driversFor = (p, b) => {\n  const base = { rain: n(b.extreme_rain_days_per_yr), ft: n(b.freeze_thaw_days_per_yr), sat: n(b.saturation_days_per_yr) };\n  const ratio = { rain: n(p.rain_ratio), ft: n(p.freeze_thaw_ratio), sat: n(p.saturation_ratio) };\n  const pct = (x) => (x == null ? null : Math.round((x - 1) * 100));\n  const proj = (k) => (base[k] != null && ratio[k] != null ? r1(base[k] * ratio[k]) : null);\n  return [\n    { key: 'rain', label: 'Extreme-rain days', change: pct(ratio.rain), base: base.rain, proj: proj('rain'), w: WEIGHT.rain * (n(p.score_r) || 0) },\n    { key: 'freezeThaw', label: 'Freeze-thaw days', change: pct(ratio.ft), base: base.ft, proj: proj('ft'), w: WEIGHT.freezeThaw * (n(p.score_f) || 0) },\n    { key: 'saturation', label: 'Wet-soil days', change: pct(ratio.sat), base: base.sat, proj: proj('sat'), w: WEIGHT.saturation * (n(p.score_w) || 0) },\n    { key: 'vegetation', label: 'Vegetation change (NDVI, 5 yr)', change: n(b.ndvi_drop_5yr) == null ? null : -n(b.ndvi_drop_5yr), w: WEIGHT.vegetation * (n(p.score_v) || 0) },\n    { key: 'slope', label: 'Slope', change: n(b.slope_pct), w: WEIGHT.slope * (n(p.score_s) || 0) },\n  ].sort((a, c) => c.w - a.w);\n};\nconst flagged = {};\nfor (const p of rows('Get predictions')) {\n  if (!p.segment_id || (p.status && p.status !== 'verified')) continue;\n  const horizon = 'y' + Number(p.horizon_years);\n  if (horizon !== 'y5' && horizon !== 'y10') continue;\n  const s = segs[p.segment_id] || {};\n  const modelTier = p.tier === 'red' && p.model_agreement === 'low' ? 'red-uncertain' : p.tier;\n  const tier = s.override_tier && (s.override_horizon || 'y10') === horizon ? s.override_tier : modelTier;\n  if (!FLAG.includes(tier)) continue;\n  const cur = flagged[p.segment_id];\n  const better = !cur || RANK[tier] > RANK[cur.tier] || (RANK[tier] === RANK[cur.tier] && horizon === 'y10' && cur.horizon !== 'y10');\n  if (!better) continue;\n  const drivers = driversFor(p, baseBySeg[p.segment_id] || {});\n  flagged[p.segment_id] = {\n    segment_id: p.segment_id, tier, model_tier: modelTier, overridden: tier !== modelTier, horizon,\n    score: n(p.risk_score), agreement: p.model_agreement || null, primary_driver: drivers[0] ? drivers[0].label : null, drivers_json: JSON.stringify(drivers),\n    slope_pct: s.slope_pct != null ? s.slope_pct : null, cell: s.cell || null, lat: s.lat, lon: s.lon,\n  };\n}\nconst cells = {};\nfor (const f of Object.values(flagged)) {\n  const key = f.cell || 'seg:' + f.segment_id;\n  (cells[key] = cells[key] || []).push(f);\n}\nreturn Object.entries(cells).map(([cell, list]) => {\n  const b = bases[cell] || null;\n  const avg = (k) => { const v = list.map((x) => x[k]).filter((x) => x != null); return v.length ? v.reduce((a, c) => a + c, 0) / v.length : null; };\n  const lat = b && b.lat != null ? b.lat : avg('lat');\n  const lon = b && b.lon != null ? b.lon : avg('lon');\n  return { json: {\n    cell,\n    lat: lat != null ? Number(lat).toFixed(4) : '',\n    lon: lon != null ? Number(lon).toFixed(4) : '',\n    has_baseline: !!b,\n    annual: b ? { extreme_mm: b.extreme_mm, soil_wet_threshold: b.soil_wet_threshold } : { extreme_mm: null, soil_wet_threshold: null },\n    monthly: b ? parse(b.monthly_thresholds_json, {}) : {},\n    segments: list,\n  } };\n});"
+      },
+      "id": "0f6ebb6a-74a8-46e9-852b-3989b26bff47",
+      "name": "Select flagged segments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "longitude",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "daily",
+              "value": "precipitation_sum,temperature_2m_max,temperature_2m_min,soil_moisture_0_to_7cm_mean"
+            },
+            {
+              "name": "forecast_days",
+              "value": "16"
+            },
+            {
+              "name": "timezone",
+              "value": "auto"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c99dedae-12ef-4e38-ac92-2a974e723b78",
+      "name": "Open-Meteo 16-day forecast",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        128
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compares the 16-day forecast against each cell's seasonal thresholds from the 1995-2025 baseline:\n// the month's 95th-percentile wet-day rain and 90th-percentile soil moisture (annual values if the month is missing).\n// Fail-closed: no forecast or no baseline means 'unverified' (grey), never 'clear'.\nconst cells = $('Select flagged segments').all().map((i) => i.json);\nconst fc = $input.all().map((i) => i.json || {});\nconst now = new Date().toISOString();\nconst r1 = (x) => (x == null ? null : Math.round(x * 10) / 10);\nconst out = [];\ncells.forEach((c, k) => {\n  const f = fc[k] || {};\n  const d = f.daily;\n  const pr = (d && d.precipitation_sum) || [];\n  const sm = (d && d.soil_moisture_0_to_7cm_mean) || [];\n  const tmin = (d && d.temperature_2m_min) || [], tmax = (d && d.temperature_2m_max) || [];\n  const apiOk = !f.error && d && Array.isArray(d.time) && d.time.length > 0 && pr.some((x) => x != null);\n  const thr = (date) => {\n    const m = (c.monthly || {})[String(Number(String(date).slice(5, 7)))] || {};\n    return {\n      rain: m.extreme_mm != null ? m.extreme_mm : c.annual.extreme_mm,\n      soil: m.soil_wet_threshold != null ? m.soil_wet_threshold : c.annual.soil_wet_threshold,\n      basis: m.extreme_mm != null ? 'monthly' : 'annual',\n    };\n  };\n  let state, summary;\n  const events = [];\n  const stats = { max_precip_mm: null, max_precip_date: null, max_soil: null, wet_soil_days: 0, freeze_thaw_days: 0, days: d && d.time ? d.time.length : 0 };\n  if (!apiOk) {\n    state = 'unverified';\n    const msg = f.error ? (f.error.message || f.error.description || JSON.stringify(f.error)) : 'empty forecast response';\n    summary = 'Forecast unavailable (' + String(msg).slice(0, 160) + '). Treated as unverified, not safe.';\n  } else if (c.annual.extreme_mm == null) {\n    state = 'unverified';\n    summary = 'No baseline thresholds for cell ' + c.cell + '. Run Workflow 2 to sync baselines. Treated as unverified.';\n  } else {\n    let lastMulti = -9;\n    d.time.forEach((date, i) => {\n      const t = thr(date), p = pr[i], s = sm[i];\n      if (p != null && (stats.max_precip_mm == null || p > stats.max_precip_mm)) { stats.max_precip_mm = p; stats.max_precip_date = date; }\n      if (s != null && (stats.max_soil == null || s > stats.max_soil)) stats.max_soil = s;\n      const soilWet = s != null && t.soil != null && s >= t.soil;\n      const prevWet = i > 0 && sm[i - 1] != null && t.soil != null && sm[i - 1] >= t.soil;\n      if (soilWet) stats.wet_soil_days += 1;\n      if (tmin[i] != null && tmax[i] != null && tmin[i] < 0 && tmax[i] > 0) stats.freeze_thaw_days += 1;\n      if (p != null && t.rain != null && p >= t.rain) {\n        events.push({ date, kind: 'heavy_rain', text: r1(p) + ' mm rain vs ' + t.basis + ' 95th percentile ' + r1(t.rain) + ' mm' + (soilWet || prevWet ? ', on soil above its 90th-percentile moisture' : '') });\n      } else if (p != null && t.rain != null && p >= 0.5 * t.rain && (soilWet || prevWet)) {\n        events.push({ date, kind: 'rain_on_saturated_soil', text: r1(p) + ' mm rain on soil at ' + s + ' m3/m3 vs ' + t.basis + ' 90th percentile ' + t.soil + ' m3/m3' });\n      }\n      if (i >= 2 && t.rain != null) {\n        const sum3 = (pr[i] || 0) + (pr[i - 1] || 0) + (pr[i - 2] || 0);\n        if (sum3 >= 2 * t.rain && i - lastMulti > 2) {\n          lastMulti = i;\n          events.push({ date, kind: 'multi_day_rain', text: '3-day rain total ' + r1(sum3) + ' mm vs ' + r1(2 * t.rain) + ' mm (2x ' + t.basis + ' 95th percentile)' });\n        }\n      }\n    });\n    if (events.length) {\n      state = 'escalated';\n      summary = events.length + ' heavy-weather event(s) in the next ' + stats.days + ' days on flagged ground. First: ' + events[0].date + ', ' + events[0].text + '.';\n    } else if (stats.wet_soil_days > 0) {\n      state = 'watch';\n      summary = 'Soil above its 90th-percentile moisture on ' + stats.wet_soil_days + ' of ' + stats.days + ' days, no heavy rain forecast.';\n    } else {\n      state = 'clear';\n      summary = 'No forecast rain or soil moisture above seasonal thresholds in the next ' + stats.days + ' days (max rain ' + r1(stats.max_precip_mm) + ' mm).';\n    }\n  }\n  for (const s of c.segments) {\n    // Red segments always go to Workflow 4 for a work order, even when the forecast is quiet or unavailable\n    // (Workflow 2 does not call Workflow 4 itself). A failed forecast must not hide a red segment.\n    const red = s.tier === 'red' || s.tier === 'red-uncertain';\n    out.push({ json: {\n      ...s,\n      state,\n      route: red || state === 'escalated' ? 'escalated' : state === 'unverified' ? 'unverified' : 'none',\n      escalate: red || state === 'escalated',\n      priority: state === 'escalated' ? 'high' : 'normal',\n      trigger_source: 'workflow3',\n      summary,\n      events,\n      forecast_error: state === 'unverified' ? summary : null,\n      near_term_json: JSON.stringify({ state, events, stats, cell: c.cell, checked_at: now }),\n      checked_at: now,\n    } });\n  }\n});\nreturn out;"
+      },
+      "id": "9bc7c4cb-0d4a-4cf4-8290-bb4c7218ef33",
+      "name": "Apply escalation rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SET_ID_corridor_watch",
+          "cachedResultName": "corridor_watch"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "segment_id",
+              "keyValue": "={{ $json.segment_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "segment_id": "={{ $json.segment_id }}",
+            "near_term_state": "={{ $json.state }}",
+            "near_term_summary": "={{ $json.summary }}",
+            "near_term_checked_at": "={{ $json.checked_at }}"
+          },
+          "schema": [
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "near_term_state",
+              "displayName": "near_term_state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "near_term_summary",
+              "displayName": "near_term_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "near_term_checked_at",
+              "displayName": "near_term_checked_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "e4873f7c-c862-4589-b1ad-3f363ac0e1b3",
+      "name": "Save near-term state",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "escalated",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "escalated"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "unverified",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "unverified"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "08d1b443-230c-4f8f-9abb-60416bbe60c5",
+      "name": "Route by state",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1328,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SET_ID_TerraCorridor_WF4_Work_orders_and_approvals",
+          "cachedResultName": "TerraCorridor WF4 - Work orders and approvals"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "segment_id": "={{ $json.segment_id }}",
+            "tier": "={{ $json.tier }}",
+            "horizon": "={{ $json.horizon }}",
+            "score": "={{ $json.score }}",
+            "agreement": "={{ $json.agreement }}",
+            "slope_pct": "={{ $json.slope_pct }}",
+            "drivers_json": "={{ $json.drivers_json }}",
+            "priority": "={{ $json.priority }}",
+            "trigger_source": "={{ $json.trigger_source }}",
+            "near_term_json": "={{ $json.near_term_json }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "tier",
+              "displayName": "tier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "horizon",
+              "displayName": "horizon",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "agreement",
+              "displayName": "agreement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "slope_pct",
+              "displayName": "slope_pct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "drivers_json",
+              "displayName": "drivers_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "trigger_source",
+              "displayName": "trigger_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "near_term_json",
+              "displayName": "near_term_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "0f84ec04-6950-4434-a2bd-9db2a91213b1",
+      "name": "Escalate to Workflow 4",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1552,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "logged_at": "={{ $now.toISO() }}",
+            "action": "=near_term_escalation",
+            "actor": "=n8n:workflow3",
+            "segment_id": "={{ $json.segment_id }}",
+            "work_order_id": "=",
+            "source": "=workflow3",
+            "ok": "={{ true }}",
+            "details_json": "={{ JSON.stringify({ tier: $json.tier, horizon: $json.horizon, priority: $json.priority, events: $json.events }) }}"
+          },
+          "schema": [
+            {
+              "id": "logged_at",
+              "displayName": "logged_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actor",
+              "displayName": "actor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "work_order_id",
+              "displayName": "work_order_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ok",
+              "displayName": "ok",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "details_json",
+              "displayName": "details_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "12062961-63ca-4644-8a7a-cff8b7d2e248",
+      "name": "Log escalation",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "logged_at": "={{ $now.toISO() }}",
+            "action": "=near_term_unverified",
+            "actor": "=n8n:workflow3",
+            "segment_id": "={{ $json.segment_id }}",
+            "work_order_id": "=",
+            "source": "=workflow3",
+            "ok": "={{ false }}",
+            "details_json": "={{ JSON.stringify({ tier: $json.tier, reason: $json.forecast_error }) }}"
+          },
+          "schema": [
+            {
+              "id": "logged_at",
+              "displayName": "logged_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actor",
+              "displayName": "actor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "work_order_id",
+              "displayName": "work_order_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ok",
+              "displayName": "ok",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "details_json",
+              "displayName": "details_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "41d1f492-266a-42aa-b51c-fc1bf94de7bf",
+      "name": "Log unverified segment",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        512
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 06:00": {
+      "main": [
+        [
+          {
+            "node": "Get predictions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get predictions": {
+      "main": [
+        [
+          {
+            "node": "Get watch state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get baselines": {
+      "main": [
+        [
+          {
+            "node": "Select flagged segments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select flagged segments": {
+      "main": [
+        [
+          {
+            "node": "Open-Meteo 16-day forecast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open-Meteo 16-day forecast": {
+      "main": [
+        [
+          {
+            "node": "Apply escalation rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply escalation rules": {
+      "main": [
+        [
+          {
+            "node": "Save near-term state",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route by state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by state": {
+      "main": [
+        [
+          {
+            "node": "Escalate to Workflow 4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log escalation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log unverified segment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get watch state": {
+      "main": [
+        [
+          {
+            "node": "Get baselines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "timezone": "America/Vancouver"
+  },
+  "versionId": "dd215d9a-74d1-4994-9917-f92f788b2429",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "608c111ba4b6ac7598ed19f2e72ecca4bf53cce83410fbe4a9cf1d5631b94faa"
+  },
+  "nodeGroups": [
+    {
+      "id": "2becdeee-ce1a-4783-9e86-b179ab846d82",
+      "name": "Load flagged segments",
+      "nodeIds": [
+        "0f0cbb0c-4754-4ac8-a1a9-2c05cf2d101b",
+        "3e2385ba-2e72-4eb6-b446-8bd09df46843",
+        "1c21028f-7469-48ed-b704-8b8adc02ce86",
+        "0f6ebb6a-74a8-46e9-852b-3989b26bff47"
+      ],
+      "description": "Reads predictions, segments and baselines; keeps amber or red segments (after overrides), one item per climate cell"
+    },
+    {
+      "id": "486f782d-3359-4cf5-9eac-8c7995eb1d17",
+      "name": "Check 16-day weather",
+      "nodeIds": [
+        "c99dedae-12ef-4e38-ac92-2a974e723b78",
+        "9bc7c4cb-0d4a-4cf4-8290-bb4c7218ef33"
+      ],
+      "description": "Compares forecast rain and soil moisture to seasonal thresholds; failed calls become unverified, never safe"
+    },
+    {
+      "id": "8f030f58-27e4-4e72-a33c-6a746996bf3a",
+      "name": "Escalate and log",
+      "nodeIds": [
+        "08d1b443-230c-4f8f-9abb-60416bbe60c5",
+        "0f84ec04-6950-4434-a2bd-9db2a91213b1",
+        "12062961-63ca-4644-8a7a-cff8b7d2e248",
+        "41d1f492-266a-42aa-b51c-fc1bf94de7bf"
+      ],
+      "description": "Heavy weather on flagged ground starts a high-priority work order; escalations and unverified cells are logged"
+    }
+  ],
+  "id": "ElgUtIGZlH1mZ8gL",
+  "tags": []
+}

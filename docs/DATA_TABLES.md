@@ -1,0 +1,18 @@
+# Data tables
+
+All workflows share these n8n Data tables. W1 and W2 already have theirs. The rest must exist in the same n8n instance before the other workflows can run.
+Create a missing one with Data tables > Create > Import CSV and the file in `data/tables/`, then delete the sample row. Copy each table ID from the URL into `workflows/wiring.json`, run `node scripts/wire-workflows.js`, then import.
+
+| Table | Written by | Columns |
+| --- | --- | --- |
+| `corridor_sources` | W1: Corridor Setup / Log Source Audit; W2: Long-Range Engine / Log Source Hashes | 11 columns, already exists |
+| `corridor_segments` | W1: Corridor Setup / Upsert Segments | 17 columns, already exists |
+| `corridor_baselines` | W2: Long-Range Engine / Upsert Baselines | 25 columns, already exists |
+| `corridor_climate_cells` | W2: Long-Range Engine / Save Cell Cache | 11 columns, already exists |
+| `corridor_predictions` | W2: Long-Range Engine / Upsert Predictions | 28 columns, already exists |
+| `corridor_build` | W5 - Solar + Storage Build Layer and Weekly Report / Upsert Build Rows | segment_id (string), corridor_id (string), build_score (number), build_tier (string), usable_acres (number), irradiance (number), slope_pct (number), substation_km (number), mw (number), mwh_per_year (number), annual_lease_revenue (number), partner_annual_revenue (number), operator_annual_revenue (number), avoided_tco2_per_year (number), gross_power_value (number), risk10_tier (string), data_status (string), data_labels (string), calculated_at (string) |
+| `corridor_build_config` | W5 - Solar + Storage Build Layer and Weekly Report / Save Assumptions | corridor_id (string), config_json (string), saved_at (string), source (string) |
+| `corridor_reports` | W5 - Solar + Storage Build Layer and Weekly Report / Save Report (pending_approval); W5 - Solar + Storage Build Layer and Weekly Report / Update Report Decision | report_id (string), corridor_id (string), status (string), generated_at (string), decision (string), decided_at (string), delivery_status (string), data_mode (string), summary_json (string), html (string) |
+| `corridor_watch` | WF3 - Near-term watch / Save near-term state; WF4 - Work orders and approvals / Apply tier override | segment_id (string), near_term_state (string), near_term_summary (string), near_term_checked_at (dateTime), override_tier (string), override_reason (string), override_horizon (string), override_by (string), override_at (dateTime) |
+| `corridor_work_orders` | WF4 - Work orders and approvals / Raise priority on open order; WF4 - Work orders and approvals / Save draft work order; WF4 - Work orders and approvals / Update work order status | priority (string), work_order_id (string), segment_id (string), status (string), trigger_source (string), tier (string), horizon (string), score (number), summary (string), facts_json (string), resume_url (string), execution_id (string), drafted_at (dateTime), decided_at (dateTime), decided_by (string), decision_note (string) |
+| `corridor_audit` | WF3 - Near-term watch / Log escalation; WF3 - Near-term watch / Log unverified segment; WF4 - Work orders and approvals / Log duplicate suppressed; WF4 - Work orders and approvals / Log work order drafted; WF4 - Work orders and approvals / Log work order outcome; WF4 - Work orders and approvals / Log tier override; WF4 - Work orders and approvals / Log operator decision; WF4 - Work orders and approvals / Log decision without pending order; WF4 - Work orders and approvals / Log refused action | logged_at (dateTime), action (string), actor (string), segment_id (string), work_order_id (string), source (string), ok (boolean), details_json (string) |

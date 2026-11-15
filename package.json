@@ -4,10 +4,14 @@
   "private": true,
   "description": "Self-running pipeline corridor risk dashboard. UBC eProjects x n8n LOOP buildathon.",
   "scripts": {
-    "test": "node --test test/engine.test.js",
+    "test": "node --test test/engine.test.js test/dashboard-api.test.js test/workflows.test.js",
     "demo": "node scripts/make-demo.js",
     "build": "node scripts/build.js && node scripts/make-workflow.js",
     "features": "node ml/features.js",
-    "train": "python ml/train.py"
+    "train": "python ml/train.py",
+    "validate": "node scripts/validate-workflows.js",
+    "wire": "node scripts/wire-workflows.js",
+    "api-workflow": "node scripts/make-api-workflow.js",
+    "tables": "node scripts/tables.js"
   }
 }
