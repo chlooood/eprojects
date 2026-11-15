@@ -32,31 +32,31 @@
             {
               "id": "c3",
               "name": "operator_filter",
-              "value": "",
+              "value": "Trans-Northern",
               "type": "string"
             },
             {
               "id": "c4",
               "name": "bbox_south",
-              "value": 53.5,
+              "value": 53.3,
               "type": "number"
             },
             {
               "id": "c5",
               "name": "bbox_west",
-              "value": -113.4,
+              "value": -113.55,
               "type": "number"
             },
             {
               "id": "c6",
               "name": "bbox_north",
-              "value": 53.6,
+              "value": 53.55,
               "type": "number"
             },
             {
               "id": "c7",
               "name": "bbox_east",
-              "value": -113.2,
+              "value": -113.3,
               "type": "number"
             },
             {
@@ -154,7 +154,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Embedded fixture: corridor_route_fallback.json (used when Overpass times out, 429s or errors)\nconst corridor_route_fallback = {\n  \"version\": 0.6,\n  \"generator\": \"TerraCorridor embedded fallback fixture (corridor_route_fallback.json) - synthetic demo route, not live OSM data\",\n  \"elements\": [\n    {\n      \"type\": \"way\",\n      \"id\": 900000001,\n      \"tags\": {\n        \"man_made\": \"pipeline\",\n        \"substance\": \"oil\",\n        \"name\": \"TerraCorridor demo corridor\",\n        \"ref\": \"TC-DEMO-1\"\n      },\n      \"geometry\": [\n        {\n          \"lat\": 53.545,\n          \"lon\": -113.36\n        },\n        {\n          \"lat\": 53.548,\n          \"lon\": -113.33\n        },\n        {\n          \"lat\": 53.553,\n          \"lon\": -113.3\n        }\n      ]\n    },\n    {\n      \"type\": \"way\",\n      \"id\": 900000002,\n      \"tags\": {\n        \"man_made\": \"pipeline\",\n        \"substance\": \"oil\",\n        \"name\": \"TerraCorridor demo corridor\",\n        \"ref\": \"TC-DEMO-1\"\n      },\n      \"geometry\": [\n        {\n          \"lat\": 53.553,\n          \"lon\": -113.3\n        },\n        {\n          \"lat\": 53.56,\n          \"lon\": -113.27\n        },\n        {\n          \"lat\": 53.565,\n          \"lon\": -113.245\n        }\n      ]\n    }\n  ]\n};\nconst err = $input.first().json || {};\nconst reason = (err.error && (err.error.message || err.error.description)) || err.message || JSON.stringify(err.error || err).slice(0, 500);\nreturn [{ json: {\n  data: JSON.stringify(corridor_route_fallback),\n  source_kind: 'fallback_fixture',\n  source_url: 'n8n-embedded://corridor_route_fallback.json',\n  fallback_reason: String(reason || 'Overpass request failed'),\n} }];"
+        "jsCode": "// Embedded fixture: corridor_route_fallback.json (real OSM way 466204284, used when Overpass times out, 429s or errors)\nconst corridor_route_fallback = {\n  \"version\": 0.6,\n  \"generator\": \"OpenStreetMap way 466204284 (Trans-Northern), cached from Overpass on 2026-11-15 because Overpass times out from n8n Cloud\",\n  \"elements\": [\n    {\n      \"type\": \"way\",\n      \"id\": 466204284,\n      \"tags\": {\n        \"man_made\": \"pipeline\",\n        \"substance\": \"hydrocarbons\",\n        \"name\": \"Trans-Northern\",\n        \"operator\": \"Trans-Northern Pipelines\",\n        \"location\": \"underground\"\n      },\n      \"geometry\": [\n        {\n          \"lat\": 53.5105943,\n          \"lon\": -113.3694676\n        },\n        {\n          \"lat\": 53.4976909,\n          \"lon\": -113.3694215\n        },\n        {\n          \"lat\": 53.4960217,\n          \"lon\": -113.3727425\n        },\n        {\n          \"lat\": 53.4919509,\n          \"lon\": -113.3758269\n        },\n        {\n          \"lat\": 53.4916305,\n          \"lon\": -113.3751188\n        },\n        {\n          \"lat\": 53.4868342,\n          \"lon\": -113.3752225\n        },\n        {\n          \"lat\": 53.4868143,\n          \"lon\": -113.3782811\n        },\n        {\n          \"lat\": 53.4847895,\n          \"lon\": -113.379905\n        },\n        {\n          \"lat\": 53.4846989,\n          \"lon\": -113.3796199\n        },\n        {\n          \"lat\": 53.4839734,\n          \"lon\": -113.3802026\n        },\n        {\n          \"lat\": 53.4840588,\n          \"lon\": -113.3804542\n        },\n        {\n          \"lat\": 53.4835519,\n          \"lon\": -113.380887\n        },\n        {\n          \"lat\": 53.4830478,\n          \"lon\": -113.3804387\n        },\n        {\n          \"lat\": 53.4823656,\n          \"lon\": -113.3808258\n        },\n        {\n          \"lat\": 53.4684512,\n          \"lon\": -113.381256\n        },\n        {\n          \"lat\": 53.4649201,\n          \"lon\": -113.3890281\n        },\n        {\n          \"lat\": 53.4616218,\n          \"lon\": -113.3931898\n        },\n        {\n          \"lat\": 53.4616075,\n          \"lon\": -113.394477\n        },\n        {\n          \"lat\": 53.456736,\n          \"lon\": -113.4036237\n        },\n        {\n          \"lat\": 53.4548815,\n          \"lon\": -113.4070497\n        },\n        {\n          \"lat\": 53.4520069,\n          \"lon\": -113.4070638\n        },\n        {\n          \"lat\": 53.4401342,\n          \"lon\": -113.4071024\n        },\n        {\n          \"lat\": 53.4375358,\n          \"lon\": -113.4071109\n        },\n        {\n          \"lat\": 53.4355583,\n          \"lon\": -113.4071884\n        },\n        {\n          \"lat\": 53.4340028,\n          \"lon\": -113.4071797\n        },\n        {\n          \"lat\": 53.4291605,\n          \"lon\": -113.407003\n        },\n        {\n          \"lat\": 53.425524,\n          \"lon\": -113.4151028\n        },\n        {\n          \"lat\": 53.4205559,\n          \"lon\": -113.4169055\n        },\n        {\n          \"lat\": 53.4205303,\n          \"lon\": -113.4188948\n        },\n        {\n          \"lat\": 53.4143142,\n          \"lon\": -113.4302551\n        },\n        {\n          \"lat\": 53.4140283,\n          \"lon\": -113.430782\n        },\n        {\n          \"lat\": 53.4099742,\n          \"lon\": -113.4382968\n        },\n        {\n          \"lat\": 53.4072771,\n          \"lon\": -113.4432958\n        },\n        {\n          \"lat\": 53.3960086,\n          \"lon\": -113.4521124\n        },\n        {\n          \"lat\": 53.3889277,\n          \"lon\": -113.4578603\n        },\n        {\n          \"lat\": 53.3815869,\n          \"lon\": -113.4639157\n        },\n        {\n          \"lat\": 53.3753979,\n          \"lon\": -113.4662056\n        },\n        {\n          \"lat\": 53.3735761,\n          \"lon\": -113.4679023\n        },\n        {\n          \"lat\": 53.3671276,\n          \"lon\": -113.4706463\n        },\n        {\n          \"lat\": 53.3600121,\n          \"lon\": -113.4734443\n        },\n        {\n          \"lat\": 53.3593779,\n          \"lon\": -113.4732746\n        },\n        {\n          \"lat\": 53.352312,\n          \"lon\": -113.4756963\n        },\n        {\n          \"lat\": 53.3509713,\n          \"lon\": -113.4766364\n        },\n        {\n          \"lat\": 53.3447764,\n          \"lon\": -113.478842\n        },\n        {\n          \"lat\": 53.3395512,\n          \"lon\": -113.4808216\n        },\n        {\n          \"lat\": 53.3381665,\n          \"lon\": -113.480958\n        }\n      ]\n    }\n  ]\n};\nconst err = $input.first().json || {};\nconst reason = (err.error && (err.error.message || err.error.description)) || err.message || JSON.stringify(err.error || err).slice(0, 500);\nreturn [{ json: {\n  data: JSON.stringify(corridor_route_fallback),\n  source_kind: 'osm_cached',\n  source_url: 'n8n-embedded://corridor_route_fallback.json',\n  fallback_reason: String(reason || 'Overpass request failed'),\n} }];"
       },
       "id": "3e4a9445-9d5b-4535-b2f0-1217aef9a1be",
       "name": "Load Fallback Fixture",
