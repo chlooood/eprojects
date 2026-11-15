@@ -8,12 +8,13 @@
 - OpenStreetMap via Overpass (route and substations), ODbL
 - Esri World Imagery tiles (basemap), Leaflet
 - PHMSA hazardous liquid accident data (ML training labels), if training is completed
-- AI model for explanations: fill in provider and model name
+- AI models, called through n8n AI gateway credits: Claude Haiku 5.5 (W2 risk explanations), OpenAI gpt-5.4-mini (WF4 work order summaries), OpenAI gpt-5-mini (W5 weekly report narrative). Each output is checked against the computed numbers and falls back to fixed template text if the check fails or the call errors.
 - n8n templates used as patterns: list template numbers here
 
 ## What is real and what is not
 - Demo corridor in `data/demo/`: SYNTHETIC. Illustrative route, simulated climate series, run through the real engine. Labelled on the dashboard.
-- Live n8n run: real climate, elevation and irradiance data. Route is illustrative until Lane B swaps in a real OpenStreetMap pipeline.
+- Live n8n run: real climate, elevation, irradiance and Sentinel-2 NDVI data. The route comes from OpenStreetMap through W1, and falls back to an embedded fixture route (labelled synthetic on the dashboard) if Overpass fails.
+- Weather history and CMIP6 responses are cached in the `corridor_climate_cells` Data table. The cache was filled by `scripts/fetch-climate-cells.js` run from a laptop, because Open-Meteo's free tier refuses n8n Cloud's shared IP. The cache stores the response hash of every download.
 - Operator names in the demo are fictional. We make no claims about any real company or community.
 
 ## Assumptions (editable on the dashboard)

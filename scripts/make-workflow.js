@@ -1,4 +1,4 @@
-// Generates workflows/terracorridor.json, an importable n8n workflow.
+// Generates workflows/legacy/terracorridor.json, the old single-workflow design (reference only; W1 to W5 plus the API workflow replace it).
 // One workflow so all branches share workflow static data (no extra database needed for the demo).
 // Branches:
 //   A. Engine run: weekly schedule, manual trigger, or POST /webhook/terracorridor/run
@@ -240,5 +240,6 @@ const wf = {
   meta: { templateCredsSetupCompleted: true },
 };
 fs.mkdirSync(path.join(root, 'workflows'), { recursive: true });
-fs.writeFileSync(path.join(root, 'workflows', 'terracorridor.json'), JSON.stringify(wf, null, 2));
-console.log(`workflows/terracorridor.json: ${nodes.length} nodes, ${Math.round(JSON.stringify(wf).length / 1024)} KB`);
+fs.mkdirSync(path.join(root, 'workflows', 'legacy'), { recursive: true });
+fs.writeFileSync(path.join(root, 'workflows', 'legacy', 'terracorridor.json'), JSON.stringify(wf, null, 2));
+console.log(`workflows/legacy/terracorridor.json: ${nodes.length} nodes, ${Math.round(JSON.stringify(wf).length / 1024)} KB`);

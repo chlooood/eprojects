@@ -1,0 +1,2 @@
+logged_at,action,actor,segment_id,work_order_id,source,ok,details_json
+2026-11-14T12:00:00.000Z,sample,sample,sample,sample,sample,true,sample

@@ -27,10 +27,16 @@ On the 169 km demo corridor at $430k per failure (sourced average), avoided fail
 
 ```
 src/engine.js            The whole engine: segmenting, baselines, projections, NDVI trend, risk, build, money. Pure JS.
-test/engine.test.js      16 unit tests: npm test
+test/                    Engine tests, dashboard feed tests, and tests that run the real Code-node JS from workflows/: npm test
 scripts/make-demo.js     Synthetic demo corridor run through the real engine -> data/demo/corridor.json
 scripts/build.js         Inlines the engine into dist/dashboard*.html and dist/n8n/*.js (Code node bodies)
-scripts/make-workflow.js Generates workflows/terracorridor.json (import into n8n)
+scripts/make-workflow.js Generates the old single workflow, now in workflows/legacy/ (reference only)
+scripts/make-api-workflow.js  Generates the dashboard feed workflow from src/dashboard-api.js
+scripts/wire-workflows.js     Points every workflow at your n8n Data tables by name (workflows/wiring.json)
+scripts/validate-workflows.js Checks every workflow export before import
+scripts/fetch-climate-cells.js Laptop script that fills the weather cache when n8n Cloud is blocked by Open-Meteo
+src/dashboard-api.js     Builds the dashboard JSON from the Data tables (the API workflow's Code node)
+workflows/               The n8n exports W1 to W5 plus the API workflow. See workflows/README.md
 web/dashboard.html       Dashboard source (Leaflet + Esri imagery)
 dist/                    Built files. dashboard-demo.html opens in any browser with demo data
 ml/features.js           Builds training data from PHMSA accidents + Open-Meteo history

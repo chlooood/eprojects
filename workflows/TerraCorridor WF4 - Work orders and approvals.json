@@ -68,8 +68,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "matchType": "allConditions",
         "filters": {
@@ -135,8 +135,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "matchType": "allConditions",
         "filters": {
@@ -180,8 +180,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -323,8 +323,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -479,8 +479,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -619,8 +619,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "matchType": "allConditions",
         "filters": {
@@ -694,8 +694,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -800,7 +800,9 @@
         "httpMethod": "POST",
         "path": "terracorridor/action",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "aa3a5f15-5d93-4e02-884d-6617e9a02d0e",
       "name": "POST /terracorridor/action",
@@ -924,12 +926,12 @@
     },
     {
       "parameters": {
-        "operation": "update",
+        "operation": "upsert",
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "e5ieUxeA0K3kjn14",
-          "cachedResultName": "tc_segments"
+          "value": "SET_ID_corridor_watch",
+          "cachedResultName": "corridor_watch"
         },
         "matchType": "allConditions",
         "filters": {
@@ -943,6 +945,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
+            "segment_id": "={{ $json.segment }}",
             "override_tier": "={{ $json.to_tier }}",
             "override_reason": "={{ $json.reason }}",
             "override_horizon": "={{ $json.horizon }}",
@@ -950,6 +953,15 @@
             "override_at": "={{ $json.received_at }}"
           },
           "schema": [
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
             {
               "id": "override_tier",
               "displayName": "override_tier",
@@ -995,7 +1007,8 @@
               "type": "dateTime",
               "canBeUsedToMatch": true
             }
-          ]
+          ],
+          "matchingColumns": []
         },
         "options": {}
       },
@@ -1014,8 +1027,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1139,8 +1152,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "lNGLadcg0WxSeO4n",
-          "cachedResultName": "tc_work_orders"
+          "value": "SET_ID_corridor_work_orders",
+          "cachedResultName": "corridor_work_orders"
         },
         "matchType": "allConditions",
         "filters": {
@@ -1228,8 +1241,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1351,8 +1364,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1474,8 +1487,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",

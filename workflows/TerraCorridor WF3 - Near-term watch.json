@@ -26,8 +26,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "NGaFnkvUjAJLTM6F",
-          "cachedResultName": "tc_predictions"
+          "value": "7T6RlFe9HRFOfkCD",
+          "cachedResultName": "corridor_predictions"
         },
         "returnAll": true
       },
@@ -39,7 +39,8 @@
         272,
         128
       ],
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "executeOnce": true
     },
     {
       "parameters": {
@@ -47,13 +48,13 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "e5ieUxeA0K3kjn14",
-          "cachedResultName": "tc_segments"
+          "value": "SET_ID_corridor_watch",
+          "cachedResultName": "corridor_watch"
         },
         "returnAll": true
       },
       "id": "3e2385ba-2e72-4eb6-b446-8bd09df46843",
-      "name": "Get segments",
+      "name": "Get watch state",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -69,8 +70,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "qGfVcFYY8Tqqxsiv",
-          "cachedResultName": "tc_baselines"
+          "value": "LckNoZvtBFwDnwM3",
+          "cachedResultName": "corridor_baselines"
         },
         "returnAll": true
       },
@@ -87,7 +88,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Reads corridor state from the shared tables and keeps segments whose 5- or 10-year tier is amber, red or red-uncertain.\n// An operator override for that horizon replaces the model tier. Segments are grouped by 10 km climate cell\n// so each cell needs one forecast call.\nconst FLAG = ['amber', 'red', 'red-uncertain'];\nconst RANK = { red: 3, 'red-uncertain': 3, amber: 2 };\nconst rows = (name) => $(name).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\nconst parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch (e) { return d; } };\nconst segs = Object.fromEntries(rows('Get segments').filter((s) => s.segment_id).map((s) => [s.segment_id, s]));\nconst bases = Object.fromEntries(rows('Get baselines').filter((b) => b.cell).map((b) => [b.cell, b]));\nconst flagged = {};\nfor (const p of rows('Get predictions')) {\n  if (!p.segment_id) continue;\n  const s = segs[p.segment_id] || {};\n  const tier = s.override_tier && (s.override_horizon || 'y10') === p.horizon ? s.override_tier : p.tier;\n  if (!FLAG.includes(tier)) continue;\n  const cur = flagged[p.segment_id];\n  const better = !cur || RANK[tier] > RANK[cur.tier] || (RANK[tier] === RANK[cur.tier] && p.horizon === 'y10' && cur.horizon !== 'y10');\n  if (!better) continue;\n  flagged[p.segment_id] = {\n    segment_id: p.segment_id, tier, model_tier: p.tier, overridden: tier !== p.tier, horizon: p.horizon,\n    score: p.score, agreement: p.agreement, primary_driver: p.primary_driver, drivers_json: p.drivers_json || '[]',\n    slope_pct: s.slope_pct != null ? s.slope_pct : null, cell: s.cell || null, lat: s.lat, lon: s.lon,\n  };\n}\nconst cells = {};\nfor (const f of Object.values(flagged)) {\n  const key = f.cell || 'seg:' + f.segment_id;\n  (cells[key] = cells[key] || []).push(f);\n}\nreturn Object.entries(cells).map(([cell, list]) => {\n  const b = bases[cell] || null;\n  const avg = (k) => { const v = list.map((x) => x[k]).filter((x) => x != null); return v.length ? v.reduce((a, c) => a + c, 0) / v.length : null; };\n  const lat = b && b.lat != null ? b.lat : avg('lat');\n  const lon = b && b.lon != null ? b.lon : avg('lon');\n  return { json: {\n    cell,\n    lat: lat != null ? Number(lat).toFixed(4) : '',\n    lon: lon != null ? Number(lon).toFixed(4) : '',\n    has_baseline: !!b,\n    annual: b ? { extreme_mm: b.extreme_mm, soil_wet_threshold: b.soil_wet_threshold } : { extreme_mm: null, soil_wet_threshold: null },\n    monthly: b ? parse(b.monthly_thresholds_json, {}) : {},\n    segments: list,\n  } };\n});"
+        "jsCode": "// Reads corridor state from the shared W2 tables and keeps segments whose 5- or 10-year tier is amber, red or red-uncertain.\n// An operator override for that horizon replaces the model tier. Segments are grouped by 10 km climate cell\n// so each cell needs one forecast call.\n// Tables: corridor_predictions (W2, one row per segment and horizon_years 5 or 10), corridor_baselines (W2, one row per segment),\n// corridor_watch (W3 near-term state and W4 tier overrides). Unverified predictions are skipped here: W2 already marks them unverified.\nconst FLAG = ['amber', 'red', 'red-uncertain'];\nconst RANK = { red: 3, 'red-uncertain': 3, amber: 2 };\nconst WEIGHT = { rain: 0.35, freezeThaw: 0.20, saturation: 0.15, vegetation: 0.20, slope: 0.10 }; // same weights as the W2 Config node\nconst rows = (name) => $(name).all().map((i) => i.json).filter((r) => r && !r.error && Object.keys(r).length > 0);\nconst n = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));\nconst r1 = (x) => (x == null ? null : Math.round(x * 10) / 10);\nconst watch = Object.fromEntries(rows('Get watch state').filter((s) => s.segment_id).map((s) => [s.segment_id, s]));\nconst baseBySeg = Object.fromEntries(rows('Get baselines').filter((b) => b.segment_id).map((b) => [b.segment_id, b]));\nconst segs = {};\nfor (const [id, b] of Object.entries(baseBySeg)) {\n  segs[id] = { ...(watch[id] || {}), segment_id: id, slope_pct: n(b.slope_pct), cell: b.cell_key || null, lat: n(b.centroid_lat), lon: n(b.centroid_lon) };\n}\n// One threshold set per climate cell (W2 stores the 1995-2025 annual rain p95 and soil p90; no monthly table, so the annual value is used).\nconst bases = {};\nfor (const b of Object.values(baseBySeg)) {\n  if (b.cell_key && !bases[b.cell_key]) bases[b.cell_key] = { cell: b.cell_key, lat: n(b.centroid_lat), lon: n(b.centroid_lon), extreme_mm: n(b.rain_p95_mm), soil_wet_threshold: n(b.soil_p90_m3m3), monthly_thresholds_json: '' };\n}\nconst parse = (v, d) => { try { return v ? JSON.parse(v) : d; } catch (e) { return d; } };\nconst driversFor = (p, b) => {\n  const base = { rain: n(b.extreme_rain_days_per_yr), ft: n(b.freeze_thaw_days_per_yr), sat: n(b.saturation_days_per_yr) };\n  const ratio = { rain: n(p.rain_ratio), ft: n(p.freeze_thaw_ratio), sat: n(p.saturation_ratio) };\n  const pct = (x) => (x == null ? null : Math.round((x - 1) * 100));\n  const proj = (k) => (base[k] != null && ratio[k] != null ? r1(base[k] * ratio[k]) : null);\n  return [\n    { key: 'rain', label: 'Extreme-rain days', change: pct(ratio.rain), base: base.rain, proj: proj('rain'), w: WEIGHT.rain * (n(p.score_r) || 0) },\n    { key: 'freezeThaw', label: 'Freeze-thaw days', change: pct(ratio.ft), base: base.ft, proj: proj('ft'), w: WEIGHT.freezeThaw * (n(p.score_f) || 0) },\n    { key: 'saturation', label: 'Wet-soil days', change: pct(ratio.sat), base: base.sat, proj: proj('sat'), w: WEIGHT.saturation * (n(p.score_w) || 0) },\n    { key: 'vegetation', label: 'Vegetation change (NDVI, 5 yr)', change: n(b.ndvi_drop_5yr) == null ? null : -n(b.ndvi_drop_5yr), w: WEIGHT.vegetation * (n(p.score_v) || 0) },\n    { key: 'slope', label: 'Slope', change: n(b.slope_pct), w: WEIGHT.slope * (n(p.score_s) || 0) },\n  ].sort((a, c) => c.w - a.w);\n};\nconst flagged = {};\nfor (const p of rows('Get predictions')) {\n  if (!p.segment_id || (p.status && p.status !== 'verified')) continue;\n  const horizon = 'y' + Number(p.horizon_years);\n  if (horizon !== 'y5' && horizon !== 'y10') continue;\n  const s = segs[p.segment_id] || {};\n  const modelTier = p.tier === 'red' && p.model_agreement === 'low' ? 'red-uncertain' : p.tier;\n  const tier = s.override_tier && (s.override_horizon || 'y10') === horizon ? s.override_tier : modelTier;\n  if (!FLAG.includes(tier)) continue;\n  const cur = flagged[p.segment_id];\n  const better = !cur || RANK[tier] > RANK[cur.tier] || (RANK[tier] === RANK[cur.tier] && horizon === 'y10' && cur.horizon !== 'y10');\n  if (!better) continue;\n  const drivers = driversFor(p, baseBySeg[p.segment_id] || {});\n  flagged[p.segment_id] = {\n    segment_id: p.segment_id, tier, model_tier: modelTier, overridden: tier !== modelTier, horizon,\n    score: n(p.risk_score), agreement: p.model_agreement || null, primary_driver: drivers[0] ? drivers[0].label : null, drivers_json: JSON.stringify(drivers),\n    slope_pct: s.slope_pct != null ? s.slope_pct : null, cell: s.cell || null, lat: s.lat, lon: s.lon,\n  };\n}\nconst cells = {};\nfor (const f of Object.values(flagged)) {\n  const key = f.cell || 'seg:' + f.segment_id;\n  (cells[key] = cells[key] || []).push(f);\n}\nreturn Object.entries(cells).map(([cell, list]) => {\n  const b = bases[cell] || null;\n  const avg = (k) => { const v = list.map((x) => x[k]).filter((x) => x != null); return v.length ? v.reduce((a, c) => a + c, 0) / v.length : null; };\n  const lat = b && b.lat != null ? b.lat : avg('lat');\n  const lon = b && b.lon != null ? b.lon : avg('lon');\n  return { json: {\n    cell,\n    lat: lat != null ? Number(lat).toFixed(4) : '',\n    lon: lon != null ? Number(lon).toFixed(4) : '',\n    has_baseline: !!b,\n    annual: b ? { extreme_mm: b.extreme_mm, soil_wet_threshold: b.soil_wet_threshold } : { extreme_mm: null, soil_wet_threshold: null },\n    monthly: b ? parse(b.monthly_thresholds_json, {}) : {},\n    segments: list,\n  } };\n});"
       },
       "id": "0f6ebb6a-74a8-46e9-852b-3989b26bff47",
       "name": "Select flagged segments",
@@ -145,7 +146,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Compares the 16-day forecast against each cell's seasonal thresholds from the 1995-2025 baseline:\n// the month's 95th-percentile wet-day rain and 90th-percentile soil moisture (annual values if the month is missing).\n// Fail-closed: no forecast or no baseline means 'unverified' (grey), never 'clear'.\nconst cells = $('Select flagged segments').all().map((i) => i.json);\nconst fc = $input.all().map((i) => i.json || {});\nconst now = new Date().toISOString();\nconst r1 = (x) => (x == null ? null : Math.round(x * 10) / 10);\nconst out = [];\ncells.forEach((c, k) => {\n  const f = fc[k] || {};\n  const d = f.daily;\n  const pr = (d && d.precipitation_sum) || [];\n  const sm = (d && d.soil_moisture_0_to_7cm_mean) || [];\n  const tmin = (d && d.temperature_2m_min) || [], tmax = (d && d.temperature_2m_max) || [];\n  const apiOk = !f.error && d && Array.isArray(d.time) && d.time.length > 0 && pr.some((x) => x != null);\n  const thr = (date) => {\n    const m = (c.monthly || {})[String(Number(String(date).slice(5, 7)))] || {};\n    return {\n      rain: m.extreme_mm != null ? m.extreme_mm : c.annual.extreme_mm,\n      soil: m.soil_wet_threshold != null ? m.soil_wet_threshold : c.annual.soil_wet_threshold,\n      basis: m.extreme_mm != null ? 'monthly' : 'annual',\n    };\n  };\n  let state, summary;\n  const events = [];\n  const stats = { max_precip_mm: null, max_precip_date: null, max_soil: null, wet_soil_days: 0, freeze_thaw_days: 0, days: d && d.time ? d.time.length : 0 };\n  if (!apiOk) {\n    state = 'unverified';\n    const msg = f.error ? (f.error.message || f.error.description || JSON.stringify(f.error)) : 'empty forecast response';\n    summary = 'Forecast unavailable (' + String(msg).slice(0, 160) + '). Treated as unverified, not safe.';\n  } else if (c.annual.extreme_mm == null) {\n    state = 'unverified';\n    summary = 'No baseline thresholds for cell ' + c.cell + '. Run Workflow 2 to sync baselines. Treated as unverified.';\n  } else {\n    let lastMulti = -9;\n    d.time.forEach((date, i) => {\n      const t = thr(date), p = pr[i], s = sm[i];\n      if (p != null && (stats.max_precip_mm == null || p > stats.max_precip_mm)) { stats.max_precip_mm = p; stats.max_precip_date = date; }\n      if (s != null && (stats.max_soil == null || s > stats.max_soil)) stats.max_soil = s;\n      const soilWet = s != null && t.soil != null && s >= t.soil;\n      const prevWet = i > 0 && sm[i - 1] != null && t.soil != null && sm[i - 1] >= t.soil;\n      if (soilWet) stats.wet_soil_days += 1;\n      if (tmin[i] != null && tmax[i] != null && tmin[i] < 0 && tmax[i] > 0) stats.freeze_thaw_days += 1;\n      if (p != null && t.rain != null && p >= t.rain) {\n        events.push({ date, kind: 'heavy_rain', text: r1(p) + ' mm rain vs ' + t.basis + ' 95th percentile ' + r1(t.rain) + ' mm' + (soilWet || prevWet ? ', on soil above its 90th-percentile moisture' : '') });\n      } else if (p != null && t.rain != null && p >= 0.5 * t.rain && (soilWet || prevWet)) {\n        events.push({ date, kind: 'rain_on_saturated_soil', text: r1(p) + ' mm rain on soil at ' + s + ' m3/m3 vs ' + t.basis + ' 90th percentile ' + t.soil + ' m3/m3' });\n      }\n      if (i >= 2 && t.rain != null) {\n        const sum3 = (pr[i] || 0) + (pr[i - 1] || 0) + (pr[i - 2] || 0);\n        if (sum3 >= 2 * t.rain && i - lastMulti > 2) {\n          lastMulti = i;\n          events.push({ date, kind: 'multi_day_rain', text: '3-day rain total ' + r1(sum3) + ' mm vs ' + r1(2 * t.rain) + ' mm (2x ' + t.basis + ' 95th percentile)' });\n        }\n      }\n    });\n    if (events.length) {\n      state = 'escalated';\n      summary = events.length + ' heavy-weather event(s) in the next ' + stats.days + ' days on flagged ground. First: ' + events[0].date + ', ' + events[0].text + '.';\n    } else if (stats.wet_soil_days > 0) {\n      state = 'watch';\n      summary = 'Soil above its 90th-percentile moisture on ' + stats.wet_soil_days + ' of ' + stats.days + ' days, no heavy rain forecast.';\n    } else {\n      state = 'clear';\n      summary = 'No forecast rain or soil moisture above seasonal thresholds in the next ' + stats.days + ' days (max rain ' + r1(stats.max_precip_mm) + ' mm).';\n    }\n  }\n  for (const s of c.segments) {\n    out.push({ json: {\n      ...s,\n      state,\n      escalate: state === 'escalated',\n      priority: state === 'escalated' ? 'high' : 'normal',\n      trigger_source: 'workflow3',\n      summary,\n      events,\n      forecast_error: state === 'unverified' ? summary : null,\n      near_term_json: JSON.stringify({ state, events, stats, cell: c.cell, checked_at: now }),\n      checked_at: now,\n    } });\n  }\n});\nreturn out;"
+        "jsCode": "// Compares the 16-day forecast against each cell's seasonal thresholds from the 1995-2025 baseline:\n// the month's 95th-percentile wet-day rain and 90th-percentile soil moisture (annual values if the month is missing).\n// Fail-closed: no forecast or no baseline means 'unverified' (grey), never 'clear'.\nconst cells = $('Select flagged segments').all().map((i) => i.json);\nconst fc = $input.all().map((i) => i.json || {});\nconst now = new Date().toISOString();\nconst r1 = (x) => (x == null ? null : Math.round(x * 10) / 10);\nconst out = [];\ncells.forEach((c, k) => {\n  const f = fc[k] || {};\n  const d = f.daily;\n  const pr = (d && d.precipitation_sum) || [];\n  const sm = (d && d.soil_moisture_0_to_7cm_mean) || [];\n  const tmin = (d && d.temperature_2m_min) || [], tmax = (d && d.temperature_2m_max) || [];\n  const apiOk = !f.error && d && Array.isArray(d.time) && d.time.length > 0 && pr.some((x) => x != null);\n  const thr = (date) => {\n    const m = (c.monthly || {})[String(Number(String(date).slice(5, 7)))] || {};\n    return {\n      rain: m.extreme_mm != null ? m.extreme_mm : c.annual.extreme_mm,\n      soil: m.soil_wet_threshold != null ? m.soil_wet_threshold : c.annual.soil_wet_threshold,\n      basis: m.extreme_mm != null ? 'monthly' : 'annual',\n    };\n  };\n  let state, summary;\n  const events = [];\n  const stats = { max_precip_mm: null, max_precip_date: null, max_soil: null, wet_soil_days: 0, freeze_thaw_days: 0, days: d && d.time ? d.time.length : 0 };\n  if (!apiOk) {\n    state = 'unverified';\n    const msg = f.error ? (f.error.message || f.error.description || JSON.stringify(f.error)) : 'empty forecast response';\n    summary = 'Forecast unavailable (' + String(msg).slice(0, 160) + '). Treated as unverified, not safe.';\n  } else if (c.annual.extreme_mm == null) {\n    state = 'unverified';\n    summary = 'No baseline thresholds for cell ' + c.cell + '. Run Workflow 2 to sync baselines. Treated as unverified.';\n  } else {\n    let lastMulti = -9;\n    d.time.forEach((date, i) => {\n      const t = thr(date), p = pr[i], s = sm[i];\n      if (p != null && (stats.max_precip_mm == null || p > stats.max_precip_mm)) { stats.max_precip_mm = p; stats.max_precip_date = date; }\n      if (s != null && (stats.max_soil == null || s > stats.max_soil)) stats.max_soil = s;\n      const soilWet = s != null && t.soil != null && s >= t.soil;\n      const prevWet = i > 0 && sm[i - 1] != null && t.soil != null && sm[i - 1] >= t.soil;\n      if (soilWet) stats.wet_soil_days += 1;\n      if (tmin[i] != null && tmax[i] != null && tmin[i] < 0 && tmax[i] > 0) stats.freeze_thaw_days += 1;\n      if (p != null && t.rain != null && p >= t.rain) {\n        events.push({ date, kind: 'heavy_rain', text: r1(p) + ' mm rain vs ' + t.basis + ' 95th percentile ' + r1(t.rain) + ' mm' + (soilWet || prevWet ? ', on soil above its 90th-percentile moisture' : '') });\n      } else if (p != null && t.rain != null && p >= 0.5 * t.rain && (soilWet || prevWet)) {\n        events.push({ date, kind: 'rain_on_saturated_soil', text: r1(p) + ' mm rain on soil at ' + s + ' m3/m3 vs ' + t.basis + ' 90th percentile ' + t.soil + ' m3/m3' });\n      }\n      if (i >= 2 && t.rain != null) {\n        const sum3 = (pr[i] || 0) + (pr[i - 1] || 0) + (pr[i - 2] || 0);\n        if (sum3 >= 2 * t.rain && i - lastMulti > 2) {\n          lastMulti = i;\n          events.push({ date, kind: 'multi_day_rain', text: '3-day rain total ' + r1(sum3) + ' mm vs ' + r1(2 * t.rain) + ' mm (2x ' + t.basis + ' 95th percentile)' });\n        }\n      }\n    });\n    if (events.length) {\n      state = 'escalated';\n      summary = events.length + ' heavy-weather event(s) in the next ' + stats.days + ' days on flagged ground. First: ' + events[0].date + ', ' + events[0].text + '.';\n    } else if (stats.wet_soil_days > 0) {\n      state = 'watch';\n      summary = 'Soil above its 90th-percentile moisture on ' + stats.wet_soil_days + ' of ' + stats.days + ' days, no heavy rain forecast.';\n    } else {\n      state = 'clear';\n      summary = 'No forecast rain or soil moisture above seasonal thresholds in the next ' + stats.days + ' days (max rain ' + r1(stats.max_precip_mm) + ' mm).';\n    }\n  }\n  for (const s of c.segments) {\n    // Red segments always go to Workflow 4 for a work order, even when the forecast is quiet or unavailable\n    // (Workflow 2 does not call Workflow 4 itself). A failed forecast must not hide a red segment.\n    const red = s.tier === 'red' || s.tier === 'red-uncertain';\n    out.push({ json: {\n      ...s,\n      state,\n      route: red || state === 'escalated' ? 'escalated' : state === 'unverified' ? 'unverified' : 'none',\n      escalate: red || state === 'escalated',\n      priority: state === 'escalated' ? 'high' : 'normal',\n      trigger_source: 'workflow3',\n      summary,\n      events,\n      forecast_error: state === 'unverified' ? summary : null,\n      near_term_json: JSON.stringify({ state, events, stats, cell: c.cell, checked_at: now }),\n      checked_at: now,\n    } });\n  }\n});\nreturn out;"
       },
       "id": "9bc7c4cb-0d4a-4cf4-8290-bb4c7218ef33",
       "name": "Apply escalation rules",
@@ -158,12 +159,12 @@
     },
     {
       "parameters": {
-        "operation": "update",
+        "operation": "upsert",
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "e5ieUxeA0K3kjn14",
-          "cachedResultName": "tc_segments"
+          "value": "SET_ID_corridor_watch",
+          "cachedResultName": "corridor_watch"
         },
         "matchType": "allConditions",
         "filters": {
@@ -177,11 +178,21 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
+            "segment_id": "={{ $json.segment_id }}",
             "near_term_state": "={{ $json.state }}",
             "near_term_summary": "={{ $json.summary }}",
             "near_term_checked_at": "={{ $json.checked_at }}"
           },
           "schema": [
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
             {
               "id": "near_term_state",
               "displayName": "near_term_state",
@@ -209,7 +220,8 @@
               "type": "dateTime",
               "canBeUsedToMatch": true
             }
-          ]
+          ],
+          "matchingColumns": []
         },
         "options": {}
       },
@@ -237,7 +249,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.state }}",
+                    "leftValue": "={{ $json.route }}",
                     "rightValue": "escalated",
                     "operator": {
                       "type": "string",
@@ -260,7 +272,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.state }}",
+                    "leftValue": "={{ $json.route }}",
                     "rightValue": "unverified",
                     "operator": {
                       "type": "string",
@@ -290,7 +302,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "DEzFDyQEU9EnVOhY",
+          "value": "SET_ID_TerraCorridor_WF4_Work_orders_and_approvals",
           "cachedResultName": "TerraCorridor WF4 - Work orders and approvals"
         },
         "workflowInputs": {
@@ -422,8 +434,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -528,8 +540,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "XH2Q4cT4ALTzHqrG",
-          "cachedResultName": "tc_audit"
+          "value": "SET_ID_corridor_audit",
+          "cachedResultName": "corridor_audit"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -647,18 +659,7 @@
       "main": [
         [
           {
-            "node": "Get segments",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get segments": {
-      "main": [
-        [
-          {
-            "node": "Get baselines",
+            "node": "Get watch state",
             "type": "main",
             "index": 0
           }
@@ -731,6 +732,17 @@
         [
           {
             "node": "Log unverified segment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get watch state": {
+      "main": [
+        [
+          {
+            "node": "Get baselines",
             "type": "main",
             "index": 0
           }
