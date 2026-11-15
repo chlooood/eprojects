@@ -32,7 +32,8 @@ const wanted = process.argv.slice(2);
 const CORRIDOR_CELLS = ['53.30_-113.50', '53.40_-113.50', '53.40_-113.40', '53.50_-113.40'];
 const CELLS = (wanted.length ? wanted : [...new Set(CORRIDOR_CELLS.concat(saved.map((r) => r.cell_key)))]).map((k) => ({ cell_key: k, lat: Number(k.split('_')[0]), lon: Number(k.split('_')[1]) }));
 const SLEEP_MS = Number(process.env.SLEEP_MS || 65000);
-const OUT_DIR = process.env.OUT_DIR || __dirname;
+const OUT_DIR = process.env.OUT_DIR || path.join(ROOT, 'work', 'climate-seed');
+fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // ---- download helpers ----
 const sleep = ms => new Promise(r => setTimeout(r, ms));

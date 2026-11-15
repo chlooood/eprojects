@@ -16,6 +16,14 @@
     "fetch-cells": "node scripts/fetch-climate-cells.js && node scripts/make-seed-workflow.js",
     "fetch-crossings": "node scripts/fetch-crossings.js",
     "seed-workflow": "node scripts/make-seed-workflow.js",
-    "snapshot": "node scripts/make-snapshot.js"
+    "snapshot": "node scripts/make-snapshot.js",
+    "email-workflow": "node scripts/make-email-workflow.js",
+    "fetch-forecasts": "node scripts/fetch-forecasts.js",
+    "fetch-solar": "node scripts/fetch-solar.js",
+    "check-forecast": "node scripts/check-forecast.js",
+    "test:browser": "node scripts/smoke-browser.js"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
   }
 }

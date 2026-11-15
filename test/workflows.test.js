@@ -63,7 +63,7 @@ test('WF3 honours a W4 override stored in corridor_watch, per horizon', async ()
   assert.equal(segs.seg_g.tier, 'red'); assert.equal(segs.seg_g.overridden, true); assert.equal(segs.seg_g.horizon, 'y10');
 });
 
-const forecast = (heavyDay) => ({ daily: { time: Array.from({ length: 16 }, (_, i) => '2026-11-' + String(15 + i).padStart(2, '0')),
+const forecast = (heavyDay) => ({ daily: { time: Array.from({ length: 16 }, (_, i) => new Date(Date.now() + i * 86400000).toISOString().slice(0, 10)),
   precipitation_sum: Array.from({ length: 16 }, (_, i) => (i === heavyDay ? 30 : 1)), soil_moisture_0_to_7cm_mean: Array(16).fill(0.2),
   temperature_2m_min: Array(16).fill(1), temperature_2m_max: Array(16).fill(8) } });
 
@@ -125,7 +125,7 @@ test('WF4 manager-requested inspection: approve with no pending draft records on
   const fresh = (await run(WF4, 'Build manager work order', { nodes: { 'Validate action': [v] }, input: [{}] }))[0].json;
   assert.equal(fresh.duplicate, false); assert.equal(fresh.status, 'approved'); assert.equal(fresh.trigger_source, 'manager');
   assert.match(fresh.work_order_id, /^WO-seg_g-/); assert.equal(fresh.decided_by, 'operator (demo)');
-  assert.match(fresh.facts_json, /No external delivery in this MVP/);
+  assert.match(fresh.facts_json, /No crew dispatch/);
   const again = (await run(WF4, 'Build manager work order', { nodes: { 'Validate action': [v] }, input: [{ work_order_id: 'WO-old', status: 'approved', decided_at: new Date().toISOString() }] }))[0].json;
   assert.equal(again.duplicate, true); assert.equal(again.work_order_id, 'WO-old');
   const conn = WF4.connections;
@@ -161,12 +161,19 @@ test('W5 pivots W2 rows (two per segment) instead of silently scoring everything
   assert.equal(out.audit[0].approval_status, 'pending_approval');
 });
 
-test('W5 usable area matches W1 geometry and the repo engine (98.8 acres per km, not 84)', async () => {
-  const calc = W5.nodes.find((n) => n.name === 'Compute Build Layer').parameters.jsCode;
-  assert.ok(!/studyStripWidthM - cfg\.exclusionBandM/.test(calc));
-  const m = calc.match(/geomAcres = [^;]+;/)[0];
-  assert.match(m, /2 \* cfg\.studyStripWidthM \* lenM/);
-  assert.ok(Math.abs((2 * 200 * 1000) / 4046.8564224 - 98.84) < 0.01);
+test('W5 leases the same 60 m panel strip as the engine and fails closed without irradiance', () => {
+  const js = W5.nodes.find((n) => n.name === 'Compute Build Layer').parameters.jsCode;
+  const prelude = js.slice(0, js.indexOf('// ================== END SHARED PRELUDE'));
+  const { calcBuild, cfg } = new Function(prelude + '; return { calcBuild, cfg: DEFAULT_CONFIG };')();
+  const inp = { seg: { segment_id: 's', length_m: 1000 }, irradiance: 4, slope: 2, risk10_tier: 'green', substation_km: 2 };
+  const row = calcBuild(inp, cfg);
+  const E = require('../src/engine');
+  const engine = E.buildScore({ lengthM: 1000, studyAreaAcres: 98.8, irradiance: 4, slopePct: 2, substationKm: 2 }, { tier: 'green' });
+  assert.ok(Math.abs(row.mw - engine.mw) < 0.01);
+  assert.ok(Math.abs(row.annual_lease_revenue - engine.leaseYr) <= 1);
+  assert.ok(Math.abs(row.usable_acres - 14.826) < 0.01);
+  assert.equal(calcBuild({ ...inp, irradiance: null }, cfg).build_tier, 'unverified');
+  assert.match(js, /demoMode: false/);
 });
 
 // ---------------------------------------------------------------------------------------------------
@@ -280,4 +287,47 @@ test('W2 Plan Grid Cells: a v2 cache row wins, a v1 row is a fallback, an unknow
   assert.match(out[1].cache_signature, /^v1/); assert.equal(out[1].fetch, false);
   assert.equal(out[2].fetch, true);
   assert.match(out[2].archive_url, /relative_humidity_2m_min/); assert.match(out[2].climate_url, /relative_humidity_2m_min/);
+});
+
+test('WF3 uses a fresh cached forecast when the live request fails and refuses stale or incomplete data', async () => {
+  const cells = (await run(WF3, 'Select flagged segments', { nodes: { 'Get predictions': predictions, 'Get baselines': baselines, 'Get watch state': [] } })).map(x => x.json);
+  const liveFailure = cells.map(() => ({ error: { message: 'blocked IP' } }));
+  const cached = (age, bad = false) => cells.map(c => ({ cell_key: c.cell, forecast_fetched_at: new Date(Date.now() - age).toISOString(), forecast_json: JSON.stringify(bad ? { daily: { ...forecast(3).daily, precipitation_sum: [null] } } : forecast(3)) }));
+  const apply = async rows => (await run(WF3, 'Apply escalation rules', { nodes: { 'Select flagged segments': cells, 'Get forecast cache': rows }, input: liveFailure })).map(x => x.json);
+  const fresh = await apply(cached(3600000));
+  assert.ok(fresh.every(x => x.state === 'escalated' && x.route === 'preview' && !x.escalate));
+  assert.match(fresh[0].summary, /cached_open_meteo/);
+  assert.ok((await apply(cached(25*3600000))).every(x => x.state === 'unverified'));
+  assert.ok((await apply(cached(0, true))).every(x => x.state === 'unverified'));
+});
+
+test('email handoff only prepares approved queued orders and claims them before SMTP, without automatic retries', async () => {
+  const email = wf('TerraCorridor Email - Approved inspection handoff.json');
+  assert.equal(email.active, false);
+  const config = (await run(email, 'Email delivery config'))[0].json;
+  assert.equal(config.enabled, false);
+  const source = { work_order_id: 'WO-1', segment_id: 'seg_a', status: 'approved', delivery_state: 'queued', priority: 'normal', facts_json: '["Check 1: inspect culvert"]' };
+  const out = await run(email, 'Prepare inspection email', { nodes: { 'Email delivery config': [{ from: 'sender@example.com', to: 'coordinator@example.com' }] }, input: [source, { ...source, status: 'pending_approval' }, { ...source, delivery_state: 'provider_accepted' }] });
+  assert.equal(out.length, 1);
+  assert.match(out[0].json.email_body, /inspect culvert/);
+  assert.match(out[0].json.email_body, /No crew has been dispatched/);
+  const claim = email.nodes.find(n => n.name === 'Claim queued order');
+  assert.ok(claim.parameters.filters.conditions.some(c => c.keyName === 'delivery_state' && c.keyValue === 'queued'));
+  assert.equal(claim.parameters.columns.value.delivery_state, 'sending');
+  assert.equal(claim.alwaysOutputData, undefined);
+  assert.equal(email.connections['Claim queued order'].main[0][0].node, 'Send inspection email');
+  const smtp = email.nodes.find(n => n.name === 'Send inspection email');
+  assert.equal(smtp.retryOnFail, false);
+  assert.equal(email.connections[smtp.name].main[1][0].node, 'Record uncertain delivery');
+  assert.equal(email.nodes.find(n => n.name === 'Record uncertain delivery').parameters.columns.value.delivery_state, 'needs_review');
+});
+
+test('WF4 resumes approval and rejection; timeout expires without approval', async () => {
+  const js = WF4.nodes.find(n => n.name === 'Resolve decision').parameters.jsCode;
+  const invoke = body => new Function('$', '$json', js)(() => ({ item: { json: { work_order_id: 'WO-gate', segment_id: 'seg_a' } } }), { body });
+  assert.equal(invoke({ decision: 'approve', by: 'coordinator' }).json.status, 'approved');
+  assert.equal(invoke({ decision: 'reject' }).json.status, 'rejected');
+  assert.equal(invoke({}).json.status, 'expired');
+  const update = WF4.nodes.find(n => n.name === 'Update work order status');
+  assert.match(update.parameters.columns.value.delivery_state, /status === 'approved' \? 'queued' : 'cancelled'/);
 });

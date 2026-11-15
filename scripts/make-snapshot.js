@@ -62,13 +62,22 @@ async function main() {
     const byId = Object.fromEntries(mini.segments.map((s) => [s.id, s]));
     for (const s of out.segments) {
       const m = byId[s.id];
-      Object.assign(s, { risk: m.risk, crossings: m.crossings, crossingsChecked: m.crossingsChecked, projections: m.projections, explanation: '', workOrder: null, override: null, nearTerm: null });
+      Object.assign(s, { risk: m.risk, crossings: m.crossings, crossingsChecked: m.crossingsChecked, projections: m.projections, explanation: '' });
       Object.assign(s.baseline, { drySoilDaysPerYr: m.baseline.drySoilDaysPerYr, drySpellDays: m.baseline.drySpellDays, fireWeatherDaysPerYr: m.baseline.fireWeatherDaysPerYr });
     }
     Object.assign(out.config, { tiers: mini.config.tiers, ratioFull: mini.config.ratioFull, horizons: mini.config.horizons });
     Object.assign(out.meta, { generatedAt: now, servedAt: now, hazardsScored: mini.meta.hazardsScored, crossingsChecked: mini.meta.crossingsChecked, segmentsVerified: mini.meta.segmentsVerified,
-      snapshot: { savedAt: now, recomputed: true, note: 'Route, slope and NDVI are from the live n8n tables. The hazard scores were recomputed on a laptop with the Score Segments code from the W2 export, the cached Open-Meteo climate cells and the mapped OSM crossings, because the live W2 run predates the multi-hazard scoring.' } });
+      snapshot: { savedAt: now, recomputed: true, note: 'Route, slope and NDVI are from the live n8n tables. The hazard scores were recomputed on a laptop with the Score Segments code from the W2 export, the cached Open-Meteo climate cells and the mapped OSM crossings, to include refreshed climate cells without claiming a new live n8n execution.' } });
     out.meta.note = (out.meta.note || '') + ' ' + out.meta.snapshot.note;
+  }
+  if (process.argv.includes('--solar-cache')) {
+    const solar = JSON.parse(fs.readFileSync(path.join(root, 'data/cache/solar/latest.json'), 'utf8'));
+    const byId = Object.fromEntries(solar.segments.map(s => [s.id, s.key]));
+    for (const s of out.segments) {
+      const cell = solar.cells.find(c => c.key === byId[s.id]);
+      if (cell) { s.irradiance = cell.irradiance; s.irradianceSource = { url: cell.url, hash: cell.sha256, fetchedAt: cell.fetchedAt, source: 'NASA POWER climatology' }; }
+    }
+    out.meta.snapshot.note += ' Solar irradiance comes from the separately downloaded NASA POWER climatology cache; grid proximity remains unavailable where not measured.';
   }
   const file = path.join(root, 'data', 'snapshot', 'live-snapshot.json');
   fs.mkdirSync(path.dirname(file), { recursive: true });
