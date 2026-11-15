@@ -59,7 +59,7 @@
   .kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:4px 0 16px; }
   .kpi { border-top:1px solid var(--line-2); padding-top:8px; }
   .kpi .v { font:500 20px/1.15 var(--mono); letter-spacing:-.03em; }
-  .kpi p { margin:2px 0 0; font-size:12px; color:var(--ink-2); }
+  .kpi p { margin:2px 0 0; font-size:13px; color:var(--ink-2); }
   .filters { display:grid; gap:8px; margin-bottom:12px; padding:10px; border:1px solid var(--line); border-radius:10px; }
   .chips { display:flex; flex-wrap:wrap; gap:6px; }
   .chips label { display:inline-flex; align-items:center; gap:5px; font-size:12px; border:1px solid var(--line-2); border-radius:999px; padding:3px 9px; cursor:pointer; }
@@ -77,9 +77,9 @@
   .btn { background:var(--ink); color:var(--s1); border:0; border-radius:6px; padding:7px 12px; font-weight:600; cursor:pointer; }
   .btn.o { background:none; color:var(--ink); border:1px solid var(--line-2); }
   .factor { display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:8px 0; border-top:1px solid var(--line); }
-  .factor .why { grid-column:1/-1; font-size:12px; color:var(--ink-2); }
+  .factor .why { grid-column:1/-1; font-size:13px; color:var(--ink-2); }
   .unknown { color:var(--ink); background:repeating-linear-gradient(45deg,#2a2e2a 0 4px,#1a1d1a 4px 8px); padding:1px 6px; border-radius:4px; }
-  .note { font-size:12.5px; color:var(--ink-2); border-left:2px solid var(--line-2); padding-left:10px; margin:12px 0; }
+  .note { font-size:13.5px; color:var(--ink-2); border-left:2px solid var(--line-2); padding-left:10px; margin:12px 0; }
   .assume { display:grid; grid-template-columns:1fr 110px; gap:4px 10px; align-items:center; padding:7px 0; border-top:1px solid var(--line); }
   .assume small { grid-column:1/-1; color:var(--ink-3); font-size:11.5px; }
   .assume input { width:110px; text-align:right; font-family:var(--mono); }
@@ -137,8 +137,8 @@
 const R = window.RENEWABLES, DATA = window.TC_RENEWABLES;
 const C = { solar:'#d6f35f', wind:'#b9a4ff', sub:'#82c8ff', grey:'#5d625a', ink:'#eceee6', ink3:'#7a7f75', pipe:'#eceee6', prot:'#c9c1a3' };
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-const fmt = (v, d = 0) => v == null || !Number.isFinite(v) ? '—' : v.toLocaleString('en-CA', { maximumFractionDigits:d, minimumFractionDigits:d });
-const money = (v) => v == null || !Number.isFinite(v) ? '—' : (Math.abs(v) >= 1e6 ? '$' + fmt(v / 1e6, 1) + 'M' : '$' + fmt(v / 1e3, 0) + 'k');
+const fmt = (v, d = 0) => v == null || !Number.isFinite(v) ? 'n/a' : v.toLocaleString('en-CA', { maximumFractionDigits:d, minimumFractionDigits:d });
+const money = (v) => v == null || !Number.isFinite(v) ? 'n/a' : (Math.abs(v) >= 1e6 ? '$' + fmt(v / 1e6, 1) + 'M' : '$' + fmt(v / 1e3, 0) + 'k');
 const STATUS = ['strong', 'moderate', 'weak', 'excluded', 'incomplete'];
 const params = new URLSearchParams(location.search);
 const ids = DATA.corridors.map((c) => c.id);
@@ -210,14 +210,14 @@ function drawLegend(rows) {
   const sw = (bg, extra = '') => `<span class="sw" style="background:${bg};${extra}"></span>`;
   const techs = state.layer === 'both' ? ['solar', 'wind'] : [state.layer];
   document.getElementById('legend').innerHTML = `<p class="eyebrow">Legend</p>
-    ${techs.map((t) => `<div class="row">${sw(`linear-gradient(90deg, ${C[t]}33, ${C[t]})`)}${t === 'solar' ? 'Solar' : 'Wind'} candidate: brighter = higher screening score</div>`).join('')}
-    <div class="row">${sw('#5d625a44', 'border:1px dashed #5d625a')}Excluded (${n('excluded')}): protected or too little usable land</div>
-    <div class="row">${sw('repeating-linear-gradient(45deg,#7a7f75 0 3px,#1a1d1a 3px 6px)')}Incomplete data (${n('incomplete')}): not ranked</div>
+    ${techs.map((t) => `<div class="row">${sw(`linear-gradient(90deg, ${C[t]}33, ${C[t]})`)}${t === 'solar' ? 'Solar' : 'Wind'} area: brighter means a higher score</div>`).join('')}
+    <div class="row">${sw('#5d625a44', 'border:1px dashed #5d625a')}Ruled out (${n('excluded')}): protected, or too little usable land</div>
+    <div class="row">${sw('repeating-linear-gradient(45deg,#7a7f75 0 3px,#1a1d1a 3px 6px)')}Missing data (${n('incomplete')}): not ranked</div>
     <div class="row">${sw('#eceee6')}Pipeline (mapped route)</div>
     <div class="row">${sw('#82c8ff')}Mapped power line / substation (CanVec)</div>
     <div class="row">${sw('#c9c1a322', 'border:1px dashed #c9c1a3')}Protected or conserved area (CPCAD)</div>`;
-  const res = state.layer === 'wind' ? 'Wind: Global Wind Atlas, 250 m grid at 100 m height.' : state.layer === 'solar' ? 'Solar: Global Solar Atlas, one modelled value per strip (~250 m grid).' : 'Wind 250 m grid at 100 m; solar one modelled value per strip.';
-  document.getElementById('resNote').innerHTML = `<b>Resolution.</b> ${res} Land cover 10 m, slope 30 m. Bands are drawn from the mapped pipeline line (solar 30–230 m, wind 300–2,000 m), not from parcels. A score is a regional screen, not a site survey.`;
+  const res = state.layer === 'wind' ? 'Wind: 250 m grid at 100 m height (Global Wind Atlas).' : state.layer === 'solar' ? 'Sun: one modelled value per strip (Global Solar Atlas).' : 'Wind is a 250 m grid at 100 m height; sun is one value per strip.';
+  document.getElementById('resNote').innerHTML = `<b>How detailed is this?</b> ${res} Land cover is 10 m, slope 30 m. The shapes are measured out from the mapped pipeline (solar 30–230 m, wind 300–2,000 m), not from property lines. Treat a score as a first pass, not a site survey.`;
 }
 function select(id, fromMap) {
   state.selected = id; history.replaceState(null, '', location.pathname + location.search + '#' + encodeURIComponent(id));
@@ -243,21 +243,21 @@ function renderSummary() {
   panel.innerHTML = `
     <p class="eyebrow">${esc(state.pipeline === 'all' ? 'All pipelines' : nameOf(state.pipeline))} · ${state.layer === 'both' ? 'solar and wind' : state.layer}</p>
     <div class="kpis">
-      <div class="kpi"><div class="v num">${pass.length}<span class="muted" style="font-size:13px"> / ${rows.length}</span></div><p>candidates pass screening (strong or moderate)</p></div>
-      <div class="kpi"><div class="v num">${fmt(pooledMw, 0)} MW</div><p>scenario capacity on passing land</p></div>
-      <div class="kpi"><div class="v num">${money(pooledRev)}</div><p>scenario gross revenue per year, before costs</p></div>
-      <div class="kpi"><div class="v num">${rows.filter((r) => r.status === 'incomplete').length}</div><p>incomplete, not ranked</p></div>
+      <div class="kpi"><div class="v num">${pass.length}<span class="muted" style="font-size:13px"> / ${rows.length}</span></div><p>areas rated strong or moderate</p></div>
+      <div class="kpi"><div class="v num">${fmt(pooledMw, 0)} MW</div><p>could fit on that land (what-if)</p></div>
+      <div class="kpi"><div class="v num">${money(pooledRev)}</div><p>power sales per year, before costs</p></div>
+      <div class="kpi"><div class="v num">${rows.filter((r) => r.status === 'incomplete').length}</div><p>missing data, not ranked</p></div>
     </div>
     <div class="filters" aria-label="Filters">
       <div class="chips" id="statusChips">${STATUS.map((s) => `<label><input type="checkbox" value="${s}" ${state.statuses.has(s) ? 'checked' : ''}> ${R.STATUS_LABEL[s]}</label>`).join('')}</div>
       <label class="ctl">Minimum score <input type="range" min="0" max="90" step="5" value="${state.minScore}" id="minScore" aria-label="Minimum screening score"> <span class="num" id="minScoreV">${state.minScore}</span></label>
       <label class="ctl">Side of pipeline <select id="sideSel"><option value="both">Both</option><option value="L">Left</option><option value="R">Right</option></select></label>
     </div>
-    <p class="note">Separate from pipeline risk: no risk score, tier, threshold or work order is read or changed here.</p>
+    <p class="note">This page doesn't use or change pipeline risk scores or work orders.</p>
     <ul class="list" id="candList">${rows.map((r) => `<li><button data-id="${esc(r.id)}" ${r.id === state.selected ? 'aria-current="true"' : ''}>
       <span class="dot" style="background:${r.status === 'excluded' || r.status === 'incomplete' ? C.grey : C[r.tech]}"></span>
-      <span><b>${r.tech === 'solar' ? 'Solar' : 'Wind'} · km ${r.kmFrom}–${r.kmTo} ${r.side === 'L' ? 'left' : 'right'}</b><br><span class="muted" style="font-size:12px">${esc(state.pipeline === 'all' ? nameOf(r.corridorId) + ' · ' : '')}coverage ${r.coverage}%${r.scenario.mw ? ' · ' + fmt(r.scenario.mw, 1) + ' MW scenario' : ''}</span></span>
-      <span style="text-align:right"><span class="num">${r.score ?? '—'}</span><br><span class="status">${R.STATUS_LABEL[r.status]}</span></span></button></li>`).join('')}</ul>
+      <span><b>${r.tech === 'solar' ? 'Solar' : 'Wind'} · km ${r.kmFrom}–${r.kmTo} ${r.side === 'L' ? 'left' : 'right'}</b><br><span class="muted" style="font-size:13px">${esc(state.pipeline === 'all' ? nameOf(r.corridorId) + ' · ' : '')}coverage ${r.coverage}%${r.scenario.mw ? ' · ' + fmt(r.scenario.mw, 1) + ' MW scenario' : ''}</span></span>
+      <span style="text-align:right"><span class="num">${r.score ?? 'n/a'}</span><br><span class="status">${R.STATUS_LABEL[r.status]}</span></span></button></li>`).join('')}</ul>
     ${rows.length ? '' : '<p class="muted">No candidates match these filters.</p>'}`;
   document.getElementById('sideSel').value = state.side;
   panel.querySelectorAll('#statusChips input').forEach((i) => i.onchange = () => { i.checked ? state.statuses.add(i.value) : state.statuses.delete(i.value); refresh(); });
@@ -274,20 +274,20 @@ function renderDetail() {
   const lc = Object.entries(c.land.landCoverPct || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${esc(k)} ${v}%`).join(', ');
   panel.innerHTML = `
     <p class="eyebrow">${esc(nameOf(r.corridorId))} · ${r.tech} · ${r.side === 'L' ? 'left' : 'right'} side</p>
-    <h2 style="margin-top:0">km ${r.kmFrom}–${r.kmTo}: <span class="num">${r.score ?? '—'}</span> <span class="status">${R.STATUS_LABEL[r.status]}</span></h2>
+    <h2 style="margin-top:0">km ${r.kmFrom}–${r.kmTo}: <span class="num">${r.score ?? 'n/a'}</span> <span class="status">${R.STATUS_LABEL[r.status]}</span></h2>
     <p>${esc(r.explanation)}</p>
-    <p class="muted" style="font-size:12px">Input coverage <span class="num">${r.coverage}%</span>${r.score == null && r.partialScore != null ? ` · partial score on known inputs <span class="num">${r.partialScore}</span> (not ranked)` : ''}. Band ${fmt(c.bandAreaHa, 1)} ha; ${fmt(c.land.samples)} sample points every ${c.land.spacingM} m.</p>
-    <h3>Score, factor by factor</h3>
+    <p class="muted" style="font-size:13px">We have <span class="num">${r.coverage}%</span> of the inputs${r.score == null && r.partialScore != null ? ` · partial score on known inputs <span class="num">${r.partialScore}</span> (not ranked)` : ''}. Band ${fmt(c.bandAreaHa, 1)} ha; ${fmt(c.land.samples)} sample points every ${c.land.spacingM} m.</p>
+    <h3>How the score is made</h3>
     ${r.factors.map((f) => `<div class="factor"><span>${esc(f.label)} <span class="muted">· weight ${Math.round(f.weight * 100)}%</span></span>
       <span class="num">${f.known ? esc(f.display) + ' → ' + f.score : '<span class="unknown">unknown</span>'}</span>
       <div class="bar" style="grid-column:1/-1"><i style="width:${f.known ? f.score : 0}%;background:${C[r.tech]}"></i></div>
-      <span class="why">${esc(f.why)}${f.known ? '' : ' Missing: ' + esc(f.reason) + '. Not scored as zero cost or best case.'} Source: ${esc(srcName(f.source))}${srcRes(f.source) ? ', ' + esc(srcRes(f.source)) : ''}.</span></div>`).join('')}
+      <span class="why">${esc(f.why)}${f.known ? '' : ' Missing: ' + esc(f.reason) + '. Left out of the score, not counted as free.'} Source: ${esc(srcName(f.source))}${srcRes(f.source) ? ', ' + esc(srcRes(f.source)) : ''}.</span></div>`).join('')}
     <h3>Land in the band</h3>
-    <p class="muted" style="font-size:12.5px">Land cover: ${lc || 'unknown'}. Eligible for ${r.tech}: ${esc(c.land.eligibleClasses.join(', '))}; slope at most ${c.land.maxSlopePct}%. Median slope ${fmt(c.land.slopeMedianPct, 1)}%, 90th percentile ${fmt(c.land.slopeP90Pct, 1)}%. Protected or conserved: ${fmt(c.land.protectedPct, 1)}%${c.land.protectedNames.length ? ' (' + esc(c.land.protectedNames.join('; ')) + ')' : ''}.</p>
-    <p class="muted" style="font-size:12.5px">Grid: nearest mapped transformer station ${c.grid.stationKm != null ? fmt(c.grid.stationKm, 2) + ' km (CanVec source dates ' + esc(c.grid.station.datemin) + '–' + esc(c.grid.station.datemax) + ')' : esc(c.grid.reason)}; nearest mapped power line ${c.grid.lineKm != null ? fmt(c.grid.lineKm, 2) + ' km' : 'none in search radius'}. Mapped is not the same as available capacity.</p>
-    ${r.tech === 'wind' ? `<p class="muted" style="font-size:12.5px">Wind at 100 m across the band: mean ${fmt(c.resource.ws100, 2)} m/s, range ${fmt(c.resource.ws100Min, 2)}–${fmt(c.resource.ws100Max, 2)} over ${c.resource.gridCells} Global Wind Atlas cells. Gross capacity factor ${c.resource.cfGross != null ? fmt(c.resource.cfGross * 100, 1) + '%' : 'unknown'} (IEC class II generic turbine).</p>`
-      : `<p class="muted" style="font-size:12.5px">Solar: PVOUT ${fmt(c.resource.pvout, 0)} kWh/kWp/yr, GHI ${fmt(c.resource.ghi, 0)} kWh/m²/yr at the strip centre (one value for the whole strip).</p>`}
-    <h3>Scenario if built (editable on the Money tab)</h3>
+    <p class="muted" style="font-size:13.5px">Land cover: ${lc || 'unknown'}. Eligible for ${r.tech}: ${esc(c.land.eligibleClasses.join(', '))}; slope at most ${c.land.maxSlopePct}%. Median slope ${fmt(c.land.slopeMedianPct, 1)}%, 90th percentile ${fmt(c.land.slopeP90Pct, 1)}%. Protected or conserved: ${fmt(c.land.protectedPct, 1)}%${c.land.protectedNames.length ? ' (' + esc(c.land.protectedNames.join('; ')) + ')' : ''}.</p>
+    <p class="muted" style="font-size:13.5px">Grid: nearest mapped transformer station ${c.grid.stationKm != null ? fmt(c.grid.stationKm, 2) + ' km (CanVec source dates ' + esc(c.grid.station.datemin) + '–' + esc(c.grid.station.datemax) + ')' : esc(c.grid.reason)}; nearest mapped power line ${c.grid.lineKm != null ? fmt(c.grid.lineKm, 2) + ' km' : 'none in search radius'}. A mapped substation may still have no room to connect.</p>
+    ${r.tech === 'wind' ? `<p class="muted" style="font-size:13.5px">Wind at 100 m across the band: mean ${fmt(c.resource.ws100, 2)} m/s, range ${fmt(c.resource.ws100Min, 2)}–${fmt(c.resource.ws100Max, 2)} over ${c.resource.gridCells} Global Wind Atlas cells. Gross capacity factor ${c.resource.cfGross != null ? fmt(c.resource.cfGross * 100, 1) + '%' : 'unknown'} (IEC class II generic turbine).</p>`
+      : `<p class="muted" style="font-size:13.5px">Solar: PVOUT ${fmt(c.resource.pvout, 0)} kWh/kWp/yr, GHI ${fmt(c.resource.ghi, 0)} kWh/m²/yr at the strip centre (one value for the whole strip).</p>`}
+    <h3>If it were built (change the numbers on the Money tab)</h3>
     ${s.mw == null ? `<p class="muted">${esc(s.reasons.join('; ') || 'not computed')}</p>` : `
     <div class="kpis">
       <div class="kpi"><div class="v num">${fmt(s.mw, 1)} MW</div><p>${r.tech === 'wind' ? s.turbines + ' × ' + A.wind.turbineMw + ' MW turbines' : 'at ' + A.solar.densityMwPerHa + ' MWdc/ha'}</p></div>
@@ -295,10 +295,10 @@ function renderDetail() {
       <div class="kpi"><div class="v num">${money(s.revenue)}</div><p>gross revenue / yr at $${fmt(A.priceCadPerMwh, 2)}/MWh</p></div>
       <div class="kpi"><div class="v num">${money(s.netBeforeLand)}</div><p>net before land cost / yr</p></div>
       <div class="kpi"><div class="v num">${money(s.capex)}</div><p>capital incl. own grid connection</p></div>
-      <div class="kpi"><div class="v num">${s.paybackYears != null ? fmt(s.paybackYears, 1) + ' yr' : '—'}</div><p>simple payback, standalone</p></div>
+      <div class="kpi"><div class="v num">${s.paybackYears != null ? fmt(s.paybackYears, 1) + ' yr' : 'n/a'}</div><p>simple payback, standalone</p></div>
     </div>${s.reasons.length ? `<p class="note">${esc(s.reasons.join('; '))}</p>` : ''}`}
-    <h3>Gates this page does not check</h3>
-    <p class="muted" style="font-size:12.5px">${esc(r.gates.join(' · '))}. A strong screen means "worth a desktop study", not "buildable".</p>`;
+    <h3>Not checked here</h3>
+    <p class="muted" style="font-size:13.5px">${esc(r.gates.join(' · '))}. A strong result means it's worth a closer look, not that it can be built.</p>`;
 }
 function tableRows() {
   const rows = filtered(); const { key, dir } = state.sort;
@@ -308,9 +308,9 @@ function tableRows() {
 function renderTable() {
   const rows = tableRows();
   const cols = [['km', 'km'], ['tech', 'Tech'], ['side', 'Side'], ['status', 'Status'], ['score', 'Score'], ['coverage', 'Coverage'], ['mw', 'MW'], ['revenue', 'Revenue/yr']];
-  panel.innerHTML = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><button class="btn" id="csvBtn">Export CSV (${rows.length})</button><span class="muted" style="font-size:12px">Exports the rows matching the current filters, with the explanation for each.</span></div>
+  panel.innerHTML = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><button class="btn" id="csvBtn">Export CSV (${rows.length})</button><span class="muted" style="font-size:13px">Saves the rows you're seeing, with the reason for each score.</span></div>
     <div style="overflow:auto"><table><thead><tr>${state.pipeline === 'all' ? '<th>Pipeline</th>' : ''}${cols.map(([k, l]) => `<th data-k="${k}" aria-sort="${state.sort.key === k ? (state.sort.dir > 0 ? 'ascending' : 'descending') : 'none'}">${l}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map((r) => `<tr data-id="${esc(r.id)}" style="cursor:pointer">${state.pipeline === 'all' ? `<td>${esc(nameOf(r.corridorId).split(' ·')[0])}</td>` : ''}<td class="n">${r.kmFrom}–${r.kmTo}</td><td>${r.tech}</td><td>${r.side}</td><td>${R.STATUS_LABEL[r.status]}</td><td class="n">${r.score ?? '—'}</td><td class="n">${r.coverage}%</td><td class="n">${fmt(r.scenario.mw, 1)}</td><td class="n">${money(r.scenario.revenue)}</td></tr>`).join('')}</tbody></table></div>`;
+    <tbody>${rows.map((r) => `<tr data-id="${esc(r.id)}" style="cursor:pointer">${state.pipeline === 'all' ? `<td>${esc(nameOf(r.corridorId).split(' ·')[0])}</td>` : ''}<td class="n">${r.kmFrom}–${r.kmTo}</td><td>${r.tech}</td><td>${r.side}</td><td>${R.STATUS_LABEL[r.status]}</td><td class="n">${r.score ?? 'n/a'}</td><td class="n">${r.coverage}%</td><td class="n">${fmt(r.scenario.mw, 1)}</td><td class="n">${money(r.scenario.revenue)}</td></tr>`).join('')}</tbody></table></div>`;
   panel.querySelectorAll('th[data-k]').forEach((th) => th.onclick = () => { state.sort = { key:th.dataset.k, dir:state.sort.key === th.dataset.k ? -state.sort.dir : -1 }; renderTable(); });
   panel.querySelectorAll('tr[data-id]').forEach((tr) => tr.onclick = () => select(tr.dataset.id));
   document.getElementById('csvBtn').onclick = () => {
@@ -334,13 +334,13 @@ function renderMoney() {
       <div class="kpi"><div class="v num">${money(p.net)}</div><p>net after O&amp;M${p.landCost != null ? ' and land' : ', before land cost'} / yr</p></div>
       <div class="kpi"><div class="v num">${money(p.capex)}</div><p>capital, one connection ${fmt(p.stationKm, 2)} km to the nearest mapped substation</p></div>
       <div class="kpi"><div class="v num">${money(p.npv)}</div><p>NPV over ${A.lifeYears} yr at ${A.discountRatePct}%</p></div>
-      <div class="kpi"><div class="v num">${p.paybackYears != null ? fmt(p.paybackYears, 1) + ' yr' : '—'}</div><p>simple payback</p></div>
-      <div class="kpi"><div class="v num">${p.breakEvenPriceCadPerMwh != null ? '$' + fmt(p.breakEvenPriceCadPerMwh, 0) : '—'}</div><p>break-even price per MWh at these costs</p></div>
+      <div class="kpi"><div class="v num">${p.paybackYears != null ? fmt(p.paybackYears, 1) + ' yr' : 'n/a'}</div><p>simple payback</p></div>
+      <div class="kpi"><div class="v num">${p.breakEvenPriceCadPerMwh != null ? '$' + fmt(p.breakEvenPriceCadPerMwh, 0) : 'n/a'}</div><p>break-even price per MWh at these costs</p></div>
     </div>` : ''}${p.reasons.length ? `<p class="note">${esc(p.reasons.join('; '))}</p>` : ''}`).join('');
   const techs = state.layer === 'both' ? ['solar', 'wind'] : [state.layer];
   panel.innerHTML = `
-    <p class="eyebrow">Scenario, not a prediction</p>
-    <p class="muted" style="font-size:12.5px">Pools every strong or moderate candidate into one project per technology and pipeline, with one connection to the nearest mapped substation. Collector lines, storage, curtailment, financing structure, taxes and land cost are not modelled unless you enter them. Change any number below and every figure updates.</p>
+    <p class="eyebrow">What-if, not a forecast</p>
+    <p class="muted" style="font-size:13.5px">All strong and moderate sites on a pipeline are added up as one solar project and one wind project, each with one line to the nearest mapped substation. Land cost is left out unless you enter it. Storage, taxes, financing and lines between sites aren't included. Change a number below and everything updates.</p>
     ${techs.map(block).join('')}
     <h2>Assumptions</h2>
     ${state.pipeline === 'all' ? '<p class="note">Electricity price is set per pipeline. Choose one pipeline to edit its price; other assumptions apply to both.</p>' : field('priceCadPerMwh', 'Electricity price, $/MWh (CAD)', AS.priceCadPerMwh[first])}
@@ -381,7 +381,7 @@ function renderSources() {
     return `<p class="eyebrow">${esc(nameOf(id))} · inputs generated ${esc(inp.generatedAt)}</p>
       ${inp.sources.map((s) => `<div class="src"><b>${esc(s.name)}</b><br>${esc(s.resolution)}. ${esc(s.note || '')}<br>
         <span class="muted">Licence: ${esc(s.licence)}</span><br>Retrieved ${esc(s.retrievedAt)} · <a href="${esc(s.url.split(';')[0])}" target="_blank" rel="noopener">source</a><br><code>sha256 ${esc(s.rawSha256)}</code></div>`).join('')}
-      <h3>Not assessed (always unknown here)</h3><p class="muted" style="font-size:12.5px">${esc(inp.notAssessed.join(' · '))}</p>`;
+      <h3>Not assessed (always unknown here)</h3><p class="muted" style="font-size:13.5px">${esc(inp.notAssessed.join(' · '))}</p>`;
   }).join('<hr style="border:0;border-top:1px solid var(--line-2);margin:20px 0">');
 }
 

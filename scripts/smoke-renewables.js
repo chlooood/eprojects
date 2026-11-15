@@ -34,14 +34,14 @@ async function main() {
     await page.selectOption('#pipelineSel', 'ab-strathcona-demo');
     // detail view shows factors, coverage and gates
     await page.locator('#candList button').first().click();
-    await page.getByText('Score, factor by factor').waitFor();
+    await page.getByText('How the score is made').waitFor();
     const detail = await page.textContent('#panel');
-    assert.match(detail, /Input coverage/); assert.match(detail, /Gates this page does not check/); assert.doesNotMatch(detail, /\bfeasible\b/i);
+    assert.match(detail, /of the inputs/); assert.match(detail, /Not checked here/); assert.doesNotMatch(detail, /\bfeasible\b/i);
     // status filter: hide excluded
     await page.click('#tabs button[data-tab="summary"]');
     await page.uncheck('#statusChips input[value="excluded"]');
     const statuses = await page.$$eval('#candList .status', (s) => s.map((x) => x.textContent));
-    assert.ok(!statuses.includes('Excluded'));
+    assert.ok(!statuses.includes('Ruled out'));
     // money recompute
     await page.click('#tabs button[data-tab="money"]');
     const before = await page.textContent('#panel');
@@ -59,7 +59,7 @@ async function main() {
     // deep link keeps pipeline, layer and selection
     const id = allItems.find((x) => x.startsWith('rn_bc-coquihalla_') && x.includes('_wind_'));
     await page.goto(file + '?pipeline=bc-coquihalla&layer=solar#' + encodeURIComponent(id));
-    await page.getByText('Score, factor by factor').waitFor();
+    await page.getByText('How the score is made').waitFor();
     assert.equal((await state()).l, 'wind', 'deep link switches to the selected candidate layer');
     // mobile
     const m = await browser.newContext({ viewport: { width: 390, height: 844 } }); await m.route(/^https?:/, (r) => r.abort());

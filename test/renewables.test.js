@@ -44,7 +44,7 @@ test('a weak resource caps the status at moderate even when the site is otherwis
   const a = R.assess(wind({ resource: { ws100Usable: 6.8 } }));
   assert.ok(a.score >= 70, 'site score is high');
   assert.equal(a.status, 'moderate');
-  assert.match(a.reason, /capped at moderate/);
+  assert.match(a.reason, /held at moderate/);
 });
 
 test('missing grid distance is incomplete, unranked and never zero-cost', () => {
@@ -93,7 +93,7 @@ test('no status or explanation ever claims feasibility; gates are always listed'
   for (const id of CORRIDORS) for (const r of R.assessCorridor(load(id)).rows) {
     assert.ok(!/feasible/i.test(r.statusLabel + ' ' + r.explanation), r.id);
     assert.ok(r.gates.length >= 3);
-    assert.match(r.explanation, /Not assessed: land rights/);
+    assert.match(r.explanation, /Not checked: land ownership/);
   }
 });
 

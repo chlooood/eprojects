@@ -16,21 +16,21 @@
   const FACTORS = {
     solar: [
       { key: 'resource', label: 'Solar resource', weight: 0.35, unit: 'kWh/kWp/yr', lo: 900, hi: 1600, read: (c) => c.resource && c.resource.pvout, source: 'gsa',
-        why: 'Modelled PV yield (Global Solar Atlas PVOUT). 900 scores 0, 1600 scores 100.' },
+        why: 'Expected output per kW of panels (Global Solar Atlas). 900 scores 0, 1,600 scores 100.' },
       { key: 'terrain', label: 'Terrain (median slope)', weight: 0.15, unit: '%', lo: 15, hi: 3, read: (c) => c.land && c.land.slopeMedianPct, source: 'dem',
         why: 'Median slope from Copernicus GLO-30. 3% or flatter scores 100, 15% or steeper scores 0.' },
       { key: 'area', label: 'Usable area', weight: 0.25, unit: 'ha', lo: 0, hi: 10, read: (c) => c.land && c.land.usableHa, source: 'worldcover',
-        why: 'Open land cover, slope at or below the limit, outside protected areas. 10 ha or more scores 100.' },
+        why: 'Open land, not too steep, not protected. 10 ha or more scores 100.' },
       { key: 'grid', label: 'Distance to mapped substation', weight: 0.25, unit: 'km', lo: 15, hi: 1, read: gridKm, source: 'canvec',
         why: 'Nearest CanVec transformer station. 1 km or closer scores 100, 15 km or farther scores 0.' },
     ],
     wind: [
       { key: 'resource', label: 'Wind at 100 m', weight: 0.40, unit: 'm/s', lo: 5, hi: 9, read: windSpeed, source: 'gwa_ws100',
-        why: 'Global Wind Atlas v4 mean speed at 100 m over usable land. 5 m/s scores 0, 9 m/s scores 100.' },
+        why: 'Average wind speed at turbine height, 100 m (Global Wind Atlas). 5 m/s scores 0, 9 m/s scores 100.' },
       { key: 'terrain', label: 'Terrain (median slope)', weight: 0.15, unit: '%', lo: 25, hi: 5, read: (c) => c.land && c.land.slopeMedianPct, source: 'dem',
         why: 'Median slope from Copernicus GLO-30. 5% or flatter scores 100, 25% or steeper scores 0.' },
       { key: 'area', label: 'Usable area', weight: 0.20, unit: 'ha', lo: 0, hi: 100, read: (c) => c.land && c.land.usableHa, source: 'worldcover',
-        why: 'Eligible land cover, slope at or below the limit, outside protected areas. 100 ha or more scores 100.' },
+        why: 'Usable land, not too steep, not protected. 100 ha or more scores 100.' },
       { key: 'grid', label: 'Distance to mapped substation', weight: 0.25, unit: 'km', lo: 25, hi: 2, read: gridKm, source: 'canvec',
         why: 'Nearest CanVec transformer station. 2 km or closer scores 100, 25 km or farther scores 0.' },
     ],
@@ -121,7 +121,7 @@
     else {
       status = partial >= cfg.bands.strong ? 'strong' : partial >= cfg.bands.moderate ? 'moderate' : 'weak';
       const res = factors.find((f) => f.key === 'resource');
-      if (status === 'strong' && res.score < cfg.strongNeedsResource) { status = 'moderate'; reason = `capped at moderate: resource scores ${res.score}/100, below ${cfg.strongNeedsResource}`; }
+      if (status === 'strong' && res.score < cfg.strongNeedsResource) { status = 'moderate'; reason = `held at moderate because the ${c.tech === 'wind' ? 'wind' : 'sun'} scores only ${res.score}/100`; }
     }
     const score = status === 'incomplete' || status === 'excluded' ? null : partial;
     const known = factors.filter((f) => f.known).sort((a, b) => b.score * b.weight - a.score * a.weight);
@@ -131,7 +131,7 @@
       status, statusLabel: STATUS_LABEL[status], reason, score, partialScore: partial, coverage, factors, missing: missing.map((f) => f.key),
       gates: cfg.gates.slice(), explanation: explain(c, status, reason, strongest, weakest, missing, coverage) };
   }
-  const STATUS_LABEL = { strong: 'Strong screen', moderate: 'Moderate screen', weak: 'Weak screen', excluded: 'Excluded', incomplete: 'Incomplete data' };
+  const STATUS_LABEL = { strong: 'Strong', moderate: 'Moderate', weak: 'Weak', excluded: 'Ruled out', incomplete: 'Missing data' };
   function missingReason(c, key) {
     if (key === 'grid') return (c.grid && c.grid.reason) || 'no verified grid dataset for this area';
     if (key === 'area') return (c.land && c.land.usableReason) || 'land cover or slope not available';
@@ -141,12 +141,12 @@
   function explain(c, status, reason, strongest, weakest, missing, coverage) {
     const tech = c.tech === 'solar' ? 'Solar' : 'Wind';
     const parts = [];
-    if (status === 'excluded') parts.push(`${tech} is excluded here: ${reason}.`);
-    else if (status === 'incomplete') parts.push(`${tech} cannot be screened: ${missing.map((f) => f.label.toLowerCase() + ' is unknown (' + f.reason + ')').join('; ')}. Input coverage ${coverage}%.`);
-    else parts.push(`${tech} screens ${status} on all four inputs${reason ? ' (' + reason + ')' : ''}.`);
-    if (strongest.length) parts.push('Strongest: ' + strongest.map((f) => `${f.label.toLowerCase()} ${f.display} (${f.score}/100)`).join(', ') + '.');
-    if (weakest.length) parts.push('Weakest: ' + weakest.map((f) => `${f.label.toLowerCase()} ${f.display} (${f.score}/100)`).join(', ') + '.');
-    parts.push('Not assessed: land rights, interconnection capacity, permits.');
+    if (status === 'excluded') parts.push(`${tech} is ruled out here: ${reason}.`);
+    else if (status === 'incomplete') parts.push(`${tech} can't be rated because ${missing.map((f) => f.label.toLowerCase() + ' is unknown (' + f.reason + ')').join('; ')}. We have ${coverage}% of the inputs.`);
+    else parts.push(`${tech} rates ${status}${reason ? ' (' + reason + ')' : ''}.`);
+    if (strongest.length) parts.push('Best: ' + strongest.map((f) => `${f.label.toLowerCase()} ${f.display} (${f.score}/100)`).join(', ') + '.');
+    if (weakest.length) parts.push('Worst: ' + weakest.map((f) => `${f.label.toLowerCase()} ${f.display} (${f.score}/100)`).join(', ') + '.');
+    parts.push('Not checked: land ownership, grid room, permits.');
     return parts.join(' ');
   }
 
