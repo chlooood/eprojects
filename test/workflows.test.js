@@ -266,3 +266,14 @@ test('B regression: the cached Trans-Northern climate cells do not turn the whol
     assert.ok(old.ground_score > 50, `${c.cell_key}: the previous live config (full at +15%, red above 50) made flat ground ${old.ground_score}: the mass-red bug`);
   }
 });
+
+test('W2 Plan Grid Cells: a v2 cache row wins, a v1 row is a fallback, an unknown signature is refetched', async () => {
+  const segs = ['a', 'b', 'c'].map((k) => ({ segment_id: 's' + k, valid: true, cell_key: 'cell_' + k, cell_lat: 53.4, cell_lon: -113.4 }));
+  const sig = (v) => [w2cfg.baseline_start, w2cfg.baseline_end, w2cfg.projection_start, w2cfg.projection_end, w2cfg.climate_models, v].join('|');
+  const row = (k, v) => ({ cell_key: 'cell_' + k, config_signature: sig(v), archive_metrics_json: JSON.stringify({ ok: true, v }), climate_metrics_json: JSON.stringify({ ok: true }), fetched_at: 'x' });
+  const out = (await run(W2, 'Plan Grid Cells', { nodes: { 'W2 Config': [w2cfg], 'Select Batch Segments': segs, 'Get Cached Cells': [row('a', 'v1'), row('a', 'v2'), row('b', 'v1'), row('c', 'v0')] } })).map((o) => o.json);
+  assert.equal(out[0].cache_signature, 'v2'); assert.equal(out[0].archive.v, 'v2');
+  assert.match(out[1].cache_signature, /^v1/); assert.equal(out[1].fetch, false);
+  assert.equal(out[2].fetch, true);
+  assert.match(out[2].archive_url, /relative_humidity_2m_min/); assert.match(out[2].climate_url, /relative_humidity_2m_min/);
+});

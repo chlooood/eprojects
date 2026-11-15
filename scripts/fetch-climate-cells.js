@@ -125,8 +125,10 @@ async function main() {
     const climate = condenseClimate(await download(urls.climate_url, 'climate'));
     rows.push(toRow(c, urls, archive, climate));
     rows.sort((a, b) => a.cell_key.localeCompare(b.cell_key));
-    fs.writeFileSync(CELL_FILE, JSON.stringify(rows, null, 1) + '\n');   // save progress after every cell
-    writeOutputs(rows);
+    // Cells not refetched yet keep their older row (W2 uses it for ground failure and crossings only).
+    const older = saved.filter((r) => r.config_signature !== SIG && !rows.find((x) => x.cell_key === r.cell_key));
+    fs.writeFileSync(CELL_FILE, JSON.stringify(rows.concat(older).sort((a, b) => a.cell_key.localeCompare(b.cell_key)), null, 1) + '\n');   // save progress after every cell
+    writeOutputs(rows);   // only current-signature rows go to the seed files
     if (i < CELLS.length - 1) await sleep(SLEEP_MS);
   }
   console.log('\nDONE. ' + rows.length + ' cell rows in ' + path.relative(ROOT, CELL_FILE) + ' (also cache_rows.csv and seed_code_node.js in ' + OUT_DIR + ')');
