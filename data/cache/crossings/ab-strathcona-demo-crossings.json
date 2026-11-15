@@ -1,0 +1,97 @@
+{
+ "corridor_id": "ab-strathcona-demo",
+ "fetched_at": "2026-11-15T07:30:12.819Z",
+ "source": "OpenStreetMap waterways via Overpass API",
+ "osm_timestamp": "2026-11-15T07:28:49Z",
+ "overpass_query": "[out:json][timeout:60];way[\"waterway\"~\"^(river|stream|canal|drain)$\"](53.3332,-113.4860,53.5156,-113.3644);out geom;",
+ "overpass_sha256": "19e241b0db58a48f87622000c603ce5acaf41391a2ecb5f3817cc69fb37d4800",
+ "waterways_in_bbox": 199,
+ "segments_checked": 23,
+ "segments_with_crossing": 6,
+ "river_flow": "not requested: no river crossing",
+ "segments": {
+  "seg_6d571cf3a55233b2": [
+   {
+    "name": null,
+    "kind": "stream",
+    "at": [
+     -113.479426,
+     53.343235
+    ],
+    "peakFlowM3s": null
+   }
+  ],
+  "seg_51da2a98f4cc6bf0": [
+   {
+    "name": null,
+    "kind": "stream",
+    "at": [
+     -113.476923,
+     53.350166
+    ],
+    "peakFlowM3s": null
+   }
+  ],
+  "seg_59c95053d75fc7c4": [],
+  "seg_df19fceaf79e73fc": [],
+  "seg_4e670052ff543951": [
+   {
+    "name": "Irvine Creek",
+    "kind": "stream",
+    "at": [
+     -113.46711,
+     53.374427
+    ],
+    "peakFlowM3s": null
+   }
+  ],
+  "seg_845aa328f339f748": [],
+  "seg_312ff0223dd91553": [],
+  "seg_4cf3c2ccdc852418": [],
+  "seg_c6329a1d128b3b13": [],
+  "seg_b8c9a6ba853a2ede": [],
+  "seg_31e17a2ec605926e": [],
+  "seg_b912011359d1ca1e": [],
+  "seg_256569ab8a09736e": [
+   {
+    "name": null,
+    "kind": "stream",
+    "at": [
+     -113.407155,
+     53.433327
+    ],
+    "peakFlowM3s": null
+   }
+  ],
+  "seg_d2ee6bc89f017ed2": [],
+  "seg_77fb173e94fdf499": [],
+  "seg_5cf71be59789f5f4": [],
+  "seg_704bc3cea3492f8f": [
+   {
+    "name": "Mill Creek",
+    "kind": "stream",
+    "at": [
+     -113.389558,
+     53.4645
+    ],
+    "peakFlowM3s": null
+   }
+  ],
+  "seg_280090cdc09bd806": [],
+  "seg_3c6cddf80e4d0321": [],
+  "seg_0716777699fe8121": [
+   {
+    "name": "Fulton Creek",
+    "kind": "stream",
+    "at": [
+     -113.375236,
+     53.492731
+    ],
+    "peakFlowM3s": null
+   }
+  ],
+  "seg_afc19907173cd40e": [],
+  "seg_b629ccc517af6147": [],
+  "seg_cb5ad322b2cc12de": []
+ }
+}

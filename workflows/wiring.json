@@ -1,20 +1,22 @@
 {
   "_help": "Fill in the IDs from YOUR n8n instance, then run: node scripts/wire-workflows.js. Table ID: open the Data table in n8n, the URL ends in /data-tables/<ID>. Workflow ID: open the workflow, the URL ends in /workflow/<ID>. null means not set yet (the workflow keeps a SET_ID placeholder and will fail loudly instead of writing to the wrong table).",
+  "apiBase": "https://chlooood.app.n8n.cloud/webhook/terracorridor",
+  "_verified": "IDs read from the live n8n instance on 2026-11-15 (all 11 tables exist; WF4 is the published copy, an older archived copy also exists).",
   "tables": {
     "corridor_sources": "NgF5zRkFD9AuQ0h0",
     "corridor_segments": "euUFpWZEDrrDJOkc",
     "corridor_baselines": "LckNoZvtBFwDnwM3",
     "corridor_climate_cells": "G63naG9EwsWudmDx",
     "corridor_predictions": "7T6RlFe9HRFOfkCD",
-    "corridor_build": null,
-    "corridor_build_config": null,
-    "corridor_reports": null,
-    "corridor_watch": null,
-    "corridor_work_orders": null,
-    "corridor_audit": null
+    "corridor_build": "E1GpvXaFTP4qLjsW",
+    "corridor_build_config": "qfz2KdlrPsXlGkYO",
+    "corridor_reports": "T0PP8Zebw0vWU5KW",
+    "corridor_watch": "sPlAgvMC7Q6sFHho",
+    "corridor_work_orders": "fWeMlbL9wQ5I7m3N",
+    "corridor_audit": "usLWlVq3McK7sta2"
   },
   "workflows": {
     "W2: Long-Range Engine": "dBH4KH6tppTfvjLb",
-    "TerraCorridor WF4 - Work orders and approvals": null
+    "TerraCorridor WF4 - Work orders and approvals": "kdpAJpsjSFlhtsTe"
   }
 }

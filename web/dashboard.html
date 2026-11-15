@@ -377,6 +377,7 @@
   <span class="spacer"></span>
   <span class="pill warn" id="synthBadge" hidden><span class="led"></span>Synthetic demo data</span>
   <span class="pill live" id="liveBadge" hidden><span class="led"></span>Live from n8n</span>
+  <span class="pill warn" id="offBadge" hidden><span class="led"></span>Offline snapshot</span>
   <span class="pill" id="genAt"></span>
 </header>
 
@@ -387,7 +388,7 @@
       <section class="ledger" id="ovLedger" aria-label="Climate summary"></section>
       <div class="hint" id="ovHint">
         <span><b>How to read this:</b> the line is a <span id="hintKm">demo</span> pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.
-        <span class="k" style="color:var(--red)">Red</span> = send a crew, <span class="k" style="color:var(--amber)">amber</span> = watch, <span class="k" style="color:var(--green)">green</span> = inspect less.
+        <span class="k" style="color:var(--red)">Red</span> = inspect first, <span class="k" style="color:var(--amber)">amber</span> = plan a visit, <span class="k" style="color:var(--green)">green</span> = routine cycle. 2031 and 2036 are climate-frequency projections for planning, not weather forecasts.
         Press <b>&#9654;</b> on the map to watch climate change shift it from today to 2036. Hover any number for what it means.</span>
         <button class="linkbtn" id="bHint">Got it</button>
       </div>
@@ -438,8 +439,8 @@
           <div id="mVerdict"></div>
           <div id="mNet"></div>
           <div id="mWf"></div>
-          <section class="s" style="margin-top:40px"><div class="shead"><h2>Failure cost scenarios</h2><p>Combined net value under each sourced failure cost. Click one to apply it.</p></div><div class="scen" id="mScen"></div></section>
-          <section class="s" style="margin-top:40px"><div class="shead"><h2>Also from the solar sites (not counted above)</h2></div><div id="mLease"></div></section>
+          <section class="s" style="margin-top:40px"><div class="shead"><h2>Failure cost scenarios</h2><p>The protection scenario under a low, mid and high failure cost. Click one to apply it.</p></div><div class="scen" id="mScen"></div></section>
+          <section class="s" style="margin-top:40px"><div class="shead"><h2>Conditional opportunity: solar on stable land (not counted above)</h2><p>Screening only. It depends on land rights the operator may not hold, interconnection, permits and a commercial agreement. Energy is nameplate MW × daily irradiance × 365 × performance ratio, an indicative figure.</p></div><div id="mLease"></div></section>
           <div class="sources" id="sourcesSec"></div>
         </div>
       </div>
@@ -471,8 +472,8 @@
       <div class="stops">
         <i class="rail"><i id="tlFill"></i></i>
         <button data-stop="y0"><b>Today</b><span>past 30 years, measured</span></button>
-        <button data-stop="y5"><b>2031</b><span>climate models</span></button>
-        <button data-stop="y10"><b>2036</b><span>climate models</span></button>
+        <button data-stop="y5"><b>2031</b><span>models, 2026–30 mean</span></button>
+        <button data-stop="y10"><b>2036</b><span>models, 2026–35 mean</span></button>
       </div>
     </div>
   </div>
@@ -481,7 +482,7 @@
       <span class="t">Pipeline, km by km</span>
       <span id="readout"></span>
       <span class="spacer"></span>
-      <span class="keys"><kbd>←</kbd><kbd>→</kbd> step <kbd>P</kbd> play <kbd>A</kbd> approve <kbd>Esc</kbd> close</span>
+      <span class="keys"><kbd>←</kbd><kbd>→</kbd> step <kbd>P</kbd> play <kbd>A</kbd> approve inspection <kbd>Esc</kbd> close</span>
     </div>
     <svg id="strip" role="img" aria-label="Risk score, tier, slope, vegetation change and solar potential for every kilometre post"></svg>
   </div>
@@ -493,7 +494,8 @@
 </script>
 <script>
 // Where data comes from. When n8n serves this page it sets window.TC_API to its webhook base.
-const API = window.TC_API || new URLSearchParams(location.search).get('api') || '';
+let API = window.TC_API || new URLSearchParams(location.search).get('api') || '';
+let OFFLINE = false;   // true when n8n could not be reached and the page runs on the snapshot built into this file
 const DATA_URL = API ? API + '/corridor' : '../data/demo/corridor.json';
 
 // Hex mirrors of the CSS tokens (SVG attributes and Leaflet need literal colours).
@@ -794,7 +796,7 @@ function paint() {
 function renderLegend() {
   const rows = layer === 'build'
     ? [['Good site', C.build], ['Possible', C.buildDim], ['Poor site', C.grey], ['Too steep', C.excluded]]
-    : [['High · send a crew', C.red], ['Medium · watch', C.amber], ['Low · inspect less', C.green], ['Missing data', null]];
+    : [['High · inspect first', C.red], ['Medium · plan a visit', C.amber], ['Low · routine cycle', C.green], ['Missing data', null]];
   legend.innerHTML = `<div class="t">${layer === 'build' ? 'Where solar panels fit' : 'Natural-hazard risk · ' + STOP_LABEL[anim ? anim.to : stop]}</div>` +
     rows.map(([l, c]) => `<span class="li"><span class="sw ${c ? '' : 'hatch'}" style="${c ? 'background:' + c : ''}"></span>${l}</span>`).join('') +
     `<span class="li"><span class="sw" style="background:${C.sub};width:8px;height:8px;border-radius:50%;margin:0 4px"></span>Substation</span>` +
@@ -809,7 +811,9 @@ function updateAnnotations() {
   if (layer !== 'risk' || anim) return;
   for (const c of clusters()) {
     if (c.n < 2) continue;
-    const m = c.mid.mid;
+    const cl = c.mid.centreline || [];
+    const m = c.mid.mid || cl[Math.floor(cl.length / 2)];
+    if (!m) continue;
     L.tooltip({ permanent: true, direction: 'right', className: 'anno', offset: [14, 0] })
       .setLatLng([m[1], m[0]]).setContent(`<b>${kpRange(c)}</b>${esc(c.text)}`).addTo(annoLayer);
   }
@@ -1030,10 +1034,22 @@ function hazardsHTML(s, r) {
   const hz = r.hazards || {};
   return ['ground', 'crossing', 'wildfire', 'drought'].map((k) => {
     const h = hz[k];
-    if (!h) return `<div class="drv"><span class="l" style="color:var(--ink-3)">${HAZ[k]}</span><span class="n" style="color:var(--ink-3)">${k === 'crossing' ? 'no crossing' : 'no data'}</span></div>`;
+    if (!h) {
+      // Not applicable (no mapped crossing), not checked, and data unavailable are different things: say which.
+      const st = (r.hazardStatus && r.hazardStatus[k]) || (k === 'crossing' ? (s.crossings ? 'not applicable: no mapped waterway crosses this segment' : 'not checked') : 'unavailable: no input data');
+      return `<div class="drv" title="${esc(st)}"><span class="l" style="color:var(--ink-3)">${HAZ[k]}<div class="cap" style="margin-top:2px">${esc(st.split(': ').slice(1).join(': ') || st)}</div></span><span class="n" style="color:var(--ink-3)">${esc(st.split(':')[0].replace(/ \(.*$/, ''))}</span></div>`;
+    }
     const top = r.hazard === k;
     return `<div class="drv"><span class="l">${top ? '<b>' : ''}${HAZ[k]}${top ? '</b> · worst' : ''}<div class="cap" style="margin-top:2px">${esc(h.why)}</div></span><span class="n" style="color:${C[h.tier]}">${Math.round(h.score)}</span><span class="mbar"><i style="width:${h.score}%;background:${C[h.tier]}"></i></span></div>`;
   }).join('');
+}
+// Why 2031 and 2036 can differ a lot: both windows start in 2026, so the 2036 view is the 2031 years plus five more.
+function horizonHTML(s) {
+  const a = s.risk.y5, b = s.risk.y10;
+  if (stop === 'y0' || !a || !b || a.score == null || b.score == null) return '';
+  const hz = (cfg.horizons || {}), w5 = hz.y5 || [2026, 2030], w10 = hz.y10 || [2026, 2035];
+  const mv = (b.drivers || []).filter((d) => ['rain', 'freezeThaw', 'saturation'].includes(d.key)).map((d) => { const p = (a.drivers || []).find((x) => x.key === d.key); return p && p.change != null && d.change != null ? { label: d.label, from: p.change, to: d.change, delta: Math.abs(d.change - p.change) } : null; }).filter(Boolean).sort((x, y) => y.delta - x.delta)[0];
+  return `<div class="cap" style="margin-top:10px">Score ${Math.round(a.score)} for ${w5[0]}–${w5[1]}, ${Math.round(b.score)} for ${w10[0]}–${w10[1]}. The second window contains the first, so the change comes from the model years ${w5[1] + 1}–${w10[1]}${mv ? `: ${mv.label.toLowerCase()} ${sign(mv.from)}% → ${sign(mv.to)}% vs 1995–2025` : ''}. A change under about ±15% in heavy-rain days is within year-to-year sampling noise for a window this short. These are planning signals, not forecasts.</div>`;
 }
 function chipHTML(t) { return `<span class="chip" style="color:${C[t]};background:${C[t]}1a"><span class="led"></span>${TIER_LABEL[t]}</span>`; }
 function gaugeHTML(r) {
@@ -1044,7 +1060,7 @@ function gaugeHTML(r) {
 }
 function explainHTML(s, r) {
   return `<div class="explain">${esc(s.explanation && stop !== 'y0' ? s.explanation : fallbackExplain(s, r))}
-    <div class="src">${s.explanation && stop !== 'y0' ? 'AI explanation, restating engine numbers only.' : 'Template text. The n8n run replaces this with an AI explanation.'}</div></div>`;
+    <div class="src">${s.explanation && stop !== 'y0' ? 'AI explanation, restating engine numbers only.' : 'Template text built from the engine numbers. n8n writes an AI explanation only for medium and high segments.'}</div></div>`;
 }
 function driversHTML(r, n = 5) {
   const maxW = Math.max(...r.drivers.map((d) => d.w), .0001);
@@ -1097,10 +1113,10 @@ function buildHTML(s) {
 }
 const fmtDate = (d) => { try { return new Date(d + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { return d; } };
 const DELIVERY = {
-  local: 'Kept in this browser: n8n is not connected in this demo file.',
+  local: 'Local demo: saved in this browser only. n8n is not connected, so nothing was recorded or sent anywhere.',
   sending: 'Sending to n8n…',
-  n8n: 'Created and stored by n8n. The crew gets it by email or Slack once that step is switched on.',
-  failed: 'n8n did not accept it; kept in this browser.',
+  n8n: 'Approved and recorded in n8n (corridor_work_orders). Not emailed and no crew dispatched: the inspection coordinator takes it from the CSV on the Work orders page.',
+  failed: 'Not recorded: n8n did not accept it. This copy exists in this browser only.',
 };
 function woHTML(s) {
   const w = s.workOrder; if (!w) return '';
@@ -1117,7 +1133,7 @@ function actionsHTML(s, compact) {
   return `<div class="actions">
     ${woHTML(s)}
     <div class="btnrow">
-      <button class="btn primary" data-act="approved" aria-pressed="${s.wo === 'approved'}">${s.wo === 'approved' ? '✓ Work order sent' : 'Approve: send a crew'}</button>
+      <button class="btn primary" data-act="approved" aria-pressed="${s.wo === 'approved'}">${s.wo === 'approved' ? (s.workOrder && s.workOrder.delivery === 'n8n' ? '✓ Approved · recorded in n8n' : s.workOrder && s.workOrder.delivery === 'sending' ? 'Sending to n8n…' : s.workOrder && s.workOrder.delivery === 'failed' ? 'Approved here · not recorded' : '✓ Approved · local demo') : 'Approve inspection'}</button>
       <button class="btn" data-act="rejected" aria-pressed="${s.wo === 'rejected'}">${s.wo === 'rejected' ? 'Rejected' : s.wo === 'approved' ? 'Cancel' : 'Reject'}</button>
     </div>
     <details class="ovr" style="margin-top:12px"><summary>Override the risk level (reason required)</summary>
@@ -1155,14 +1171,16 @@ function decide(s, v) {
     if (s.wo === 'approved' && s.workOrder && s.workOrder.status !== 'cancelled') return;
     s.wo = 'approved';
     s.workOrder = { ...ENGINE.workOrder(s, k, cfg, { by: 'operator (demo)' }), delivery: API ? 'sending' : 'local' };
-    act(s, 'approve_work_order', { stop: k, workOrderId: s.workOrder.id, priority: s.workOrder.priority, dueBy: s.workOrder.dueBy });
-    toast(`${s.workOrder.priority} work order for ${s.id} created · due ${fmtDate(s.workOrder.dueBy)}`);
+    const w = s.workOrder;
+    // n8n gets what the manager saw, so the stored record stands on its own. The success message waits for n8n's answer (see act).
+    act(s, 'approve_work_order', { stop: k, workOrderId: w.id, priority: w.priority, dueBy: w.dueBy, tier: w.tier, hazard: w.hazard, why: w.why, checks: w.checks, mapUrl: w.mapUrl });
+    toast(API ? `Sending the ${w.priority} inspection for ${s.id} to n8n…` : `Local demo: ${w.priority} inspection for ${s.id} saved in this browser only · due ${fmtDate(w.dueBy)}`);
   } else {
     if (s.wo === 'rejected') return;
     s.wo = 'rejected';
     if (s.workOrder) s.workOrder = { ...s.workOrder, status: 'cancelled' };
     act(s, 'reject_work_order', { stop: k, workOrderId: s.workOrder ? s.workOrder.id : null });
-    toast(`${s.id}: no crew sent. Logged.`);
+    toast(API ? `${s.id}: rejection sent to n8n…` : `${s.id}: rejected. Saved in this browser only.`);
   }
   saveLocal(); renderPage(); renderLog();
 }
@@ -1242,7 +1260,8 @@ const HELP = {
 function renderOverview() {
   mapBox.classList.remove("has-card");
   const t = D.live.tiers, hi = (t.red || 0) + (t['red-uncertain'] || 0), mod = t.amber || 0, unv = t.unverified || 0;
-  const when = stop === 'y0' ? 'observed 1995–2025' : `${stop === 'y5' ? '2026–2031' : '2026–2036'} vs 1995–2025`;
+  const hw = (cfg.horizons || {})[stop] || [];
+  const when = stop === 'y0' ? 'observed 1995–2025' : `${hw[0] || 2026}–${hw[1] || ''} vs 1995–2025`;
   if (!ovLedger.children.length) {
     ovLedger.innerHTML = ['risk', 'rain', 'freezeThaw', 'fire', 'drought', 'crossing'].map((k) =>
       `<a class="cell" href="#/triage" data-k="${k}" title="${esc(HELP[k])}"><div class="e"></div><div class="v"></div><div class="s"></div>${k === 'risk' ? '<div class="stack"></div>' : ''}</a>`).join('');
@@ -1284,7 +1303,7 @@ function renderTriage() {
   const F = { attn: ['Needs attention', attn], high: ['High', isHigh], pending: ['Undecided', (s) => attn(s) && !s.wo], decided: ['Decided', (s) => !!s.wo], all: ['All', () => true] };
   const rows = all.filter(F[filter][1]);
   const HF = { all: 'All hazards', ground: 'Ground', crossing: 'Crossings', wildfire: 'Wildfire', drought: 'Drought' };
-  triageList.innerHTML = `<h2>Triage</h2><p class="lede">Ranked by ${hazardFilter === 'all' ? 'each kilometre\'s worst hazard' : HAZ[hazardFilter].toLowerCase() + ' score'} ${stop === 'y0' ? 'today' : 'for ' + STOP_LABEL[stop]}. Approving sends a work order through n8n, and every decision is logged.</p>
+  triageList.innerHTML = `<h2>Triage</h2><p class="lede">Ranked by ${hazardFilter === 'all' ? 'each kilometre\'s worst hazard' : HAZ[hazardFilter].toLowerCase() + ' score'} ${stop === 'y0' ? 'today' : 'for ' + STOP_LABEL[stop]}. Approving ${API ? 'records an inspection work order in n8n' : 'saves an inspection work order in this browser (local demo)'}, and every decision is logged.</p>
     <div style="margin-bottom:12px">${stopSeg()}</div>
     ${hasHaz ? `<div class="chips" style="margin-bottom:8px">${Object.entries(HF).map(([k, l]) => `<button data-h="${k}" class="${k === hazardFilter ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
     <div class="chips">${Object.entries(F).map(([k, [l, f]]) => `<button data-f="${k}" class="${k === filter ? 'on' : ''}">${l}<small>${all.filter(f).length}</small></button>`).join('')}</div>
@@ -1310,7 +1329,7 @@ function renderCard(el, mode) {
     ${s.override && s.override.stop === stop ? `<div class="note">Overridden to ${TIER_LABEL[s.override.tier]}: “${esc(s.override.reason)}”</div>` : ''}
     ${mode === 'build' ? `<div class="blk"><h3>Solar + storage</h3>${buildHTML(s)}</div><div class="cap">Build potential is halved where 2036 risk is high. Stays outside the ${cfg.exclusionM} m prescribed area.</div>
       <div class="linkrow" style="margin:20px 0 24px"><span></span><a href="#/segment/${s.id}">Full report →</a></div>`
-    : `${gaugeHTML(r)}${explainHTML(s, r)}<div class="blk"><h3>Natural hazards (worst sets the level)</h3>${hazardsHTML(s, r)}</div>${actionsHTML(s, true)}`}`;
+    : `${gaugeHTML(r)}${explainHTML(s, r)}${horizonHTML(s)}<div class="blk"><h3>Natural hazards (worst sets the level)</h3>${hazardsHTML(s, r)}</div>${actionsHTML(s, true)}`}`;
   el.querySelector('.x').onclick = () => go(page);
   wireActions(el, s);
   if (ovrOpen) el.querySelector('details.ovr').open = true;
@@ -1328,7 +1347,7 @@ function renderSegment() {
     <div>
       <div>${chipHTML(t)}</div>
       ${s.override && s.override.stop === stop ? `<div class="note">Overridden ${TIER_LABEL[r.tier]} → ${TIER_LABEL[s.override.tier]}: “${esc(s.override.reason)}”</div>` : ''}
-      ${gaugeHTML(r)}${explainHTML(s, r)}
+      ${gaugeHTML(r)}${explainHTML(s, r)}${horizonHTML(s)}
       <div class="blk"><h3>Natural hazards (worst sets the level)</h3>${hazardsHTML(s, r)}</div>
       <div class="blk"><h3>What drives ground failure</h3>${driversHTML(r)}</div>
       ${actionsHTML(s, false)}
@@ -1351,54 +1370,62 @@ function moneyCase(c = cfg) {
 }
 function renderMoney() {
   const m = moneyCase(), s = m.sum, yrs = m.yrs, share = cfg.money.partnerShare, rate = cfg.money.leaseRatePerAcreYr;
-  mDek.textContent = `Over ${yrs} years, ${stop === 'y0' ? 'if the climate stayed at its 1995–2025 baseline' : 'under the ' + STOP_LABEL[stop] + ' climate projection'}. Two halves: protect the pipeline where the ground is getting riskier, and lease the stable stretches for solar. Move any assumption and the recommendation updates.`;
+  mDek.textContent = `Over ${yrs} years, ${stop === 'y0' ? 'if the climate stayed at its 1995–2025 baseline' : 'under the ' + STOP_LABEL[stop] + ' climate projection'}. Scenario maths on editable assumptions, not measured savings. The pipeline-protection case is judged on its own; solar leasing is shown separately as a conditional opportunity. Move any assumption and the result updates.`;
   mStops.innerHTML = stopSeg();
 
   // Lease rate at which the combined case breaks even (operator share only).
   const acres = rate ? s.leaseRevenueYr / rate : 0, opShare = 1 - share;
   const beRate = acres && opShare > 0 ? Math.ceil(Math.max(0, -m.risk) / (acres * opShare * yrs)) : null;
   const extras = `Landowner partners also get <b>${fmt$(m.partnerLease)}</b>, and the panels avoid <b>${(s.avoidedTco2Yr || 0).toLocaleString()} tCO₂</b> a year. Neither is counted in the total.`;
+  // What this run measurably did: a ranked shortlist. Shares are of the 0-100 priority index, not of failure probability.
+  const scored = segs.filter((x) => x.risk[stop].score != null).sort((p, q) => q.risk[stop].score - p.risk[stop].score);
+  const flagged = scored.filter((x) => x.risk[stop].score >= cfg.tiers.amber);
+  const short = flagged.length ? flagged : scored.slice(0, Math.min(3, scored.length));
+  const sumAll = scored.reduce((t, x) => t + x.risk[stop].score, 0), sumShort = short.reduce((t, x) => t + x.risk[stop].score, 0);
+  const VISIT_H = cfg.money.visitHours || 6;
+  const kmAll = scored.reduce((t, x) => t + x.lengthM / 1000, 0), kmShort = short.reduce((t, x) => t + x.lengthM / 1000, 0);
+  const kpi = `<section class="s" style="margin:0 0 32px"><div class="shead"><h2>What this run measured</h2><p>Counted from this corridor's scores. No assumption about failures or savings.</p></div>
+    <div class="stats" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    <div class="stat"><div class="v">${kmAll.toFixed(1)} km</div><p>assessed in ${scored.length} segments${segs.length - scored.length ? `, ${segs.length - scored.length} missing data` : ''}.</p></div>
+    <div class="stat"><div class="v">${flagged.length}</div><p>segment${flagged.length === 1 ? '' : 's'} at or above the Medium threshold (${cfg.tiers.amber}) for ${STOP_LABEL[stop].toLowerCase()}.</p></div>
+    <div class="stat"><div class="v">${scored.length} → ${short.length}</div><p>first review list: ${flagged.length ? 'the flagged segments' : 'the top 3 by score, since none is flagged'}, ${sumAll ? Math.round(100 * sumShort / sumAll) : 0}% of the corridor's total score in ${kmAll ? Math.round(100 * kmShort / kmAll) : 0}% of its length.</p></div>
+    <div class="stat"><div class="v">${short.length * VISIT_H} h</div><p>field time for that list at ${VISIT_H} h a visit (our assumption), against ${scored.length * VISIT_H} h to walk every segment once.</p></div></div></section>`;
   let v;
-  if (m.total > 0 && m.risk < 0) v = { ok: true, title: 'Recommended: run both together',
-    why: `On its own, watching the pipeline costs <b>${fmt$(-m.risk)}</b> more than it saves over ${yrs} years. Leasing a ${cfg.buildStripM} m strip beside <b>${s.buildableKm} km</b> of stable pipeline for solar earns the operator <b>${fmt$(m.operatorLease)}</b>, so together the program comes out <b>${fmt$(m.total)}</b> ahead.`,
-    dep: beRate != null ? `This holds while the solar lease stays above $${beRate} per acre per year (now $${rate}), with every other assumption as set.` : '' };
-  else if (m.risk >= 0) v = { ok: true, title: 'Recommended: run both together',
-    why: `Risk monitoring pays for itself (<b>${fmt$(m.risk)}</b> over ${yrs} years), and solar on the stable stretches adds <b>${fmt$(m.operatorLease)}</b> for the operator, <b>${fmt$(m.total)}</b> in total.`, dep: '' };
-  else v = { ok: false, title: 'Not worth it at these assumptions',
-    why: `Even with <b>${fmt$(m.operatorLease)}</b> from solar leases, the program is <b>${fmt$(-m.total)}</b> short over ${yrs} years.`,
-    dep: beRate != null ? `It turns positive at a solar lease of about $${beRate} per acre per year (now $${rate}).` : 'Raise the lease rate or failure cost to see when it turns positive.' };
-  mVerdict.innerHTML = `<div class="verdict ${v.ok ? '' : 'warn'}"><h3>${v.title}</h3><p>${v.why}</p>${v.dep ? `<p class="dep">${v.dep}</p>` : ''}
-    <p class="dep">The two halves need each other: the risk map is what tells you which ground is safe to build on. Stretches that turn high-risk by 2036 are left out or downgraded.</p></div>`;
+  const be = `One avoided failure at ${fmt$(cfg.money.costOfFailure)} pays for ${s.yearsPaidByOneFailure} years of the program; the program breaks even at ${s.breakEvenFailures} avoided failure${s.breakEvenFailures === 1 ? '' : 's'} over ${yrs} years.`;
+  if (m.risk >= 0) v = { ok: true, title: 'Protection case is positive under these assumptions',
+    why: `Scenario: targeted inspections and reallocated effort outweigh the program cost by <b>${fmt$(m.risk)}</b> over ${yrs} years. This is expected-value arithmetic on the assumptions at left, not a measured saving.`, dep: be };
+  else v = { ok: false, title: 'Protection case is not positive under these assumptions',
+    why: `Scenario: the program costs <b>${fmt$(-m.risk)}</b> more than the expected loss it avoids over ${yrs} years. That is an acceptable answer: on a low-hazard corridor the value is the ranked shortlist above, not a dollar return.`, dep: be };
+  mVerdict.innerHTML = kpi + `<div class="verdict ${v.ok ? '' : 'warn'}"><h3>${v.title}</h3><p>${v.why}</p>${v.dep ? `<p class="dep">${v.dep}</p>` : ''}
+    <p class="dep">The 0–100 score is a priority index. The failure rate is our assumed base rate scaled by the score, not a validated probability. Solar lease income is not counted here.</p></div>`;
 
-  mNet.innerHTML = `<div class="label">Combined net value over ${yrs} years, operator's share</div>
-    <div class="huge" style="color:${m.total >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt$(m.total)}</div>
-    <p class="muted" style="margin:0 0 8px;max-width:60ch">${extras}</p>`;
+  mNet.innerHTML = `<div class="label">Pipeline-protection scenario over ${yrs} years (assumption-based, not measured)</div>
+    <div class="huge" style="color:${m.risk >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt$(m.risk)}</div>
+    <p class="muted" style="margin:0 0 8px;max-width:60ch">Excludes solar. The conditional solar opportunity is listed separately below.</p>`;
 
   const rows = [
     ['grp', 'Protect the pipeline'],
-    ['Loss avoided', `inspections on the ${s.workOrders} worst km`, s.lossAvoided],
-    ['Inspection savings', `low-risk km checked less often · ${fmt$(s.inspectionSavingsYr)}/yr × ${yrs}`, s.inspectionSavingsYr * yrs],
-    ['Inspection crews', `${s.workOrders} × ${fmt$(cfg.money.workOrderCost)}`, -s.workOrderCost],
+    ['Expected loss avoided (scenario)', `inspections on the ${s.workOrders} flagged km · assumed base rate × score multiplier × ${Math.round(cfg.money.mitigationEffectiveness * 100)}% effectiveness`, s.lossAvoided],
+    ['Inspection effort reallocated', `only if the regulator approves a risk-based cycle on low-risk km · ${fmt$(s.inspectionSavingsYr)}/yr × ${yrs}`, s.inspectionSavingsYr * yrs],
+    ['Targeted inspections', `${s.workOrders} × ${fmt$(cfg.money.workOrderCost)}`, -s.workOrderCost],
     ['Running the program', `${fmt$(cfg.money.programCostYr)}/yr × ${yrs}`, -s.programCost],
-    ['sub', 'Pipeline protection alone', m.risk],
-    ['grp', 'Build on stable pipeline land'],
-    ['Solar lease, operator share', `${s.buildableKm} km · ${fmt$(s.leaseRevenueYr)}/yr × ${Math.round(opShare * 100)}% × ${yrs}`, m.operatorLease],
   ];
   const vals = rows.filter((r) => r[0] !== 'grp').map((r) => Math.abs(r[2]));
-  const max = Math.max(...vals, Math.abs(m.total), 1);
+  const max = Math.max(...vals, Math.abs(m.risk), 1);
   const bar = (x, strong) => { const w = Math.abs(x) / max * 50; return `<span class="trk"><b></b><i style="left:${x < 0 ? 50 - w : 50}%;width:${w}%;background:${x >= 0 ? C.green : strong ? C.red : C.ink3}"></i></span>`; };
   const money = (x) => `${x >= 0 ? '+' : ''}${fmt$(x)}`;
   mWf.innerHTML = rows.map((r) => r[0] === 'grp' ? `<div class="wf grp">${r[1]}</div>`
     : r[0] === 'sub' ? `<div class="wf"><span class="l" style="color:var(--ink-2)">${r[1]}</span>${bar(r[2], true)}<span class="n" style="color:var(--ink-2)">${money(r[2])}</span></div>`
     : `<div class="wf"><span class="l">${r[0]}<small>${r[1]}</small></span>${bar(r[2])}<span class="n">${money(r[2])}</span></div>`).join('') +
-    `<div class="wf total"><span class="l">Combined net value</span>${bar(m.total, true)}<span class="n">${money(m.total)}</span></div>`;
+    `<div class="wf total"><span class="l">Pipeline protection, net (scenario)</span>${bar(m.risk, true)}<span class="n">${money(m.risk)}</span></div>`;
 
-  const at = (cost) => moneyCase(ENGINE.mergeConfig({ ...cfg, money: { ...cfg.money, costOfFailure: cost } })).total;
-  mScen.innerHTML = [[430000, 'Average ground-movement failure', 'PHMSA average, sourced'], [11700000, 'One geohazard rupture', 'Single sourced incident']].map(([c, t, src]) => {
-    const x = at(c); return `<button data-cost="${c}" class="${cfg.money.costOfFailure === c ? 'on' : ''}"><small>${t} · ${fmt$(c)}</small><span class="v" style="color:${x >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt$(x)}</span><small>${src}. Combined, over ${yrs} years.</small></button>`; }).join('');
+  const at = (cost) => moneyCase(ENGINE.mergeConfig({ ...cfg, money: { ...cfg.money, costOfFailure: cost } })).risk;
+  mScen.innerHTML = [[430000, 'Low: average ground-movement failure', 'Water-main average (AWWA), not an oil and gas figure'], [2250000, 'Mid: geometric midpoint', 'Our interpolation between the two sourced figures'], [11700000, 'High: one geohazard rupture', 'A single sourced incident, not a typical cost']].map(([c, t, src]) => {
+    const x = at(c); return `<button data-cost="${c}" class="${cfg.money.costOfFailure === c ? 'on' : ''}"><small>${t} · ${fmt$(c)}</small><span class="v" style="color:${x >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt$(x)}</span><small>${src}. Protection only, over ${yrs} years.</small></button>`; }).join('');
   mScen.querySelectorAll('[data-cost]').forEach((b) => b.onclick = () => { sCost.value = sliderFromCost(+b.dataset.cost); recompute(); });
 
-  mLease.innerHTML = `<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+  mLease.innerHTML = `<div class="stats" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    <div class="stat"><div class="v">${fmt$(m.operatorLease)}</div><p>hypothetical operator lease share over ${yrs} years on a ${cfg.buildStripM} m strip, if every screened stretch were leased at $${rate} an acre.</p></div>
     <div class="stat"><div class="v">${fmt$(s.partnerRevenueYr)}</div><p>a year to landowner partners at a ${Math.round(share * 100)}% share.</p></div>
     <div class="stat"><div class="v">${s.mw} MW</div><p>of solar on ${s.buildableKm} km, about ${Math.round((s.mwhYr || 0) / 1000).toLocaleString()} GWh a year.</p></div>
     <div class="stat"><div class="v">${(s.avoidedTco2Yr || 0).toLocaleString()}</div><p>tonnes of CO₂ avoided a year if built.</p></div></div>`;
@@ -1428,15 +1455,15 @@ function renderLog() {
   const open = wos.filter((w) => w.status !== 'cancelled').length;
   logCount.textContent = open; logCount.dataset.n = open;
   if (page !== 'log') return;
-  logDoc.innerHTML = `<p class="kicker">Work orders</p><h1 class="ph">${open ? open + ' crew visit' + (open === 1 ? '' : 's') + ' approved' : 'No crews sent yet'}</h1>
-    <p class="dek">Approving a kilometre creates a work order: priority from its risk level (High = P1 within ${cfg.workOrderDueDays.P1} days, Medium = P2 within ${cfg.workOrderDueDays.P2}), and a checklist built from what drives its score. ${API ? 'n8n stores each one and hands it to email or Slack.' : 'n8n is not connected in this demo file, so they are kept in this browser.'}</p>
+  logDoc.innerHTML = `<p class="kicker">Work orders</p><h1 class="ph">${open ? open + ' inspection' + (open === 1 ? '' : 's') + ' approved' : 'No inspections approved yet'}</h1>
+    <p class="dek">Approving a kilometre creates a work order: priority from its risk level (High = P1 within ${cfg.workOrderDueDays.P1} days, Medium = P2 within ${cfg.workOrderDueDays.P2}), and a checklist built from what drives its score. ${API ? 'Owner: the integrity manager approves. n8n stores each order in its corridor_work_orders table with status approved and logs the decision. Destination: the inspection coordinator downloads the CSV below and imports it into the maintenance system. Nothing is emailed and no crew is dispatched by this app.' : (OFFLINE ? 'n8n could not be reached, so this page is running on a saved snapshot. ' : 'n8n is not connected in this demo file. ') + 'Approvals here are a local demo: saved in this browser only, never sent.'}</p>
     <div style="margin:24px 0 16px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:none" id="bCsv" ${wos.length ? '' : 'disabled'}>Download work orders (CSV)</button><button class="btn" style="flex:none" id="bExport" ${audit.length ? '' : 'disabled'}>Download audit log (JSON)</button></div>
     ${wos.length ? `<table class="log"><thead><tr><th>Work order</th><th>Priority</th><th>Due</th><th>Main driver</th><th>Checks</th><th>Status</th></tr></thead><tbody>${wos.map((w) => `<tr style="${w.status === 'cancelled' ? 'opacity:.55' : ''}">
       <td class="m"><a href="#/segment/${w.segment}">${esc(w.id)}</a><div class="cap" style="margin-top:2px">km ${w.kmFrom}–${w.kmTo}${w.mapUrl ? ` · <a href="${esc(w.mapUrl)}" target="_blank" rel="noopener">map ↗</a>` : ''}</div></td>
       <td><span class="pri ${w.priority}">${w.priority}</span></td><td class="m">${fmtDate(w.dueBy)}</td>
       <td>${esc(w.why)}</td><td class="m">${w.checks.length}</td>
-      <td class="label">${w.status === 'cancelled' ? 'Cancelled' : esc((DELIVERY[w.delivery] || '').split(':')[0].split('.')[0])}</td></tr>`).join('')}</tbody></table>`
-    : '<div class="empty">Open Triage, pick a red kilometre and press Approve to send a crew.</div>'}
+      <td class="label" title="${esc(DELIVERY[w.delivery] || '')}">${w.status === 'cancelled' ? 'Cancelled' : w.delivery === 'n8n' ? 'Approved · recorded in n8n · awaiting CSV export' : w.delivery === 'sending' ? 'Sending to n8n…' : w.delivery === 'failed' ? 'Not recorded by n8n · this browser only' : 'Approved · local demo only'}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="empty">Open Triage, pick a kilometre and press Approve inspection.</div>'}
     <section class="s"><div class="shead"><h2>Audit log</h2><p>Every approval, rejection and override, with the score at the time.</p></div>
     ${audit.length ? `<table class="log"><thead><tr><th>Time</th><th>Segment</th><th>Action</th><th>Score</th><th>Status</th></tr></thead><tbody>${audit.map((a) => `<tr>
       <td class="m">${esc((a.at || '').slice(5, 16).replace('T', ' '))}</td><td class="m"><a href="#/segment/${esc(a.segment)}">${esc(a.segment)}</a></td>
@@ -1446,7 +1473,11 @@ function renderLog() {
   const dl = (name, type, text) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); };
   const b = $('bExport'); if (b) b.onclick = () => dl('terracorridor-audit.json', 'application/json', JSON.stringify(audit, null, 2));
   const c = $('bCsv'); if (c) c.onclick = () => {
-    const cols = ['id', 'segment', 'kmFrom', 'kmTo', 'priority', 'dueBy', 'status', 'score', 'tier', 'why', 'lat', 'lon', 'mapUrl', 'checks'];
+    const cols = ['id', 'segment', 'kmFrom', 'kmTo', 'priority', 'dueBy', 'status', 'approval', 'recordedIn', 'nextStep', 'score', 'tier', 'hazard', 'why', 'lat', 'lon', 'mapUrl', 'checks'];
+    for (const w of wos) Object.assign(w, {
+      approval: w.status === 'cancelled' ? 'cancelled' : 'approved by ' + (w.by || 'integrity manager'),
+      recordedIn: w.delivery === 'n8n' ? 'n8n Data Table corridor_work_orders' : 'this browser only (local demo, not recorded in n8n)',
+      nextStep: 'Inspection coordinator: import into the maintenance system and schedule. Not dispatched by TerraCorridor.' });
     const q = (v) => '"' + String(Array.isArray(v) ? v.join(' | ') : v ?? '').replace(/"/g, '""') + '"';
     dl('terracorridor-work-orders.csv', 'text/csv', [cols.join(','), ...wos.map((w) => cols.map((k) => q(w[k])).join(','))].join('\n'));
   };
@@ -1455,7 +1486,7 @@ function renderLog() {
 /* ---------- audit ---------- */
 async function act(s, action, details) {
   const entry = { at: new Date().toISOString(), segment: s.id, action, details, score: s.risk[stop].score, projection: STOP_LABEL[stop], by: 'operator (demo)' };
-  const item = { ...entry, note: API ? 'sending to n8n…' : 'kept in this browser' };
+  const item = { ...entry, note: API ? 'sending to n8n…' : 'local demo, this browser only' };
   audit.unshift(item); renderLog();
   if (API) {
     try {
@@ -1464,11 +1495,17 @@ async function act(s, action, details) {
       if (r.ok && body && body.ok !== false) {
         item.note = 'stored in n8n';
         if (body.workOrder) s.workOrder = { ...body.workOrder, delivery: 'n8n' };
+        else if (s.workOrder && action === 'approve_work_order') s.workOrder = { ...s.workOrder, id: body.work_order_id || s.workOrder.id, delivery: 'n8n' };
+        // Only now, with n8n's confirmation, say it was recorded.
+        if (action === 'approve_work_order') toast(`Recorded in n8n: ${body.work_order_id || s.workOrder.id} · approved${body.duplicate ? ' (already on file, no duplicate created)' : ''}. Not dispatched: export the CSV for the coordinator.`);
+        else if (action === 'reject_work_order') toast(`${s.id}: rejection recorded in n8n.`);
+        else toast(`${s.id}: override recorded in n8n.`);
       } else {
         item.note = 'n8n refused: ' + ((body && body.error) || r.status);
         if (s.workOrder && s.workOrder.delivery === 'sending') s.workOrder.delivery = 'failed';
+        toast(`Not recorded: n8n refused (${(body && body.error) || r.status}).`);
       }
-    } catch (e) { item.note = 'n8n unreachable, kept locally'; if (s.workOrder && s.workOrder.delivery === 'sending') s.workOrder.delivery = 'failed'; }
+    } catch (e) { item.note = 'n8n unreachable, kept in this browser only'; if (s.workOrder && s.workOrder.delivery === 'sending') s.workOrder.delivery = 'failed'; toast('Not recorded: n8n could not be reached. Kept in this browser only.'); }
     renderLog(); renderPage();
   }
 }
@@ -1510,13 +1547,28 @@ function wire() {
 }
 
 (async () => {
-  D = window.TC_DATA || await (await fetch(DATA_URL)).json();
+  if (window.TC_DATA) D = window.TC_DATA;
+  else {
+    try {
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+      const res = await fetch(DATA_URL, { signal: ctl.signal }); clearTimeout(timer);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      D = await res.json();
+      if (!D || !Array.isArray(D.segments) || !D.segments.length) throw new Error('empty feed');
+    } catch (e) {
+      // No n8n, no network: run on the saved copy of the last real n8n run. Actions become local-only and say so.
+      if (!window.TC_SNAPSHOT) { document.body.insertAdjacentHTML('beforeend', `<div class="empty" style="position:fixed;inset:80px 20px auto;z-index:9">Could not load corridor data (${esc(e.message)}), and this file has no built-in snapshot. Open dist/dashboard-demo.html for the synthetic demo.</div>`); return; }
+      D = window.TC_SNAPSHOT; OFFLINE = true; API = '';
+    }
+  }
   segs = [...D.segments].sort((a, b) => a.kmFrom - b.kmFrom);
-  synthBadge.hidden = !D.meta.synthetic; liveBadge.hidden = !!D.meta.synthetic;
+  synthBadge.hidden = !D.meta.synthetic; liveBadge.hidden = !!D.meta.synthetic || OFFLINE || !API;
+  offBadge.hidden = !OFFLINE;
+  if (OFFLINE) offBadge.title = `n8n could not be reached. Showing the copy of the n8n run of ${String(D.meta.generatedAt || '').slice(0, 16).replace('T', ' ')} UTC that is built into this file (real cached data, not synthetic). Approvals are saved in this browser only.`;
   { const hk = document.getElementById('hintKm'); if (hk) { const km = D.segments.reduce((t, x) => t + (x.lengthM || 0), 0) / 1000; hk.textContent = (km >= 10 ? Math.round(km) : km.toFixed(1)) + ' km'; } }
   if (D.meta.synthetic) synthBadge.title = D.meta.note;
   genAt.textContent = 'Run ' + D.meta.generatedAt.slice(0, 16).replace('T', ' ') + ' UTC';
-  sourcesSec.innerHTML = `<b style="font-weight:600;color:var(--ink-2)">Sources.</b> ${D.meta.synthetic ? '<b style="color:var(--amber);font-weight:600">Synthetic demo.</b> ' : ''}Open-Meteo archive and CMIP6 projections (${esc((D.meta.models || []).join(', '))}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. $430k average failure and $11.7M rupture are sourced; other inputs are ours. Thresholds and weights are provisional, for expert review.${D.meta.source === 'n8n Data Tables' ? ' Live n8n run: ground-failure scores (rain, freeze-thaw, wet soil, plant cover, slope) are computed in n8n. River-crossing, wildfire and drought scores are not computed there, so those filters stay empty here.' : ''}`;
+  sourcesSec.innerHTML = `<b style="font-weight:600;color:var(--ink-2)">Sources.</b> ${D.meta.synthetic ? '<b style="color:var(--amber);font-weight:600">Synthetic demo.</b> ' : ''}Open-Meteo archive and CMIP6 projections (${esc((D.meta.models || []).join(', '))}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. The $430k figure is an average ground-movement failure cost from water mains (not oil and gas) and $11.7M is one sourced rupture; other inputs are our assumptions. Thresholds and weights are provisional, for expert review.${D.meta.source === 'n8n Data Tables' ? ` ${OFFLINE ? 'Offline snapshot of an' : 'Live'} n8n run. ${esc(D.meta.note || '')} Hazards scored in n8n W2 for this run: ${esc((D.meta.hazardsScored || ['ground']).join(', '))}${(D.meta.hazardsScored || []).length < 4 ? '; the others show why they have no score' : ''}. Waterway crossings checked on ${D.meta.crossingsChecked ?? 0} of ${D.meta.segmentsTotal} segments.` : ''} Scores are 0–100 priority indices, not failure probabilities. Climate inputs are on a 10 km grid, so neighbouring kilometres share them; slope, plant cover and crossings are what differ per kilometre.`;
   readConfig();
   addObservedStop();
   for (const s of D.segments) s.build = ENGINE.buildScore(s, s.risk.y10, cfg);

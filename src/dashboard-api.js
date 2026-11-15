@@ -4,6 +4,8 @@
 // Pure function: rows in, one JSON object out. Fail closed: anything missing stays null or 'unverified', never green.
 // scripts/make-api-workflow.js pastes this file into the API workflow's Code node. Edit this file, not the node.
 
+// One tier mapping for src/engine.js, this feed and the n8n W2 Config node. Provisional, see docs/THRESHOLDS.md.
+const TIERS = { amber: 40, red: 65 }, RATIO_FULL = 0.5;
 const W_RAIN = 0.35, W_FT = 0.20, W_SAT = 0.15, W_VEG = 0.20, W_SLOPE = 0.10; // same weights as the W2 Config node
 const MODELS = ['MRI_AGCM3_2_S', 'EC_Earth3P_HR', 'MPI_ESM1_2_XR'];
 
@@ -98,6 +100,7 @@ function buildCorridor(t, opts) {
 
     const projections = { y5: {}, y10: {} };
     const risk = {};
+    let crossings, crossingsChecked = false;
     for (const h of [5, 10]) {
       const key = 'y' + h, p = (preds[s.segment_id] || {})[String(h)];
       if (p && p.computed_at && String(p.computed_at) > latestComputed) latestComputed = String(p.computed_at);
@@ -128,10 +131,31 @@ function buildCorridor(t, opts) {
         { key: 'slope', label: 'Slope', change: slopePct, w: W_SLOPE * (f.slope || 0) },
       ].sort((a, c) => c.w - a.w);
       const agreement = p.model_agreement || '';
+      // Per-hazard result written by W2 (hazards_json). Rows from an older W2 run have none: then only ground failure
+      // is known, and the other three are reported as not computed, never as low.
+      const hz = parseJson(p.hazards_json, null);
+      const tierOf = (v) => (v >= TIERS.red ? 'red' : v >= TIERS.amber ? 'amber' : 'green');
+      let hazards, hazardStatus, top = 'ground', groundScore = num(p.risk_score);
+      if (hz && hz.hazards && hz.hazards.ground) {
+        hazards = hz.hazards; hazardStatus = hz.status || {}; top = hz.top || 'ground'; groundScore = num(hz.ground_score);
+        if (h === 10 || crossings === undefined) {
+          crossingsChecked = Array.isArray(hz.crossings);
+          crossings = crossingsChecked ? hz.crossings : undefined;
+          for (const k of ['drySoilDaysPerYr', 'drySpellDays', 'fireWeatherDaysPerYr']) if (hz.base && num(hz.base[k]) !== null) baseline[k] = num(hz.base[k]);
+        }
+      } else {
+        const d0 = drivers[0];
+        hazards = { ground: { key: 'ground', label: 'Ground failure', score: groundScore, tier: tierOf(groundScore),
+          why: d0 && d0.w > 0 && d0.change !== null ? (d0.key === 'slope' ? 'Slope ' + d0.change + '%' : d0.key === 'vegetation' ? 'Plant cover ' + d0.change + ' NDVI in 5 years' : d0.label + ' ' + (d0.change > 0 ? '+' : '') + d0.change + '%') : 'No change from baseline' } };
+        const nc = 'not computed: this W2 run predates the multi-hazard scoring';
+        hazardStatus = { ground: 'scored', crossing: nc, wildfire: nc, drought: nc };
+      }
+      const rainBased = top === 'ground' || top === 'crossing';
       risk[key] = {
-        score: num(p.risk_score),
-        tier: p.tier === 'red' && agreement === 'low' ? 'red-uncertain' : p.tier,
+        score: num(p.risk_score), groundScore, hazard: top, hazards, hazardStatus,
+        tier: p.tier === 'red' && agreement === 'low' && rainBased ? 'red-uncertain' : p.tier,
         agreement, factors: f, drivers, method: 'weighted-rules (n8n W2)',
+        window: [Number(String(p.window_start || '').slice(0, 4)) || null, Number(String(p.window_end || '').slice(0, 4)) || null],
         computedAt: p.computed_at || null,
       };
     }
@@ -146,13 +170,18 @@ function buildCorridor(t, opts) {
       id: s.segment_id, index: idx, kmFrom, kmTo, lengthM: Math.round(lengthM),
       centreline: g.centreline, studyPolygon: g.studyPolygon.length ? g.studyPolygon : g.centreline,
       studyAreaAcres: g.studyAreaAcres,
-      baseline, projections, slopePct, ndvi, ndviSeries,
+      baseline, projections, slopePct, ndvi, ndviSeries, crossings, crossingsChecked,
       irradiance: num(bd.irradiance), substationKm: num(bd.substation_km),
       risk,
       explanation: String((p10 && p10.explanation) || (p5 && p5.explanation) || ''),
       override,
       nearTerm: w.near_term_state ? { state: w.near_term_state, summary: w.near_term_summary || '', checkedAt: w.near_term_checked_at || null } : null,
-      workOrder: wo ? { id: wo.work_order_id, status: wo.status, priority: wo.priority, tier: wo.tier } : null,
+      // What n8n actually recorded. 'approved' means stored in corridor_work_orders with that status, nothing more:
+      // no email, no maintenance-system ticket and no crew dispatch happens in this MVP.
+      workOrder: wo ? { id: wo.work_order_id, status: wo.status, priority: wo.priority, tier: wo.tier,
+        summary: wo.summary || '', draftedAt: wo.drafted_at || null, decidedAt: wo.decided_at || null, decidedBy: wo.decided_by || null,
+        triggerSource: wo.trigger_source || null, storedIn: 'corridor_work_orders (n8n Data Table)',
+        nextStep: wo.status === 'approved' ? 'Inspection coordinator exports the CSV from the Work orders page into the maintenance system' : wo.status === 'pending_approval' ? 'Waiting for the integrity manager to approve or reject' : 'None' } : null,
       sourceKind: s.source_kind || null,
     };
   });
@@ -163,10 +192,13 @@ function buildCorridor(t, opts) {
   if (num(saved.leaseRatePerAcreYr) !== null) money.leaseRatePerAcreYr = num(saved.leaseRatePerAcreYr);
   if (num(saved.partnerShare) !== null) money.partnerShare = num(saved.partnerShare);
   if (num(saved.gridEmissionFactor) !== null) money.gridEmissionFactor = num(saved.gridEmissionFactor);
+  const windowOf = (k) => { const s = segments.find((x) => x.risk[k] && x.risk[k].window && x.risk[k].window[0]); return s ? s.risk[k].window : null; };
+  const hazardsLive = ['ground', 'crossing', 'wildfire', 'drought'].filter((k) => segments.some((x) => x.risk.y10.hazards && x.risk.y10.hazards[k]));
   const config = {
     weights: { rain: W_RAIN, freezeThaw: W_FT, saturation: W_SAT, vegetation: W_VEG, slope: W_SLOPE },
-    tiers: { amber: 40, red: 50 }, ndviDropFull: 0.1, slopeFullPct: 10,
-    horizons: { y5: [2026, 2031], y10: [2026, 2036] },
+    tiers: TIERS, ratioFull: RATIO_FULL, ndviDropFull: 0.1, slopeFullPct: 10,
+    // The windows W2 actually averaged over. They overlap: the 10-year window contains the 5-year one.
+    horizons: { y5: windowOf('y5') || [2026, 2030], y10: windowOf('y10') || [2026, 2035] },
     money,
   };
   if (num(saved.maxBuildSlopePct) !== null) config.buildMaxSlopePct = num(saved.maxBuildSlopePct);
@@ -184,6 +216,7 @@ function buildCorridor(t, opts) {
           : 'Route from OpenStreetMap via W1. Scores come from n8n W2.',
       models: MODELS, generatedAt: latestComputed || now, servedAt: now,
       source: 'n8n Data Tables', segmentsTotal: segments.length, segmentsVerified: verified,
+      hazardsScored: hazardsLive, crossingsChecked: segments.filter((x) => x.crossingsChecked).length,
     },
     config,
     substations: [],

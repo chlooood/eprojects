@@ -149,8 +149,8 @@ test('moneyForSegment: higher score means higher expected loss; a work order avo
 });
 
 test('corridorSummary ranks top risks and totals the money', () => {
-  const segs = [0, 2, 4, 6, 8].map((k, i) => {
-    const s = segWith(4 + k / 2, { id: 'KP00' + i });
+  const segs = [0, 1, 2, 3, 4].map((k, i) => {
+    const s = segWith(4 + k / 2, { id: 'KP00' + i });   // rain +0% to +50%: stays under the ratioFull cap so the ranking is strict
     s.risk = { y10: E.riskScore(s, 'y10'), y5: E.riskScore(s, 'y10') };
     s.build = E.buildScore(s, s.risk.y10);
     return s;
@@ -200,7 +200,7 @@ test('hazards: drought, wildfire and river crossing are scored on their own; the
   for (const m of Object.values(s.projections.y10)) Object.assign(m, { drySoilDaysPerYr: 72, refDrySoilDaysPerYr: 36, drySpellDays: 30, refDrySpellDays: 20, fireWeatherDaysPerYr: 7, refFireWeatherDaysPerYr: 5 });
   const r = E.riskScore(s, 'y10');
   assert.ok(r.groundScore < 5, String(r.groundScore));
-  assert.equal(r.hazards.drought.score, Math.round(100 * (0.6 * 1 + 0.4 * 0.5) * 10) / 10);   // 80: dry-soil days double, dry spell +50%
+  assert.equal(r.hazards.drought.score, 100);   // dry-soil days double (capped at full) and the dry spell is +50% = ratioFull, so both factors are 1
   assert.equal(r.hazard, 'drought');
   assert.equal(r.score, r.hazards.drought.score);
   assert.equal(r.tier, 'red');
@@ -225,4 +225,21 @@ test('mergeConfig overrides nested money values without touching defaults', () =
   assert.equal(c.money.costOfFailure, 11700000);
   assert.equal(c.money.acresPerMW, 6);
   assert.equal(E.DEFAULTS.money.costOfFailure, 430000);
+});
+
+test('ratioFull: a +50% rise is a full factor score, +15% is not, and the tier rule is >= red', () => {
+  assert.equal(E.DEFAULTS.ratioFull, 0.5);
+  assert.deepEqual(E.DEFAULTS.tiers, { amber: 40, red: 65 });
+  const flat = { slopePct: 0 };
+  assert.equal(E.riskScore(segWith(6, flat), 'y10').factors.rain, 1);            // 4 -> 6 days = +50%
+  assert.equal(E.riskScore(segWith(4.6, flat), 'y10').factors.rain, 0.3);        // +15% is 0.3 of full, not full
+  // The live corridor's 10-year climate signal (rain +15%, freeze-thaw +2%, wet soil +40%) on flat, stable ground stays Low.
+  const s = segWith(4.6, flat);
+  for (const m of Object.values(s.projections.y10)) Object.assign(m, { freezeThawDaysPerYr: 61.4, wetSoilDaysPerYr: 50.3 });
+  const r = E.riskScore(s, 'y10');
+  assert.equal(r.tier, 'green');
+  assert.ok(r.score > 20 && r.score < 30, String(r.score));
+  const tierAt = (v) => E.riskScore({ ...segWith(4, flat), crossings: [{ kind: 'river', peakFlowM3s: v }] }, 'y10').hazards.crossing;
+  assert.equal(tierAt(200).score, 65);
+  assert.equal(tierAt(200).tier, 'red');                                         // exactly 65 is High
 });

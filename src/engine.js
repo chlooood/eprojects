@@ -23,7 +23,9 @@ const DEFAULTS = {
     crossing: { size: 0.4, rain: 0.35, flow: 0.25 },
   },
   weights: { rain: 0.35, freezeThaw: 0.20, saturation: 0.15, vegetation: 0.20, slope: 0.10 },
-  tiers: { amber: 40, red: 65 },
+  // Provisional, for expert review (docs/THRESHOLDS.md). One mapping for the engine, the API feed and n8n W2.
+  ratioFull: 0.5,          // a +50% rise in a climate count is a full factor score. Smaller rises are inside sampling noise.
+  tiers: { amber: 40, red: 65 },  // score >= red is High, >= amber is Medium
   ndviDropFull: 0.10,      // NDVI drop over 5 years that counts as full vegetation loss
   slopeFullPct: 15,
   buildMaxSlopePct: 10,
@@ -35,6 +37,7 @@ const DEFAULTS = {
     costOfFailure: 430000,      // sourced: avg ground-movement failure damage (AWWA)
     mitigationEffectiveness: 0.75,
     workOrderCost: 3000,           // assumption: one targeted field inspection of a flagged km
+    visitHours: 6,                 // assumption: field time for one targeted inspection visit
     inspectionCostPerKm: 500,      // assumption: routine geohazard inspection, per km per visit
     greenInspectEveryYrs: 3,       // assumption: green km move from yearly to every 3 years
     programCostYr: 50000,          // assumption: what an operator pays for TerraCorridor per corridor
@@ -309,10 +312,11 @@ function riskScore(seg, horizonKey, cfg = DEFAULTS, model = null) {
   const projFt = rFt != null && base.freezeThawDaysPerYr != null ? rFt * base.freezeThawDaysPerYr : null;
   const projWet = rWet != null && base.wetSoilDaysPerYr != null ? rWet * base.wetSoilDaysPerYr : null;
 
+  const rise = (r) => clamp01((r - 1) / (cfg.ratioFull || 1));
   const factors = {
-    rain: rRain == null ? null : clamp01(rRain - 1),
-    freezeThaw: rFt == null ? null : clamp01(rFt - 1),
-    saturation: rWet == null ? null : clamp01(rWet - 1),
+    rain: rRain == null ? null : rise(rRain),
+    freezeThaw: rFt == null ? null : rise(rFt),
+    saturation: rWet == null ? null : rise(rWet),
     vegetation: seg.ndvi ? clamp01(-seg.ndvi.change5yr / cfg.ndviDropFull) : null,
     slope: clamp01(seg.slopePct / cfg.slopeFullPct),
   };
@@ -384,7 +388,8 @@ const sgn = (x) => (x > 0 ? '+' : '') + x;
 function droughtHazard(models, base, cfg, ratio) {
   const rSoil = mean(models.map((m) => ratio(m, 'drySoilDaysPerYr', 'refDrySoilDaysPerYr', 'drySoilDaysPerYr')));
   const rSpell = mean(models.map((m) => ratio(m, 'drySpellDays', 'refDrySpellDays', 'drySpellDays')));
-  const f = { drySoil: rSoil == null ? null : clamp01(rSoil - 1), drySpell: rSpell == null ? null : clamp01(rSpell - 1) };
+  const rise = (r) => clamp01((r - 1) / (cfg.ratioFull || 1));
+  const f = { drySoil: rSoil == null ? null : rise(rSoil), drySpell: rSpell == null ? null : rise(rSpell) };
   const score = weightedScore(f, cfg.hazardWeights.drought);
   if (score == null) return null;
   const pSoil = rSoil == null ? null : Math.round((rSoil - 1) * 100), pSpell = rSpell == null ? null : Math.round((rSpell - 1) * 100);
@@ -422,7 +427,7 @@ function crossingHazard(seg, rRain, cfg) {
   const size = Math.max(...xs.map((x) => cfg.crossingSize[x.kind] ?? 0.4));
   const flows = xs.map((x) => x.peakFlowM3s).filter((v) => v != null);
   const peak = flows.length ? Math.max(...flows) : null;
-  const f = { size, rain: rRain == null ? null : clamp01(rRain - 1), flow: peak == null ? null : clamp01(peak / cfg.peakFlowFullM3s) };
+  const f = { size, rain: rRain == null ? null : clamp01((rRain - 1) / (cfg.ratioFull || 1)), flow: peak == null ? null : clamp01(peak / cfg.peakFlowFullM3s) };
   const score = weightedScore(f, cfg.hazardWeights.crossing);
   const big = xs.reduce((a, x) => ((cfg.crossingSize[x.kind] ?? 0) > (cfg.crossingSize[a.kind] ?? 0) ? x : a), xs[0]);
   const rainTxt = rRain == null ? '' : `, heavy rain ${sgn(Math.round((rRain - 1) * 100))}%`;

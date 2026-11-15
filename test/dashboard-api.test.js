@@ -98,3 +98,40 @@ test('the dashboard engine consumes the feed end to end', () => {
 test('ring area sanity', () => {
   assert.equal(ringAreaM2([[0, 0], [1, 1]]), 0);
 });
+
+test('hazards_json from W2 reaches the dashboard: four rows, worst hazard, and a reason where there is no score', () => {
+  const t = tables();
+  const hz = { top: 'drought', ground_score: 20, status: { ground: 'scored', drought: 'scored', wildfire: 'unavailable: no climate model provided humidity for this window', crossing: 'not applicable: no mapped waterway crosses this segment' },
+    hazards: { ground: { key: 'ground', label: 'Ground failure', score: 20, tier: 'green', why: 'Wet-soil days +40%' },
+      drought: { key: 'drought', label: 'Drought', score: 70, tier: 'red', why: 'Dry-soil days +60%', change: { drySoil: 60, drySpell: 10 }, base: { drySoilDaysPerYr: 36, drySpellDays: 20 }, proj: { drySoilDaysPerYr: 57.6, drySpellDays: 22 } } },
+    base: { drySoilDaysPerYr: 36, drySpellDays: 20, fireWeatherDaysPerYr: null }, crossings: [] };
+  t.predictions[1] = { ...t.predictions[1], risk_score: 70, tier: 'red', model_agreement: 'low', hazards_json: JSON.stringify(hz), window_start: '2026-01-01', window_end: '2035-12-31' };
+  const c = buildCorridor(t);
+  const s0 = c.segments[0], r = s0.risk.y10;
+  assert.equal(r.hazard, 'drought'); assert.equal(r.score, 70); assert.equal(r.groundScore, 20);
+  assert.equal(r.tier, 'red', 'red-uncertain is only for rain-based hazards');
+  assert.deepEqual(Object.keys(r.hazards).sort(), ['drought', 'ground']);
+  assert.match(r.hazardStatus.wildfire, /^unavailable/); assert.match(r.hazardStatus.crossing, /^not applicable/);
+  assert.deepEqual(s0.crossings, []); assert.equal(s0.crossingsChecked, true);
+  assert.equal(s0.baseline.drySoilDaysPerYr, 36);
+  assert.deepEqual(c.config.tiers, { amber: 40, red: 65 }); assert.equal(c.config.ratioFull, 0.5);
+  assert.deepEqual(c.config.horizons.y10, [2026, 2035]);
+  assert.deepEqual(c.meta.hazardsScored, ['ground', 'drought']);
+  // A row from an older W2 run (no hazards_json): ground failure is shown, the rest say "not computed", nothing is called low.
+  const old = c.segments[1].risk.y10;
+  assert.equal(old.hazards.ground.score, 80); assert.equal(Object.keys(old.hazards).length, 1);
+  assert.match(old.hazardStatus.drought, /^not computed/);
+  assert.equal(c.segments[1].crossings, undefined); assert.equal(c.segments[1].crossingsChecked, false);
+  // The dashboard's own engine can still build "Today" from this feed.
+  const today = ENGINE.riskScore({ ...s0, projections: { y0: { OBSERVED: { extremeDaysPerYr: 3.7, refExtremeDaysPerYr: 3.7, freezeThawDaysPerYr: 57.8, refFreezeThawDaysPerYr: 57.8, wetSoilDaysPerYr: 36.3, refWetSoilDaysPerYr: 36.3, drySoilDaysPerYr: 36, refDrySoilDaysPerYr: 36, drySpellDays: 20, refDrySpellDays: 20 } } } }, 'y0', ENGINE.mergeConfig(c.config));
+  assert.equal(today.hazards.drought.score, 0);
+});
+
+test('work order rows say what was recorded and what happens next, not that anything was sent', () => {
+  const t = tables();
+  t.workOrders = [{ work_order_id: 'WO-9', segment_id: 'seg_1', status: 'approved', priority: 'normal', tier: 'amber', trigger_source: 'manager', drafted_at: '2026-11-15T08:00:00Z', decided_at: '2026-11-15T08:00:00Z', decided_by: 'operator (demo)' }];
+  const w = buildCorridor(t).segments.find((s) => s.id === 'seg_1').workOrder;
+  assert.equal(w.status, 'approved'); assert.equal(w.triggerSource, 'manager');
+  assert.match(w.storedIn, /corridor_work_orders/); assert.match(w.nextStep, /coordinator exports the CSV/);
+  assert.doesNotMatch(JSON.stringify(w), /sent|dispatch|delivered/i);
+});
