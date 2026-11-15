@@ -1,8 +1,15 @@
 # TerraCorridor
 
-A self-running risk dashboard for pipeline corridors. Built for the UBC eProjects x n8n LOOP buildathon.
+A climate-resilience and cost-prioritization tool for oil and gas pipeline operators. Built for the UBC eProjects x n8n LOOP buildathon.
 
-Every week n8n pulls 30 years of weather history, CMIP6 climate projections to 2036 and Sentinel-2 vegetation data for each kilometre of a pipeline right-of-way. It ranks where the ground is likely to fail in the next 5 to 10 years, prices what that risk costs, and shows which stable stretches could carry solar and storage. People approve, reject or override every action, and every decision is logged.
+**Who it is for:** the integrity or geohazard manager at a pipeline operator, and the field inspection coordinator who schedules the visits. **The decision it changes:** which kilometres get field attention first when the inspection budget is fixed.
+
+n8n pulls 30 years of weather history, CMIP6 climate projections through 2035 and Sentinel-2 vegetation data for each kilometre of a pipeline right-of-way, scores four natural hazards, and ranks the segments with the evidence behind each score. The manager approves an inspection, n8n records the work order and the decision, and the coordinator exports it as CSV. Stable land beside the line is screened for solar as a separate, conditional opportunity.
+
+Three things it does, in order of importance:
+1. **Climate resilience.** Which segments are more exposed to ground failure, stream and river crossings, wildfire weather and drought, today and under 5 and 10 year climate projections.
+2. **Cost prioritization.** A ranked shortlist for a limited inspection budget, with scenario maths for expected loss. Scenarios, not measured savings.
+3. **Conditional solar screening.** Never counted in the pipeline-protection case.
 
 **AI explains. Rules (or a small, visible learned model) decide. People approve.**
 
@@ -19,11 +26,11 @@ Weather-driven ground failures are rare but expensive, and operators often see t
    - **Drought:** change in dry-soil days (below the baseline's 10th percentile) and in each year's longest dry spell.
 
    Tier and model agreement per segment. Missing data means "unverified", never green; no crossing means "not applicable", never low.
-2. **Price it and recommend.** Expected loss per segment, loss avoided by a targeted inspection, risk-based inspection savings, plus the operator's share of solar lease revenue. The Money page adds both halves, says whether to run the program, and names the assumption the answer hinges on. Every assumption is on a slider.
-3. **Build layer.** Solar plus storage on a narrow panel strip (default 60 m total) outside the 30 m CER prescribed area: MW, MWh, lease revenue and the landowner partner's share, with a sunlight band on the map. Rising risk halves the build score.
-4. **Humans in charge.** Approving a kilometre creates a work order (priority and due date from its risk, a checklist from its drivers) that n8n stores and can send by email or Slack. Reject cancels it; overrides need a reason. All of it goes to the audit log.
+2. **Measure and price it.** The Money page first shows what the run measured (kilometres assessed, segments flagged, the size of the first review list). Then a scenario: expected loss per segment from an assumed base failure rate scaled by the score, the share a targeted inspection avoids, and the program cost, at a low, mid and high failure cost. It says plainly when the protection case is not positive. Every assumption is on a slider. The 0-100 score is a priority index, not a failure probability.
+3. **Build layer (conditional).** Screens a narrow panel strip (default 60 m total) outside the 30 m CER prescribed area for solar plus storage: MW, indicative MWh, a hypothetical lease and the landowner partner's share. It depends on land rights, interconnection, permits and a commercial agreement, and is kept out of the protection result.
+4. **Humans in charge.** The integrity manager approves a kilometre. n8n (WF4) records the work order in the `corridor_work_orders` Data table with status `approved`, plus the decision in `corridor_audit`: work order id, segment, score, tier, worst hazard, checklist, due date and map link. The Work orders page lists it and exports CSV for the inspection coordinator to load into the maintenance system. There is no email, Slack, SAP or Maximo delivery and no crew dispatch in this MVP, and the page says so. Overrides need a reason. Long-range tiers never create work orders on their own; WF3 only proposes one when heavy weather is forecast on flagged ground, and ships in dry-run with a cap of 3.
 
-Real check (Nov 14, live APIs, a point in central Alberta): all three climate models agree extreme-rain days rise by 2036 (+7% to +37%, mean +26% vs each model's own history); wet-soil days +60% in the two models that report soil moisture.
+5. **Works without n8n.** If the webhook cannot be reached, the deployed page loads a saved copy of a real n8n run, shows an "Offline snapshot" badge, and keeps approvals in the browser, labelled as a local demo. `dist/dashboard-demo.html` is a separate, synthetic corridor that needs no network at all.
 
 ## Honest numbers
 
@@ -41,6 +48,10 @@ scripts/make-api-workflow.js  Generates the dashboard feed workflow from src/das
 scripts/wire-workflows.js     Points every workflow at your n8n Data tables by name (workflows/wiring.json)
 scripts/validate-workflows.js Checks every workflow export before import
 scripts/fetch-climate-cells.js Laptop script that fills the weather cache when n8n Cloud is blocked by Open-Meteo
+scripts/fetch-crossings.js    Laptop script: OSM waterways crossed by each segment -> data/cache/crossings/
+scripts/make-snapshot.js      Saves the live feed as the offline snapshot built into dist/dashboard.html and deploy/index.html
+deploy/index.html        The page Netlify serves: dist/dashboard.html with this team's n8n webhook as default (built by npm run build)
+web/vendor/              Leaflet 1.9.4, inlined at build time so the page works offline
 src/dashboard-api.js     Builds the dashboard JSON from the Data tables (the API workflow's Code node)
 workflows/               The n8n exports W1 to W5 plus the API workflow. See workflows/README.md
 web/dashboard.html       Dashboard source (Leaflet + Esri imagery)
@@ -48,7 +59,7 @@ dist/                    Built files. dashboard-demo.html opens in any browser w
 ml/features.js           Builds training data from PHMSA accidents + Open-Meteo history
 ml/train.py              Logistic regression -> ml/model.json (paste into 05-score.js MODEL)
 data/cache/              Real API responses saved for demo fallback
-docs/                    Sources, disclosures, first-hour checks
+docs/                    Disclosures, tier mapping (THRESHOLDS.md), backend notes, judge pack (JUDGE_PACK.md)
 ```
 
 ## Quick start
@@ -61,8 +72,12 @@ npm run build            # rebuild dashboard and n8n node code
 
 Open `dist/dashboard-demo.html` in a browser to see the dashboard with demo data.
 
-In n8n: build the workflows by hand following `workflows/README.md` (Code node bodies are in `dist/n8n/`; `workflows/terracorridor.json` is a reference only).
+In n8n: import the exports in `workflows/` following `workflows/README.md`. Passing tests prove the Code-node logic and the data contracts. They do not prove that the n8n instance, its credentials, webhooks or Data tables are set up; `docs/JUDGE_PACK.md` lists what was checked live.
 
 ## Data is labelled
 
-The demo corridor is SYNTHETIC (illustrative route, simulated climate) and the page says so. The live n8n run uses real APIs. The operator name in any demo is fictional. See `docs/DISCLOSURES.md`.
+- `dist/dashboard-demo.html`: SYNTHETIC corridor (illustrative route, simulated climate), with a "Synthetic demo data" badge.
+- Live page: a real 22 km OpenStreetMap pipeline way near Edmonton (cached), real Open-Meteo history and CMIP6 projections (cached per 10 km cell), live Sentinel-2 NDVI and elevation. Badge: "Live from n8n".
+- Offline: the same real data from a saved run. Badge: "Offline snapshot".
+
+No operator is involved or endorses this. See `docs/DISCLOSURES.md`.

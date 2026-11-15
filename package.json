@@ -12,6 +12,10 @@
     "validate": "node scripts/validate-workflows.js",
     "wire": "node scripts/wire-workflows.js",
     "api-workflow": "node scripts/make-api-workflow.js",
-    "tables": "node scripts/tables.js"
+    "tables": "node scripts/tables.js",
+    "fetch-cells": "node scripts/fetch-climate-cells.js && node scripts/make-seed-workflow.js",
+    "fetch-crossings": "node scripts/fetch-crossings.js",
+    "seed-workflow": "node scripts/make-seed-workflow.js",
+    "snapshot": "node scripts/make-snapshot.js"
   }
 }

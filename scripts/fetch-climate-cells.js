@@ -4,7 +4,7 @@
 // W2's own condense maths: the shared helper block is read straight out of the W2 export
 // (workflows/W2_ Long-Range Engine.json, node "Condense Archive"), so there is one copy of the rules.
 // Needs Node 18 or newer.
-// Usage:  node scripts/fetch-climate-cells.js                 (cells listed in data/cache/cells/trans-northern-cells.json)
+// Usage:  node scripts/fetch-climate-cells.js                 (the corridor's four cells; see docs/HAZARD_DATA.md)
 //         node scripts/fetch-climate-cells.js 53.40_-113.40    (only these cell keys)
 // Resumable: a cell already saved with the current signature is skipped.
 const crypto = require('crypto');
@@ -28,7 +28,9 @@ const { seriesMetrics, ratio, HORIZONS, MODELS } = new Function('$', helper + '\
 const CELL_FILE = path.join(ROOT, 'data', 'cache', 'cells', 'trans-northern-cells.json');
 const saved = fs.existsSync(CELL_FILE) ? JSON.parse(fs.readFileSync(CELL_FILE, 'utf8')) : [];
 const wanted = process.argv.slice(2);
-const CELLS = (wanted.length ? wanted : saved.map((r) => r.cell_key)).map((k) => ({ cell_key: k, lat: Number(k.split('_')[0]), lon: Number(k.split('_')[1]) }));
+// The four 10 km cells the live 22 km corridor crosses (W2 "Select Batch Segments" rounds each segment centroid to 0.1 degree).
+const CORRIDOR_CELLS = ['53.30_-113.50', '53.40_-113.50', '53.40_-113.40', '53.50_-113.40'];
+const CELLS = (wanted.length ? wanted : [...new Set(CORRIDOR_CELLS.concat(saved.map((r) => r.cell_key)))]).map((k) => ({ cell_key: k, lat: Number(k.split('_')[0]), lon: Number(k.split('_')[1]) }));
 const SLEEP_MS = Number(process.env.SLEEP_MS || 65000);
 const OUT_DIR = process.env.OUT_DIR || __dirname;
 
@@ -45,7 +47,7 @@ async function download(url, label) {
     console.log('  waiting ' + Math.round(SLEEP_MS / 1000) + 's then retrying (' + attempt + '/6)');
     await sleep(SLEEP_MS);
   }
-  throw new Error(label + ' failed after 6 tries');
+  throw new Error(label + ' failed after 6 tries. If the message was a request limit: Open-Meteo allows roughly 5 cells a day per IP address. Cells already fetched are saved; run this again later or from another network.');
 }
 const sha256 = buf => crypto.createHash('sha256').update(buf).digest('hex');
 
@@ -129,7 +131,7 @@ async function main() {
     const older = saved.filter((r) => r.config_signature !== SIG && !rows.find((x) => x.cell_key === r.cell_key));
     fs.writeFileSync(CELL_FILE, JSON.stringify(rows.concat(older).sort((a, b) => a.cell_key.localeCompare(b.cell_key)), null, 1) + '\n');   // save progress after every cell
     writeOutputs(rows);   // only current-signature rows go to the seed files
-    if (i < CELLS.length - 1) await sleep(SLEEP_MS);
+    if (CELLS.slice(i + 1).some((x) => !rows.find((r) => r.cell_key === x.cell_key))) await sleep(SLEEP_MS);
   }
   console.log('\nDONE. ' + rows.length + ' cell rows in ' + path.relative(ROOT, CELL_FILE) + ' (also cache_rows.csv and seed_code_node.js in ' + OUT_DIR + ')');
 }

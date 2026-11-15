@@ -212,7 +212,7 @@ function buildCorridor(t, opts) {
       note: synthetic
         ? 'Route is the embedded fallback fixture (Overpass failed or was not used). Weather history is cached from a laptop run. Scores come from n8n W2.'
         : cachedOsm
-          ? 'Route is real OpenStreetMap data (Trans-Northern pipeline), cached from a laptop run because Overpass times out from n8n Cloud. Weather history is also cached from a laptop run. Scores come from n8n W2.'
+          ? 'Route is a real pipeline way from OpenStreetMap near Edmonton (OSM tags it Trans-Northern; not verified, and no operator is involved), cached from a laptop run because Overpass times out from n8n Cloud. Weather history and climate projections are cached per 10 km cell from a laptop run. Scores come from n8n W2.'
           : 'Route from OpenStreetMap via W1. Scores come from n8n W2.',
       models: MODELS, generatedAt: latestComputed || now, servedAt: now,
       source: 'n8n Data Tables', segmentsTotal: segments.length, segmentsVerified: verified,

@@ -6,7 +6,7 @@ These exports run as one system in **one** n8n instance. They share Data tables,
 W1 Corridor Setup ──(Execute Workflow)──> W2 Long-Range Engine ──> corridor_predictions, corridor_baselines
                                                                          │
                          WF3 Near-term watch (daily 06:00) <─────────────┤  reads predictions, checks the 16-day forecast
-                              │  red, or amber with heavy rain                │
+                              │  heavy rain forecast on amber or red ground   │
                               └──(Execute Workflow)──> WF4 Work orders ───────┤  AI drafts the order, human approves, tier overrides
                                                                               │
                          W5 Build Layer + weekly report (Mon 06:30) <─────────┘  solar and storage score, report with approval step
@@ -20,7 +20,7 @@ WF4                    POST /webhook/terracorridor/action     approve_work_order
 | `W1_ Corridor Setup.json` | Pull the pipeline route, cut 1 km segments, hash the source | monthly, manual | OSM Overpass | corridor_sources, corridor_segments |
 | `W2_ Long-Range Engine.json` | Weather baseline, CMIP6, Sentinel-2 NDVI, elevation, score, AI explanation | called by W1, weekly | corridor_segments | corridor_baselines, corridor_predictions, corridor_climate_cells, corridor_sources |
 | `TerraCorridor WF3 - Near-term watch.json` | 16-day forecast against each cell's baseline thresholds for flagged segments | daily | corridor_predictions, corridor_baselines, corridor_watch | corridor_watch, corridor_audit |
-| `TerraCorridor WF4 - Work orders and approvals.json` | Work order per red segment, human approve or reject, tier override | called by WF3, dashboard POST | corridor_work_orders, corridor_watch | corridor_work_orders, corridor_watch, corridor_audit |
+| `TerraCorridor WF4 - Work orders and approvals.json` | Work order drafted from a WF3 escalation, or recorded straight away when the manager approves a segment on the dashboard; approve, reject, tier override | called by WF3, dashboard POST | corridor_work_orders, corridor_watch | corridor_work_orders, corridor_watch, corridor_audit |
 | `TerraCorridor W5 - Solar + Storage Build Layer and Weekly Report.json` | Build score, MW, lease revenue, weekly report with approval | weekly, manual, webhook | corridor_segments, corridor_predictions, corridor_baselines, corridor_watch, corridor_work_orders | corridor_build, corridor_build_config, corridor_reports |
 | `TerraCorridor API - Dashboard feed.json` | Serves the dashboard | GET webhook | everything above | nothing |
 | `legacy/terracorridor.json` | The old single-workflow design. Reference only. Do not import it next to the others: it uses the same webhook paths | | | |
@@ -42,9 +42,12 @@ You do not need to re-import W1 or W2 if they already run. The repo copy of W1 n
 
 ## Things that will bite you
 
-- **Open-Meteo blocks n8n Cloud's shared IP** on the free tier (HTTP 429). W2 works around it with the `corridor_climate_cells` cache filled by `scripts/fetch-climate-cells.js` from a laptop. WF3's 16-day forecast has no cache. If it fails, WF3 marks the cell `unverified`, never `clear`, and **red segments still get a work order**. Fix for the demo: run WF3 from a network that is not blocked, or use an Open-Meteo API key.
+- **Open-Meteo blocks n8n Cloud's shared IP** on the free tier (HTTP 429). W2 works around it with the `corridor_climate_cells` cache filled by `scripts/fetch-climate-cells.js` from a laptop. WF3's 16-day forecast has no cache. If it fails, WF3 marks every flagged segment `unverified`, never `clear`, and drafts nothing. Fix for the demo: run WF3 from a network that is not blocked, or use an Open-Meteo API key.
+- **WF3 does not draft work orders from a long-range tier.** Only heavy weather in the 16-day forecast on amber or red ground proposes one. It ships with `DRY_RUN = true` (logs the proposal, calls WF4 for nothing) and `MAX_DRAFTS_PER_RUN = 3`, both at the top of the `Apply escalation rules` node. Keep it unpublished until you have read a dry run in `corridor_audit` (action `escalation_preview`).
+- **Manager-requested inspections.** `approve_work_order` for a segment with no pending draft records an approved order (`trigger_source = manager`) in `corridor_work_orders`. A repeat within 7 days returns the existing order. Nothing is emailed and no crew is dispatched.
+- **Hazard inputs come from a laptop.** `scripts/fetch-climate-cells.js` (climate cells with humidity) and `scripts/fetch-crossings.js` (OSM waterway crossings into `corridor_baselines.crossings_json`). Open-Meteo allows roughly five cells a day per IP on the free tier.
 - **AI nodes use n8n "Gateway credits"** (W2 Claude Haiku, WF4 and W5 OpenAI). All three fail open: W2 leaves the explanation empty, WF4 writes a fixed-template summary, W5 falls back without the narrative. Nothing stops.
-- **W2 only explains amber and red.** If every segment is green, there are no explanations, no work orders and nothing to override. See the threshold note in `docs/BACKEND_NOTES.md`.
+- **W2 only explains amber and red.** Green segments show template text built from the same numbers. See `docs/THRESHOLDS.md` for the tier mapping.
 - **Overrides are per horizon.** A tier override at `y10` does not change the `y5` tier.
 - **W6 is not in the repo.** W5's shared adapter block says there is an identical copy in W6. If W6 exists, run its copy of the block through `scripts/wire-workflows.js` too (it matches on the `integrations` object).
 - Each export has `active` set as its author left it. n8n ignores that on import. Publish what you need.
