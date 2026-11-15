@@ -386,7 +386,7 @@
     <div class="ov-grid" id="ovGrid">
       <section class="ledger" id="ovLedger" aria-label="Climate summary"></section>
       <div class="hint" id="ovHint">
-        <span><b>How to read this:</b> the line is a 169 km pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.
+        <span><b>How to read this:</b> the line is a <span id="hintKm">demo</span> pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.
         <span class="k" style="color:var(--red)">Red</span> = send a crew, <span class="k" style="color:var(--amber)">amber</span> = watch, <span class="k" style="color:var(--green)">green</span> = inspect less.
         Press <b>&#9654;</b> on the map to watch climate change shift it from today to 2036. Hover any number for what it means.</span>
         <button class="linkbtn" id="bHint">Got it</button>
@@ -2150,6 +2150,7 @@ function wire() {
   D = window.TC_DATA || await (await fetch(DATA_URL)).json();
   segs = [...D.segments].sort((a, b) => a.kmFrom - b.kmFrom);
   synthBadge.hidden = !D.meta.synthetic; liveBadge.hidden = !!D.meta.synthetic;
+  { const hk = document.getElementById('hintKm'); if (hk) { const km = D.segments.reduce((t, x) => t + (x.lengthM || 0), 0) / 1000; hk.textContent = (km >= 10 ? Math.round(km) : km.toFixed(1)) + ' km'; } }
   if (D.meta.synthetic) synthBadge.title = D.meta.note;
   genAt.textContent = 'Run ' + D.meta.generatedAt.slice(0, 16).replace('T', ' ') + ' UTC';
   sourcesSec.innerHTML = `<b style="font-weight:600;color:var(--ink-2)">Sources.</b> ${D.meta.synthetic ? '<b style="color:var(--amber);font-weight:600">Synthetic demo.</b> ' : ''}Open-Meteo archive and CMIP6 projections (${esc((D.meta.models || []).join(', '))}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. $430k average failure and $11.7M rupture are sourced; other inputs are ours. Thresholds and weights are provisional, for expert review.${D.meta.source === 'n8n Data Tables' ? ' Live n8n run: ground-failure scores (rain, freeze-thaw, wet soil, plant cover, slope) are computed in n8n. River-crossing, wildfire and drought scores are not computed there, so those filters stay empty here.' : ''}`;
