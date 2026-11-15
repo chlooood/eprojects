@@ -1,8 +1,8 @@
 {
-  "recordedAt": "2026-11-15T17:36:51.513Z",
+  "recordedAt": "2026-11-15T18:34:30.743Z",
   "method": "SHA-256 of cached source records; audit URLs and raster-window hashes are retained separately",
   "files": {
-    "climate-cells.json": "7499c906f9272443e2f371a9068147c18dbad4a75787eefc70cab57de726e3e9",
+    "climate-cells.json": "6785b59906b5510e3a654c132f171e49ac80dd87d4ee492d231c696c5aa1f441",
     "crossings.json": "6ebd1a458762c3aa9f987324b42f3b6ea10f4635f0e46cdbb3531b780ee8a2d7",
     "elevation.json": "2c8d70d79b585c405ae01be1f0ca535673c732815911c6adbaad595c3528d0e2",
     "ndvi.json": "6d30a5d5c27ec1cd408f4ba4cd36e17550c4b75833f9106a2af4925519340550",

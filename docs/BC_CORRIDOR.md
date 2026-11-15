@@ -39,18 +39,18 @@ No satellite scenes or terrain tiles need downloading for normal builds; reviewe
 
 ## Results with existing thresholds
 
-> **Pending rescore (2026-11-15).** The numbers below were computed on the old overlapping windows (2026-2030 and 2026-2035). W2 now uses 2026-2030 and 2031-2035. Do not quote them. Run `npm run refresh-bc-climate` from a network Open-Meteo has not rate-limited, then replace this table with the printed tier counts.
+> **Rescored 2026-11-15 on W2's current windows (2026-2030 and 2031-2035).** Climate cell 49.40_-121.30 was re-downloaded (v3 signature) and BC was rescored with W2's unchanged code and thresholds. Printed result: `BC tiers on the new windows: {"y5":{"amber":12},"y10":{"red":4,"amber":8}}`. The tier counts are the same as on the old windows; the scores behind them changed (below).
 
 Thresholds and weights were not tuned to produce more red: Medium >=40, High >=65, full ground-climate factor at +50%.
 
-| Assessment | BC | Edmonton reference |
+| Assessment | BC (rescored) | Edmonton reference (old windows, refreshes when W2 runs) |
 | --- | --- | --- |
 | 2026–2030 (five-year) | 12 Medium | 3 Medium, 20 Low |
-| 2026–2035 (ten-year) | **4 High, 8 Medium** | 1 Medium, 22 Low |
+| 2031–2035 (ten-year) | **4 High, 8 Medium** | 1 Medium, 22 Low |
 
-The four High BC segments are **river-crossing** priorities, scoring **67.6**, with about **+15%** heavy-rain days. This is not four predicted failures. In the existing crossing formula, mapped river size supplies a substantial baseline contribution; missing discharge is excluded and the available terms are reweighted. The High result is a provisional screening priority, not evidence of increasing discharge or validation against the 2021 event.
+The four High BC segments are **river-crossing** priorities (Coquihalla River), now scoring **79** (67.6 on the old windows), with about **+27%** heavy-rain days (previously +15%). This is not four predicted failures. In the existing crossing formula, mapped river size supplies a substantial baseline contribution; missing discharge is excluded and the available terms are reweighted. The High result is a provisional screening priority, not evidence of increasing discharge or validation against the 2021 event.
 
-The remaining BC priorities are mostly the **wildfire-weather proxy**, roughly 56–58 at ten years: observed fire-weather days about 19.8/year and projected about 26.1/year across the available models. It is not the Canadian Fire Weather Index or an ignition probability. Ground failure remains Low (roughly 16–36), even where sampled terrain relief is substantial. A valley can have steep local terrain and a low net endpoint grade; that model limitation is visible in the reports.
+The remaining BC priorities are the **wildfire-weather proxy**, roughly 56–57 at ten years: observed fire-weather days about 19.8/year and projected about 24.9/year (+26%) across the two models that report humidity. It is not the Canadian Fire Weather Index or an ignition probability. Ground failure is Low on 11 segments (roughly 26–39) and Medium-range on one (47), never the worst hazard, even where sampled terrain relief is substantial. A valley can have steep local terrain and a low net endpoint grade; that model limitation is visible in the reports.
 
 The fresh 16-day forecast was checked with the actual exported WF3 selection/rule nodes: all 12 flagged BC segments were `clear`, maximum daily rain **15.6 mm**, and **zero work orders** were proposed. See `forecast-verification.json`. This was a read-only local execution, not proof of a live n8n trigger or Wait/resume path. Forecasts expire after 24 hours.
 
