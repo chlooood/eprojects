@@ -10,6 +10,10 @@ const E = require('../src/engine.js');
 let seed = 42;
 const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
 const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
+// A second stream for humidity and crossings, so adding them leaves the rain story unchanged.
+let seed2 = 7;
+const rnd2 = () => ((seed2 = (seed2 * 1664525 + 1013904223) % 4294967296) / 4294967296);
+const gauss2 = () => Math.sqrt(-2 * Math.log(rnd2() + 1e-12)) * Math.cos(2 * Math.PI * rnd2());
 
 // Illustrative route: Edmonton area east-southeast toward Hardisty, Alberta.
 function makeRoute() {
@@ -25,14 +29,15 @@ function makeRoute() {
 
 function simulateDaily(years, p) {
   // p.histYears: years up to this one use the historical climate (model's own past run)
-  const time = [], pr = [], tmin = [], tmax = [], soil = [];
+  const time = [], pr = [], tmin = [], tmax = [], soil = [], rh = [];
   let s = 0.28;
   for (const y of years) for (let d = 0; d < 365; d++) {
     time.push(new Date(Date.UTC(y, 0, 1 + d)).toISOString().slice(0, 10));
     const season = Math.sin(((d - 105) / 365) * 2 * Math.PI); // peak mid-July
     const past = p.histYears && y <= p.histYears;
     const rs = past ? 1 + (p.bias || 0) : p.rainScale, sp = past ? 0.012 : p.stormProb, wm = past ? 0 : p.warming;
-    const wetProb = 0.22 + 0.12 * Math.max(0, season);
+    const dry = past ? 0 : (p.dryness || 0);              // drying future in the drought stretches
+    const wetProb = (0.22 + 0.12 * Math.max(0, season)) * (1 - 0.3 * dry * Math.max(0, season));
     let rain = 0;
     if (rnd() < wetProb) rain = -Math.log(rnd() + 1e-9) * (3 + 3 * Math.max(0, season)) * rs;
     if (rnd() < sp * Math.max(0, season)) rain += 20 + 25 * rnd();
@@ -43,8 +48,13 @@ function simulateDaily(years, p) {
     tmin.push(Math.round((tmean - range / 2) * 10) / 10);
     tmax.push(Math.round((tmean + range / 2) * 10) / 10);
     soil.push(Math.round(s * 1000) / 1000);
+    const tx = tmean + range / 2;
+    const h = 72 - 28 * Math.max(0, season) - 1.2 * (tx - wm - 18) + 9 * gauss2() + (rain > 0 ? 25 : 0) - 9 * dry;
+    rh.push(Math.round(Math.min(100, Math.max(8, h))));
   }
-  return { time, precipitation_sum: pr, temperature_2m_min: tmin, temperature_2m_max: tmax, soil_moisture_0_to_10cm_mean: soil };
+  const out = { time, precipitation_sum: pr, temperature_2m_min: tmin, temperature_2m_max: tmax, soil_moisture_0_to_10cm_mean: soil };
+  if (p.rh !== false) out.relative_humidity_2m_min = rh;   // MPI has no humidity in the real API either
+  return out;
 }
 
 async function nasaIrradiance(lat, lon) {
@@ -75,6 +85,8 @@ const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
     const pos = c / Math.max(1, nCells - 1);
     // Wetter future in the middle third and near the east end (a story for the demo)
     const hot = Math.exp(-((pos - 0.38) ** 2) / 0.012) + 0.7 * Math.exp(-((pos - 0.8) ** 2) / 0.008);
+    // Drying and fire story: the west end and a stretch past the middle get drier summers.
+    const dryness = Math.exp(-((pos - 0.06) ** 2) / 0.006) + 0.8 * Math.exp(-((pos - 0.6) ** 2) / 0.004);
     const base = simulateDaily(range(1995, 2025), { rainScale: 1, stormProb: 0.012, warming: 0 });
     const proj = {};
     models.forEach((m, k) => {
@@ -83,14 +95,36 @@ const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
         histYears: 2025,
         rainScale: 1.02 + 0.22 * hot + modelBias,
         stormProb: 0.012 * (1 + 1.6 * hot + modelBias * 3),
-        warming: 0.9 + 0.3 * k,
+        warming: 0.9 + 0.3 * k + 0.6 * dryness,
         bias: [0.05, -0.08, 0.1][k],
+        dryness,
+        rh: m !== 'MPI_ESM1_2_XR',
       });
     });
     cells[c] = { base, proj };
   }
 
   const substations = [route[3], route[24], route[41], route[58]];
+  // Illustrative waterways (not real rivers): short lines across the route, found with ENGINE.findCrossings.
+  const WATER = [
+    { km: 18, name: 'West river (illustrative)', kind: 'river', peakFlowM3s: 320 },
+    { km: 62, name: 'Creek (illustrative)', kind: 'stream', peakFlowM3s: 14 },
+    { km: 71, name: 'Central river (illustrative)', kind: 'river', peakFlowM3s: 180 },
+    { km: 118, name: 'Irrigation canal (illustrative)', kind: 'canal', peakFlowM3s: 25 },
+    { km: 140, name: 'Brook (illustrative)', kind: 'stream', peakFlowM3s: 9 },
+  ];
+  const waterways = WATER.map((w) => {
+    const sg = segs[w.km], a = sg.centreline[0], b = sg.centreline[sg.centreline.length - 1];
+    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], d = [b[0] - a[0], b[1] - a[1]], n = Math.hypot(d[0], d[1]);
+    const perp = [-d[1] / n, d[0] / n], L = 0.03 + 0.01 * rnd2(), bend = 0.004 * gauss2();
+    return { name: w.name, kind: w.kind, peakFlowM3s: w.peakFlowM3s,
+      coords: [[m[0] - perp[0] * L, m[1] - perp[1] * L], [m[0] + bend, m[1] - bend], [m[0] + perp[0] * L, m[1] + perp[1] * L]] };
+  });
+  const found = E.findCrossings(segs, waterways);
+  for (const [id, xs] of Object.entries(found)) {
+    const sg = segs.find((x) => x.id === id);
+    sg.crossings = xs.map((x) => ({ ...x, peakFlowM3s: waterways.find((w) => w.name === x.name).peakFlowM3s }));
+  }
   const valleys = [0.3, 0.42, 0.79];
 
   for (const [i, s] of segs.entries()) {
@@ -132,6 +166,7 @@ const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
     config: cfg,
     route,
     substations,
+    waterways: waterways.map(({ name, kind, coords }) => ({ name, kind, coords })),
     segments: segs,
     summary: { y5: E.corridorSummary(segs, cfg, { years: 5 }), y10: E.corridorSummary(segs, cfg, { years: 10 }) },
   };
@@ -140,6 +175,7 @@ const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
   const s10 = out.summary.y10;
   console.log(`segments ${segs.length}, km ${s10.km}, tiers ${JSON.stringify(s10.tiers)}`);
   console.log(`top share of loss ${s10.topShareOfLoss}, loss avoided ${s10.lossAvoided}, wo cost ${s10.workOrderCost}, inspection savings/yr ${s10.inspectionSavingsYr}, lease/yr ${s10.leaseRevenueYr}`);
-  console.log('top 3', s10.top.slice(0, 3).map((t) => `${t.id} ${t.score} ${t.tier} ${t.driver.label} ${t.driver.change}`));
+  console.log('top 3', s10.top.slice(0, 3).map((t) => `${t.id} ${t.score} ${t.tier} ${t.hazard} ${t.why}`));
+  console.log('red km by hazard', JSON.stringify(s10.hazardKm), 'crossing km', s10.crossings);
   console.log('irradiance', irr.value, 'size KB', Math.round(fs.statSync(file).size / 1024));
 })();

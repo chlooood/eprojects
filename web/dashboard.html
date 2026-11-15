@@ -4,90 +4,488 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TerraCorridor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-  :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --ink:#e6edf3; --quiet:#8b949e; --green:#3fb950; --amber:#d29922; --red:#f85149; --grey:#6e7681; --blue:#58a6ff; }
+  /* Design rules: .claude/skills/frontend-design/SKILL.md */
+  :root {
+    --bg:#0a0b0a; --s1:#101210; --s2:#161916; --s3:#1d211d;
+    --line:#252925; --line-2:#323732;
+    --ink:#eceee6; --ink-2:#a5aa9f; --ink-3:#7a7f75;
+    --green:#6fd08f; --amber:#f2a93b; --red:#ff5d4f; --grey:#5d625a;
+    --build:#d6f35f; --sub:#82c8ff;
+    --sans:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --serif:'Instrument Serif', Georgia, serif;
+    --mono:'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    --ease:cubic-bezier(.2,.7,.1,1);
+    --shadow:0 12px 36px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
   * { box-sizing:border-box; }
-  body { margin:0; font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--ink); height:100vh; display:grid; grid-template-rows:auto auto 1fr; }
-  header { display:flex; gap:16px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); }
-  header h1 { font-size:16px; margin:0; }
-  .badge { font-size:11px; padding:2px 8px; border-radius:10px; border:1px solid var(--amber); color:var(--amber); }
-  .seg { display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
-  .seg button { background:none; color:var(--quiet); border:0; padding:5px 10px; cursor:pointer; font:inherit; }
-  .seg button.on { background:#21262d; color:var(--ink); }
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--sans); -webkit-font-smoothing:antialiased;
+    height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+  button, input, select { font:inherit; color:inherit; }
+  a { color:inherit; }
+  :focus-visible { outline:2px solid var(--ink); outline-offset:2px; border-radius:4px; }
+  [hidden] { display:none !important; }
+  .num { font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .label { font-size:12.5px; color:var(--ink-3); }
+  .muted { color:var(--ink-2); }
+
+  /* ---------- header ---------- */
+  header.top { flex:none; display:flex; align-items:center; gap:28px; padding:0 28px; height:58px; background:var(--s1); border-bottom:1px solid var(--line); }
+  .mark { display:flex; align-items:center; gap:9px; font:600 16px/1 var(--sans); letter-spacing:-.02em; text-decoration:none; flex:none; }
+  .mark em { font:italic 400 21px/1 var(--serif); letter-spacing:0; margin-left:-3px; }
+  nav.pages { display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; }
+  nav.pages a { padding:7px 12px; border-radius:8px; color:var(--ink-2); text-decoration:none; font-size:14px; font-weight:500; display:flex; gap:6px; align-items:center; white-space:nowrap; transition:color .16s var(--ease), background .16s var(--ease); }
+  nav.pages a:hover { color:var(--ink); background:var(--s2); }
+  nav.pages a.on { color:var(--ink); background:var(--s3); }
+  .count { font:500 10.5px/1 var(--mono); padding:3px 6px; border-radius:999px; background:var(--ink); color:var(--s1); }
+  .count:empty, .count[data-n="0"] { display:none; }
   .spacer { flex:1; }
-  .kpis { display:grid; grid-template-columns:repeat(6, 1fr); border-bottom:1px solid var(--line); }
-  .kpi { padding:10px 16px; border-right:1px solid var(--line); }
-  .kpi:last-child { border-right:0; }
-  .kpi .v { font-size:20px; font-weight:600; }
-  .kpi .l { font-size:12px; color:var(--quiet); }
-  .kpi .s { font-size:11px; color:var(--quiet); }
-  main { display:grid; grid-template-columns:1fr 400px; min-height:0; }
-  #map { height:100%; }
-  aside { border-left:1px solid var(--line); overflow:auto; background:var(--panel); }
-  aside section { padding:12px 16px; border-bottom:1px solid var(--line); }
-  aside h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--quiet); margin:0 0 8px; }
-  .row { display:flex; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; }
-  .row:hover, .row.sel { background:#21262d; }
-  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
-  .tier-green{background:var(--green)} .tier-amber{background:var(--amber)} .tier-red,.tier-red-uncertain{background:var(--red)} .tier-unverified,.tier-grey,.tier-excluded{background:var(--grey)}
-  .muted { color:var(--quiet); font-size:12px; }
-  .bar { height:6px; background:#21262d; border-radius:3px; overflow:hidden; margin:3px 0 8px; }
-  .bar > div { height:100%; background:var(--blue); }
-  button.act { font:inherit; padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:#21262d; color:var(--ink); cursor:pointer; }
-  button.act.primary { background:#238636; border-color:#2ea043; }
-  select, input[type=text] { font:inherit; background:#0d1117; color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:5px; }
-  label.sl { display:block; margin:8px 0 2px; font-size:12px; color:var(--quiet); }
-  input[type=range] { width:100%; }
-  .assump { font-size:11px; color:var(--amber); }
-  .explain { background:#0d1117; border:1px solid var(--line); border-radius:6px; padding:8px; font-size:13px; }
-  table.mini { width:100%; border-collapse:collapse; font-size:12px; }
-  table.mini td { padding:3px 0; border-bottom:1px solid #21262d; }
-  table.mini td:last-child { text-align:right; }
-  .audit { font-size:12px; max-height:140px; overflow:auto; }
-  .leaflet-container { background:#0d1117; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font:500 12px/1 var(--sans); padding:6px 10px; border-radius:999px; border:1px solid var(--line-2); color:var(--ink-2); white-space:nowrap; }
+  .pill.warn { border-color:rgba(242,169,59,.45); color:var(--amber); background:rgba(242,169,59,.08); }
+  .pill .led { width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .pill.live { color:var(--green); border-color:rgba(47,158,91,.4); }
+
+  /* ---------- views ---------- */
+  #views { flex:1; min-height:0; position:relative; }
+  .view { position:absolute; inset:0; overflow:auto; animation:fade .3s var(--ease) both; }
+  .view.ws { overflow:hidden; }
+  @keyframes fade { from { opacity:0; } }
+  .doc { max-width:1200px; margin:0 auto; padding:40px 40px 96px; }
+  .kicker { font:500 10.5px/1.2 var(--mono); text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3); margin:0 0 10px; }
+  h1.ph { font:600 26px/1.2 var(--sans); letter-spacing:-.02em; margin:0; }
+  .dek { font-size:14px; line-height:1.55; color:var(--ink-2); max-width:72ch; margin:8px 0 0; }
+  section.s { margin-top:40px; }
+  .shead { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:14px; flex-wrap:wrap; }
+  .shead h2 { font:600 15px/1.3 var(--sans); margin:0; }
+  .shead p { margin:0; color:var(--ink-2); font-size:13px; max-width:60ch; }
+  .frame { position:relative; background:var(--s1); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .cols { display:grid; gap:40px; }
+  .cols.c2 { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .stats { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:24px; }
+  .stat { border-top:1px solid var(--line-2); padding-top:12px; }
+  .stat .v { font:500 24px/1.1 var(--mono); letter-spacing:-.03em; margin:2px 0 6px; font-variant-numeric:tabular-nums; }
+  .stat p { margin:0; font-size:13px; color:var(--ink-2); line-height:1.5; }
+
+  /* overview: the full-screen dashboard */
+  .ov-grid { display:grid; grid-template-rows:auto auto minmax(0,1fr) auto; height:100%; }
+  .hint { display:flex; align-items:center; gap:16px; padding:9px 20px; border-bottom:1px solid var(--line); background:var(--s1); font-size:13px; color:var(--ink-2); line-height:1.45; }
+  .hint b { color:var(--ink); font-weight:600; }
+  .hint .k { font-weight:600; }
+  .hint .linkbtn { flex:none; margin-left:auto; }
+  .cell .e { display:flex; gap:6px; align-items:center; }
+  .cell .e i { font-style:normal; width:14px; height:14px; border-radius:50%; border:1px solid var(--line-2); display:inline-grid; place-items:center; font:600 9px/1 var(--sans); color:var(--ink-3); text-transform:none; letter-spacing:0; }
+  .ledger { display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); border-bottom:1px solid var(--line); background:var(--bg); }
+  .cell { display:block; padding:14px 20px; border-right:1px solid var(--line); min-width:0; text-decoration:none; transition:background .14s var(--ease); animation:rise .5s var(--ease) both; }
+  .cell:hover { background:var(--s1); }
+  .cell:last-child { border-right:0; }
+  .cell:nth-child(2){animation-delay:.04s} .cell:nth-child(3){animation-delay:.08s} .cell:nth-child(4){animation-delay:.12s} .cell:nth-child(5){animation-delay:.16s} .cell:nth-child(6){animation-delay:.2s}
+  .cell .e { font:500 10.5px/1.2 var(--mono); text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3); }
+  .cell .v { font:500 26px/1.1 var(--mono); letter-spacing:-.03em; margin:9px 0 5px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .cell .v small { font-size:13px; color:var(--ink-3); letter-spacing:0; margin:0 3px; }
+  .cell .s { font-size:12px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .stack { display:flex; height:3px; gap:2px; margin-top:8px; }
+  .stack span { height:100%; border-radius:2px; transition:flex-grow .3s var(--ease); }
+  @keyframes rise { from { opacity:0; transform:translateY(6px); } }
+  #view-overview .cell { padding:10px 20px 11px; }
+  #view-overview .cell .v { font-size:22px; margin:6px 0 3px; }
+  #view-overview .stack { margin-top:6px; }
+  .ov-strip #sheet { padding:8px 24px 6px; }
+  .ov-strip .sheet-head { margin-bottom:2px; }
+  #legend .sun { border-top:1px solid var(--line); margin-top:6px; padding-top:8px; display:grid; gap:4px; max-width:190px; }
+  #legend .ramp { display:block; height:8px; border-radius:2px; }
+  #legend .rl { display:flex; justify-content:space-between; font:10.5px var(--mono); color:var(--ink-3); }
+  .sw { width:16px; height:5px; border-radius:3px; flex:none; display:inline-block; }
+  .sw.hatch { background:repeating-linear-gradient(135deg, var(--grey) 0 2px, transparent 2px 4px); height:9px; }
+
+  /* ---------- workspace ---------- */
+  .ws-grid { display:grid; grid-template-columns:380px minmax(0,1fr); grid-template-rows:minmax(0,1fr) auto; height:100%; }
+  .ws-list { background:var(--s1); border-right:1px solid var(--line); overflow:auto; padding:28px 24px 40px; min-height:0; }
+  .ws-list h2 { font:600 18px/1.2 var(--sans); letter-spacing:-.01em; margin:0 0 6px; }
+  .ws-list .lede { margin:0 0 18px; font-size:13.5px; color:var(--ink-2); }
+  .ws-map { position:relative; min-height:0; }
+  .ws-strip { grid-column:1 / -1; border-top:1px solid var(--line); background:var(--s1); }
+  .map-slot { position:absolute; inset:0; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px; }
+  .chips button { border:1px solid var(--line-2); background:var(--s1); border-radius:999px; padding:5px 11px; font-size:12.5px; color:var(--ink-2); cursor:pointer; display:flex; gap:6px; align-items:center; transition:all .14s var(--ease); }
+  .chips button:hover { border-color:var(--ink-3); color:var(--ink); }
+  .chips button.on { background:var(--ink); color:var(--s1); border-color:var(--ink); }
+  .chips button small { font:500 11px var(--mono); opacity:.7; }
+  .qrow { display:grid; grid-template-columns:24px 62px minmax(0,1fr) 66px; align-items:center; gap:10px; text-align:left; padding:10px 10px; margin:0 -10px; width:calc(100% + 20px); border:0; background:none; border-radius:10px; cursor:pointer; transition:background .14s var(--ease); }
+  .qrow:hover, .qrow.hov { background:var(--s2); }
+  .qrow.sel { background:var(--s3); }
+  .qrow .rk { font:11px var(--mono); color:var(--ink-3); }
+  .qrow .id { font:500 13px var(--mono); }
+  .qrow .why { font-size:13px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .qrow .sc { display:grid; gap:5px; justify-items:end; font:500 13px var(--mono); }
+  .mbar { width:100%; height:3px; background:var(--s3); border-radius:2px; overflow:hidden; display:block; }
+  .mbar i { display:block; height:100%; border-radius:2px; }
+  .status { font-size:11px; font-weight:600; margin-left:6px; }
+  .status.ok { color:var(--green); } .status.no { color:var(--ink-3); }
+  .totals { display:grid; grid-template-columns:1fr 1fr; gap:16px 20px; padding:16px 0 20px; margin-bottom:12px; border-bottom:1px solid var(--line); }
+  .totals .v { font:500 20px/1.2 var(--mono); letter-spacing:-.02em; }
+
+  /* map chrome */
+  #mapBox { position:absolute; inset:0; }
+  #map { position:absolute; inset:0; background:var(--bg); }
+  .leaflet-container { font:inherit; }
+  .leaflet-control-zoom a { color:var(--ink) !important; }
+  .leaflet-bar { border:1px solid var(--line) !important; box-shadow:var(--shadow) !important; border-radius:10px !important; overflow:hidden; }
+  .leaflet-control-attribution { background:rgba(10,11,10,.7) !important; color:var(--ink-3) !important; font-size:10.5px; }
+  .leaflet-tooltip.tc { background:var(--s2); color:var(--ink); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); font:12.5px/1.35 var(--sans); padding:6px 9px; }
+  .leaflet-tooltip.tc::before, .leaflet-tooltip.anno::before { display:none; }
+  .leaflet-tooltip.anno { background:rgba(10,11,10,.85); color:var(--ink); border:1px solid var(--line-2) !important; border:0; border-radius:7px; font:500 12px/1.3 var(--sans); padding:5px 9px; box-shadow:0 4px 14px rgba(0,0,0,.25); pointer-events:none; }
+  .leaflet-tooltip.anno b { font:500 11.5px var(--mono); margin-right:6px; }
+  .ovl { position:absolute; z-index:600; background:rgba(16,18,16,.86); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); }
+  #legend { left:16px; top:16px; padding:12px 14px; font-size:12.5px; display:grid; gap:6px; min-width:170px; }
+  #legend .t { font-weight:600; font-size:12.5px; margin-bottom:2px; }
+  #legend .li { display:flex; align-items:center; gap:9px; color:var(--ink-2); }
+  #basemap { right:60px; top:16px; padding:3px; display:flex; gap:2px; }
+  #basemap button, .seg button { border:0; background:none; padding:5px 11px; border-radius:8px; cursor:pointer; font-size:12.5px; color:var(--ink-2); }
+  #basemap button.on, .seg button.on { background:var(--ink); color:var(--s1); }
+  .seg { display:inline-flex; padding:3px; gap:2px; border:1px solid var(--line-2); border-radius:11px; background:var(--s1); }
+  .leaflet-top.leaflet-right { top:6px; right:6px; }
+
+  /* projection timeline (Planet-style) */
+  #timeline { left:50%; bottom:22px; transform:translateX(-50%); display:flex; align-items:center; gap:16px; padding:10px 18px 10px 10px; }
+  #mapBox.has-card #timeline { left:calc((100% - 440px) / 2); }
+  #mapBox.has-card .leaflet-top.leaflet-right, #mapBox.has-card #basemap { margin-right:430px; }
+  #bPlay { width:40px; height:40px; border-radius:50%; border:0; background:var(--ink); color:var(--s1); cursor:pointer; display:grid; place-items:center; flex:none; transition:transform .12s var(--ease); }
+  #bPlay:hover { transform:scale(1.06); }
+  #bPlay svg { display:block; }
+  .stops { position:relative; display:grid; grid-template-columns:repeat(3, 1fr); width:400px; }
+  .rail { position:absolute; top:7px; left:16.666%; right:16.666%; height:2px; background:var(--line-2); border-radius:1px; }
+  .rail i { position:absolute; inset:0 auto 0 0; background:var(--ink); border-radius:1px; }
+  .stops button { position:relative; background:none; border:0; padding:22px 4px 0; cursor:pointer; color:var(--ink-3); text-align:center; line-height:1.25; }
+  .stops button::before { content:''; position:absolute; top:2px; left:50%; width:12px; height:12px; margin-left:-6px; border-radius:50%; background:var(--s1); border:2px solid var(--line-2); transition:all .2s var(--ease); }
+  .stops button.past::before { border-color:var(--ink); }
+  .stops button.on::before { background:var(--ink); border-color:var(--ink); box-shadow:0 0 0 4px rgba(236,238,230,.15); }
+  .stops button.on, .stops button:hover { color:var(--ink); }
+  .stops b { display:block; font:500 13px var(--mono); }
+  .stops span { display:block; font-size:11px; }
+
+  /* floating detail card */
+  .card-float { position:absolute; z-index:650; top:16px; right:16px; bottom:16px; width:410px; overflow:auto; background:var(--s1); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:24px 24px 0; animation:slidein .28s var(--ease) both; }
+  @keyframes slidein { from { opacity:0; transform:translateX(16px); } }
+  .x { position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%; border:0; background:var(--s2); cursor:pointer; font-size:16px; line-height:1; color:var(--ink-2); }
+  .x:hover { background:var(--s3); color:var(--ink); }
+
+  /* segment pieces */
+  .kp { font:400 46px/0.95 var(--serif); letter-spacing:-.01em; }
+  .card-float .kp { font-size:38px; }
+  .km { font:12.5px var(--mono); color:var(--ink-2); margin-top:8px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font:600 12px/1 var(--sans); padding:6px 10px; border-radius:999px; white-space:nowrap; }
+  .chip .led { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .gauge { margin-top:22px; }
+  .gauge .row1 { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .gauge .big { font:500 46px/1 var(--mono); letter-spacing:-.04em; white-space:nowrap; }
+  .gauge .big small { font-size:14px; color:var(--ink-3); letter-spacing:0; }
+  .track { position:relative; height:8px; margin-top:14px; display:grid; grid-template-columns:40fr 25fr 35fr; gap:2px; }
+  .track span { border-radius:2px; opacity:.3; }
+  .track .pin { position:absolute; top:-6px; width:3px; height:20px; background:var(--ink); border-radius:2px; transition:left .35s var(--ease); box-shadow:0 0 0 3px var(--s1); }
+  .ticks { position:relative; height:14px; font:10.5px var(--mono); color:var(--ink-3); margin-top:6px; }
+  .ticks span { position:absolute; transform:translateX(-50%); } .ticks span:first-child { transform:none; } .ticks span:last-child { transform:translateX(-100%); }
+  .note { font-size:13px; color:var(--amber); border-left:2px solid var(--amber); padding:2px 0 2px 10px; margin-top:14px; }
+  .explain { margin-top:20px; padding:16px 18px; border-radius:12px; background:var(--s2); font-size:15px; line-height:1.6; }
+  .explain .src { margin-top:10px; font-size:12px; color:var(--ink-3); }
+  .blk { margin-top:28px; }
+  .blk > h3 { font-size:13px; font-weight:600; margin:0 0 10px; }
+  .drv { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px 12px; align-items:baseline; padding:9px 0; border-bottom:1px solid var(--line); }
+  .drv:last-child { border-bottom:0; }
+  .drv .l { font-size:14px; }
+  .drv .n { font:500 13px var(--mono); }
+  .drv .mbar { grid-column:1 / -1; height:3px; }
+  .hb { display:grid; grid-template-columns:110px minmax(0,1fr) 44px; gap:12px; align-items:center; padding:4px 0; }
+  .hb .lab { color:var(--ink-2); font-size:12.5px; }
+  .hb .bar { position:relative; height:12px; background:var(--s2); border-radius:3px; }
+  .hb .bar i { position:absolute; inset:0 auto 0 0; border-radius:3px; transition:width .35s var(--ease); }
+  .hb .bar b { position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--ink); border-radius:1px; }
+  .hb .val { text-align:right; font:500 13px var(--mono); }
+  .cap { font-size:12.5px; color:var(--ink-3); margin-top:10px; line-height:1.5; }
+  table.kv { width:100%; border-collapse:collapse; font-size:14px; }
+  table.kv td { padding:9px 0; border-bottom:1px solid var(--line); vertical-align:baseline; }
+  table.kv td:last-child { text-align:right; font:500 13px var(--mono); white-space:nowrap; padding-left:12px; }
+  table.kv tr:last-child td { border-bottom:0; }
+  .actions { position:sticky; bottom:0; margin:28px -24px 0; padding:16px 24px 20px; background:linear-gradient(to bottom, rgba(16,18,16,0), var(--s1) 16px); border-top:1px solid var(--line); }
+  .doc .actions { margin:32px 0 0; padding:20px 0 0; background:none; position:static; }
+  .btnrow { display:flex; gap:8px; }
+  .btn { flex:1; display:inline-flex; justify-content:center; align-items:center; gap:8px; padding:11px 14px; border-radius:10px; border:1px solid var(--line-2); background:var(--s1); cursor:pointer; font-size:14px; font-weight:500; text-decoration:none; transition:background .14s var(--ease), border-color .14s var(--ease), transform .08s; }
+  .btn:hover { background:var(--s2); border-color:var(--ink-3); }
+  .btn:active { transform:translateY(1px); }
+  .btn.primary { background:var(--ink); color:var(--s1); border-color:var(--ink); }
+  .btn.primary:hover { background:#fff; }
+  .btn[aria-pressed=true] { color:var(--green); background:rgba(47,158,91,.08); border-color:rgba(47,158,91,.5); }
+  .btn.ghost { flex:none; border-color:transparent; background:none; color:var(--ink-2); }
+  .btn.ghost:hover { background:var(--s2); }
+  .linkrow { display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:13.5px; }
+  .linkrow a { font-weight:500; text-decoration:none; }
+  .linkrow a:hover { text-decoration:underline; text-underline-offset:3px; }
+  details.ovr summary { cursor:pointer; font-size:13.5px; color:var(--ink-2); list-style:none; }
+  details.ovr summary::-webkit-details-marker { display:none; }
+  details.ovr summary::before { content:'+ '; font-family:var(--mono); }
+  details.ovr[open] summary::before { content:'– '; }
+  .ovrform { display:grid; grid-template-columns:120px minmax(0,1fr) auto; gap:6px; margin-top:10px; }
+  .field { background:var(--bg); border:1px solid var(--line-2); border-radius:8px; padding:8px 10px; font-size:13.5px; min-width:0; }
+  .field:focus { outline:none; border-color:var(--ink-2); }
+  .field.bad { border-color:var(--amber); }
+  .err { grid-column:1 / -1; font-size:12.5px; color:var(--amber); }
+  .seghead { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; }
+  .crumbs { display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:22px; }
+  .crumbs a { color:var(--ink-2); text-decoration:none; } .crumbs a:hover { color:var(--ink); }
+  .pager { display:flex; gap:6px; }
+
+  /* money */
+  .money { display:grid; grid-template-columns:380px minmax(0,1fr); gap:56px; align-items:start; margin-top:48px; }
+  .controls { position:sticky; top:24px; background:var(--s1); border:1px solid var(--line); border-radius:16px; padding:24px; }
+  .controls h3 { margin:0 0 4px; font-size:15px; }
+  .sl { padding:14px 0; border-bottom:1px solid var(--line); }
+  .sl:last-of-type { border-bottom:0; }
+  .sl .top { display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:14px; }
+  .sl .top b { font:500 14px var(--mono); }
+  .sl .tag { font-size:11px; font-weight:600; margin-left:6px; }
+  .sl .tag.src { color:var(--green); } .sl .tag.ours { color:var(--amber); }
+  input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; margin:6px 0 0; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:3px; border-radius:2px; background:linear-gradient(to right, var(--ink) var(--p,50%), var(--line-2) var(--p,50%)); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; margin-top:-7.5px; border-radius:50%; background:var(--ink); border:3px solid var(--s1); box-shadow:0 1px 4px rgba(0,0,0,.15); }
+  input[type=range]::-moz-range-track { height:3px; background:var(--line-2); }
+  input[type=range]::-moz-range-progress { height:3px; background:var(--ink); }
+  input[type=range]::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--ink); border:3px solid var(--s1); }
+  .callout { font-size:13px; line-height:1.55; padding:12px 14px; border-radius:10px; background:var(--s2); color:var(--ink-2); margin:14px 0 4px; }
+  .huge { font:500 clamp(44px, 6vw, 76px)/1 var(--mono); letter-spacing:-.05em; margin:8px 0 12px; font-variant-numeric:tabular-nums; }
+  .wf { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 92px; gap:16px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); }
+  .wf .l { font-size:14.5px; } .wf .l small { display:block; font-size:12.5px; color:var(--ink-3); }
+  .wf .trk { position:relative; height:14px; }
+  .wf .trk i { position:absolute; top:0; bottom:0; border-radius:3px; transition:left .35s var(--ease), width .35s var(--ease); }
+  .wf .trk b { position:absolute; left:50%; top:-6px; bottom:-6px; width:1px; background:var(--ink-3); }
+  .wf .n { text-align:right; font:500 14px var(--mono); }
+  .wf.total { border-bottom:0; border-top:2px solid var(--ink); }
+  .wf.grp { padding:20px 0 6px; border-bottom:0; font:500 10.5px/1.2 var(--mono); text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3); display:block; }
+  .verdict { border:1px solid var(--line-2); border-left:3px solid var(--green); border-radius:12px; padding:18px 20px; margin-bottom:28px; background:var(--s1); }
+  .verdict.warn { border-left-color:var(--amber); }
+  .verdict h3 { margin:0 0 6px; font-size:18px; font-weight:600; letter-spacing:-.01em; }
+  .verdict p { margin:6px 0 0; font-size:14px; line-height:1.55; color:var(--ink-2); max-width:70ch; }
+  .verdict p b { color:var(--ink); font-weight:600; }
+  .verdict .dep { font-size:13px; color:var(--ink-3); }
+  .wf.total .l { font-weight:600; }
+  .scen { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .scen button { text-align:left; padding:20px; border-radius:14px; border:1px solid var(--line); background:var(--s1); cursor:pointer; transition:border-color .14s var(--ease), box-shadow .14s var(--ease); }
+  .scen button:hover { border-color:var(--line-2); box-shadow:var(--shadow); }
+  .scen button.on { border-color:var(--ink); }
+  .scen .v { font:500 28px/1.1 var(--mono); letter-spacing:-.03em; margin:6px 0; display:block; }
+  .scen small { font-size:13px; color:var(--ink-2); }
+  .linkbtn { background:none; border:0; padding:0; color:var(--ink-2); text-decoration:underline; text-underline-offset:3px; cursor:pointer; font-size:13px; }
+  .sources { font-size:12.5px; color:var(--ink-3); line-height:1.6; margin-top:40px; max-width:70ch; }
+
+  /* work orders */
+  .wo { margin:0 0 14px; padding:14px 16px; border-radius:12px; border:1px solid var(--line-2); border-left:3px solid var(--green); background:var(--s2); }
+  .wo.cancelled { border-left-color:var(--ink-3); opacity:.75; }
+  .wo .h { display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .wo .h b { font:500 13px var(--mono); }
+  .wo .meta { font-size:12.5px; color:var(--ink-2); margin-top:4px; }
+  .wo ol { margin:10px 0 0; padding-left:18px; font-size:13px; line-height:1.5; color:var(--ink-2); }
+  .wo ol li { margin-bottom:4px; }
+  .wo .row2 { display:flex; gap:14px; margin-top:10px; font-size:12.5px; flex-wrap:wrap; }
+  .pri { font:600 11px/1 var(--mono); padding:3px 6px; border-radius:5px; background:var(--red); color:#1a0a08; }
+  .pri.P2 { background:var(--amber); } .pri.P3 { background:var(--green); }
+  #toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); opacity:0; z-index:2000; background:var(--ink); color:var(--bg); padding:11px 16px; border-radius:10px; font-size:13.5px; font-weight:500; box-shadow:var(--shadow); transition:opacity .2s var(--ease), transform .2s var(--ease); pointer-events:none; max-width:min(560px, calc(100vw - 32px)); }
+  #toast.on { opacity:1; transform:translateX(-50%); }
+
+  /* log */
+  table.log { width:100%; border-collapse:collapse; font-size:14px; }
+  table.log th { text-align:left; font-size:12px; font-weight:600; color:var(--ink-3); padding:0 12px 10px 0; border-bottom:1px solid var(--line-2); }
+  table.log td { padding:14px 12px 14px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.log td.m { font:13px var(--mono); white-space:nowrap; }
+  .empty { padding:56px 0; text-align:center; color:var(--ink-3); font-size:14px; border:1px dashed var(--line-2); border-radius:14px; }
+
+  /* alignment sheet */
+  #sheet { padding:12px 24px 10px; }
+  .frame #sheet { padding:18px 22px 14px; }
+  .sheet-head { display:flex; align-items:center; gap:16px; margin-bottom:8px; min-height:22px; }
+  .sheet-head .t { font-size:13px; font-weight:600; }
+  #readout { font-size:12.5px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #readout b { font:500 12.5px var(--mono); color:var(--ink); }
+  .keys { display:flex; gap:8px; align-items:center; font-size:11.5px; color:var(--ink-3); white-space:nowrap; }
+  kbd { font:500 10.5px/1 var(--mono); padding:2px 5px; border:1px solid var(--line-2); border-bottom-width:2px; border-radius:4px; color:var(--ink-2); background:var(--s2); }
+  #strip { display:block; width:100%; cursor:crosshair; user-select:none; }
+  #strip text { font-family:var(--sans); }
+  #strip .grow { transform-box:fill-box; transform-origin:bottom; animation:grow .7s var(--ease) both; }
+  @keyframes grow { from { transform:scaleY(0); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; }
+  }
+  @media (max-width: 1100px) {
+    .ws-grid { grid-template-columns:320px minmax(0,1fr); }
+    .stats { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .ledger { grid-template-columns:repeat(3, minmax(0,1fr)); }
+    .cell:nth-child(3) { border-right:0; }
+    .cell:nth-child(-n+3) { border-bottom:1px solid var(--line); }
+    .money { grid-template-columns:1fr; }
+    .controls { position:static; }
+    .keys { display:none; }
+    .card-float { width:360px; }
+  }
+  @media (max-width: 860px) {
+    body { height:auto; overflow:auto; display:block; }
+    header.top { gap:12px; padding:0 16px; position:sticky; top:0; z-index:1000; }
+    header .pill { display:none; }
+    header .pill.warn { display:inline-flex; font-size:0; padding:5px; } header .pill.warn .led { width:8px; height:8px; }
+    #views, .view { position:static; }
+    .view.ws { overflow:visible; }
+    .doc { padding:32px 16px 72px; }
+    .dek { font-size:16px; }
+    .cols.c2, .scen { grid-template-columns:1fr; }
+    .stats { grid-template-columns:1fr 1fr; gap:20px; }
+    .ov-grid { display:flex; flex-direction:column; height:auto; }
+    .ledger { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .cell { padding:12px 16px; border-bottom:1px solid var(--line); }
+    .cell:nth-child(2n) { border-right:0; }
+    .cell .v { font-size:22px; }
+    .ws-grid { display:flex; flex-direction:column; height:auto; }
+    .ws-map { height:62vh; order:-1; } .ov-grid .ws-map { order:0; }
+    .ws-list { border-right:0; padding:20px 16px; }
+    .card-float { position:static; width:auto; margin:0; border-radius:0; border-left:0; border-right:0; box-shadow:none; animation:none; }
+    .actions { position:static; margin:24px 0 0; padding:16px 0 20px; background:none; }
+    #timeline { left:12px; right:12px; transform:none; bottom:12px; padding:8px 12px 8px 8px; }
+    .stops { width:auto; flex:1; }
+    .stops span { display:none; }
+    #legend { top:12px; left:12px; min-width:0; font-size:11.5px; }
+    #basemap { top:auto; bottom:92px; right:12px; }
+    #sheet { padding:12px 16px; }
+    .wf { grid-template-columns:minmax(0,1fr) 80px; } .wf .trk { grid-column:1 / -1; grid-row:2; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>TerraCorridor</h1>
-  <span id="corridorName" class="muted"></span>
-  <span id="synthBadge" class="badge" hidden>Synthetic demo data</span>
+<header class="top">
+  <a class="mark" href="#/" aria-label="TerraCorridor overview">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 16 C6 16 7 6 11 6 S16 15 20 13" fill="none" stroke="#eceee6" stroke-width="1.6"/><circle cx="2" cy="16" r="2" fill="#eceee6"/><circle cx="11" cy="6" r="2.2" fill="#f2a93b"/><circle cx="20" cy="13" r="2" fill="#eceee6"/></svg>
+    <span>Terra<em>Corridor</em></span>
+  </a>
+  <nav class="pages" id="nav" aria-label="Pages">
+    <a href="#/" data-p="overview">Overview</a>
+    <a href="#/triage" data-p="triage">Triage</a>
+    <a href="#/money" data-p="money">Money</a>
+    <a href="#/build" data-p="build">Build</a>
+    <a href="#/log" data-p="log">Work orders <span class="count" id="logCount" data-n="0">0</span></a>
+  </nav>
   <span class="spacer"></span>
-  <span class="muted">Horizon</span>
-  <div class="seg" id="horizon"><button data-v="5">5 years</button><button data-v="10" class="on">10 years</button></div>
-  <span class="muted">Layer</span>
-  <div class="seg" id="layer"><button data-v="risk" class="on">Risk</button><button data-v="build">Build</button></div>
+  <span class="pill warn" id="synthBadge" hidden><span class="led"></span>Synthetic demo data</span>
+  <span class="pill live" id="liveBadge" hidden><span class="led"></span>Live from n8n</span>
+  <span class="pill" id="genAt"></span>
 </header>
 
-<div class="kpis">
-  <div class="kpi"><div class="v" id="kTiers">-</div><div class="l">Red / amber segments</div><div class="s" id="kTiersS"></div></div>
-  <div class="kpi"><div class="v" id="kConc">-</div><div class="l">Expected loss in the top 10</div><div class="s" id="kConcS"></div></div>
-  <div class="kpi"><div class="v" id="kInsp">-</div><div class="l">Inspection savings per year</div><div class="s" id="kInspS"></div></div>
-  <div class="kpi"><div class="v" id="kBreak">-</div><div class="l">Failures to prevent to break even</div><div class="s" id="kBreakS"></div></div>
-  <div class="kpi"><div class="v" id="kLease">-</div><div class="l">New lease revenue per year</div><div class="s" id="kLeaseS"></div></div>
-  <div class="kpi"><div class="v" id="kNet">-</div><div class="l">Net value over horizon</div><div class="s" id="kNetS"></div></div>
+<div id="views">
+  <!-- OVERVIEW -->
+  <section class="view ws" id="view-overview" hidden>
+    <div class="ov-grid" id="ovGrid">
+      <section class="ledger" id="ovLedger" aria-label="Climate summary"></section>
+      <div class="hint" id="ovHint">
+        <span><b>How to read this:</b> the line is a 169 km pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.
+        <span class="k" style="color:var(--red)">Red</span> = send a crew, <span class="k" style="color:var(--amber)">amber</span> = watch, <span class="k" style="color:var(--green)">green</span> = inspect less.
+        Press <b>&#9654;</b> on the map to watch climate change shift it from today to 2036. Hover any number for what it means.</span>
+        <button class="linkbtn" id="bHint">Got it</button>
+      </div>
+      <div class="ws-map"><div class="map-slot" data-map></div></div>
+      <div class="ws-strip ov-strip" data-strip="0.55" data-lanes="climate" data-annot="1"></div>
+    </div>
+  </section>
+
+  <!-- TRIAGE -->
+  <section class="view ws" id="view-triage" hidden>
+    <div class="ws-grid">
+      <div class="ws-list" id="triageList"></div>
+      <div class="ws-map"><div class="map-slot" data-map></div><div class="card-float" id="triageCard" hidden></div></div>
+      <div class="ws-strip" data-strip="1"></div>
+    </div>
+  </section>
+
+  <!-- SEGMENT -->
+  <section class="view" id="view-segment" hidden>
+    <div class="doc">
+      <div id="segHead"></div>
+      <div class="frame" style="margin-top:32px"><div data-strip="0.75"></div></div>
+      <div id="segBody"></div>
+    </div>
+  </section>
+
+  <!-- MONEY -->
+  <section class="view" id="view-money" hidden>
+    <div class="doc">
+      <p class="kicker">Money</p>
+      <h1 class="ph">Is it worth running?</h1>
+      <p class="dek" id="mDek"></p>
+      <div style="margin-top:22px" id="mStops"></div>
+      <div class="money">
+        <div class="controls">
+          <h3>Assumptions</h3>
+          <div class="callout"><b>Sourced:</b> $430k average ground-movement failure; $11.7M for one geohazard rupture. Anything tagged <b>ours</b> is our assumption, for expert review.</div>
+          <div class="sl"><div class="top"><span>Cost of one failure<span class="tag src">sourced range</span></span><b id="vCost"></b></div><input type="range" id="sCost" min="0" max="100" value="0" aria-label="Cost of one failure"></div>
+          <div class="sl"><div class="top"><span>Base failure rate / km-yr<span class="tag ours">ours</span></span><b id="vRate"></b></div><input type="range" id="sRate" min="1" max="50" value="5" aria-label="Base failure rate"></div>
+          <div class="sl"><div class="top"><span>Work order effectiveness<span class="tag ours">ours</span></span><b id="vEff"></b></div><input type="range" id="sEff" min="10" max="95" value="75" aria-label="Work order effectiveness"></div>
+          <div class="sl"><div class="top"><span>Lease rate / acre / yr<span class="tag ours">ours</span></span><b id="vLease"></b></div><input type="range" id="sLease" min="100" max="2000" step="50" value="400" aria-label="Lease rate"></div>
+          <div class="sl"><div class="top"><span>Panel strip width<span class="tag ours">ours</span></span><b id="vStrip"></b></div><input type="range" id="sStrip" min="10" max="400" step="10" value="60" aria-label="Panel strip width"><div class="cap" style="margin-top:2px">Total width leased for panels, both sides combined, outside the 30 m no-build zone around the pipe. The study area is 200 m each side; we only count this strip.</div></div>
+          <div class="sl"><div class="top"><span>Landowner partner share<span class="tag ours">ours</span></span><b id="vShare"></b></div><input type="range" id="sShare" min="0" max="100" value="50" aria-label="Partner share"></div>
+          <div class="sl"><div class="top"><span>Program cost / yr<span class="tag ours">ours</span></span><b id="vProg"></b></div><input type="range" id="sProg" min="10000" max="250000" step="5000" value="50000" aria-label="Program cost"></div>
+          <p style="margin:14px 0 0"><button class="linkbtn" id="bReset">Reset to defaults</button></p>
+        </div>
+        <div>
+          <div id="mVerdict"></div>
+          <div id="mNet"></div>
+          <div id="mWf"></div>
+          <section class="s" style="margin-top:40px"><div class="shead"><h2>Failure cost scenarios</h2><p>Combined net value under each sourced failure cost. Click one to apply it.</p></div><div class="scen" id="mScen"></div></section>
+          <section class="s" style="margin-top:40px"><div class="shead"><h2>Also from the solar sites (not counted above)</h2></div><div id="mLease"></div></section>
+          <div class="sources" id="sourcesSec"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUILD -->
+  <section class="view ws" id="view-build" hidden>
+    <div class="ws-grid">
+      <div class="ws-list" id="buildList"></div>
+      <div class="ws-map"><div class="map-slot" data-map></div><div class="card-float" id="buildCard" hidden></div></div>
+      <div class="ws-strip" data-strip="1" data-lanes="build"></div>
+    </div>
+  </section>
+
+  <!-- LOG -->
+  <section class="view" id="view-log" hidden><div class="doc" id="logDoc"></div></section>
 </div>
 
-<main>
-  <div id="map"></div>
-  <aside>
-    <section id="topSec"><h2 id="topTitle">Top 10 risks</h2><div id="topList"></div></section>
-    <section id="segSec" hidden></section>
-    <section>
-      <h2>Assumptions</h2>
-      <div class="assump">Sourced: $430k average ground-movement failure, $11.7M one geohazard rupture. Everything else is our assumption. Change it and every number updates.</div>
-      <label class="sl">Cost of one failure: <b id="vCost"></b></label><input type="range" id="sCost" min="0" max="100" value="0">
-      <label class="sl">Base natural-force failure rate per km-year: <b id="vRate"></b></label><input type="range" id="sRate" min="1" max="50" value="5">
-      <label class="sl">Work order effectiveness: <b id="vEff"></b></label><input type="range" id="sEff" min="10" max="95" value="75">
-      <label class="sl">Lease rate per acre per year: <b id="vLease"></b></label><input type="range" id="sLease" min="100" max="2000" step="50" value="600">
-      <label class="sl">Landowner partner share: <b id="vShare"></b></label><input type="range" id="sShare" min="0" max="100" value="50">
-      <label class="sl">Program cost per year: <b id="vProg"></b></label><input type="range" id="sProg" min="10000" max="250000" step="5000" value="50000">
-    </section>
-    <section><h2>Audit log</h2><div class="audit" id="auditLog"><span class="muted">No actions yet.</span></div></section>
-    <section class="muted" id="sourcesSec"></section>
-  </aside>
-</main>
+<!-- Shared pieces, moved into whichever page is showing -->
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="parking" hidden>
+  <div id="mapBox">
+    <div id="map" aria-label="Corridor map"></div>
+    <div class="ovl" id="legend"></div>
+    <div class="ovl" id="basemap" role="group" aria-label="Basemap"><button data-bm="sat" class="on">Satellite</button><button data-bm="map">Map</button></div>
+    <div class="ovl" id="timeline" role="group" aria-label="Projection timeline">
+      <button id="bPlay" aria-label="Play the projection"></button>
+      <div class="stops">
+        <i class="rail"><i id="tlFill"></i></i>
+        <button data-stop="y0"><b>Today</b><span>past 30 years, measured</span></button>
+        <button data-stop="y5"><b>2031</b><span>climate models</span></button>
+        <button data-stop="y10"><b>2036</b><span>climate models</span></button>
+      </div>
+    </div>
+  </div>
+  <div id="sheet">
+    <div class="sheet-head">
+      <span class="t">Pipeline, km by km</span>
+      <span id="readout"></span>
+      <span class="spacer"></span>
+      <span class="keys"><kbd>←</kbd><kbd>→</kbd> step <kbd>P</kbd> play <kbd>A</kbd> approve <kbd>Esc</kbd> close</span>
+    </div>
+    <svg id="strip" role="img" aria-label="Risk score, tier, slope, vegetation change and solar potential for every kilometre post"></svg>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -97,207 +495,1020 @@
 // Where data comes from. When n8n serves this page it sets window.TC_API to its webhook base.
 const API = window.TC_API || new URLSearchParams(location.search).get('api') || '';
 const DATA_URL = API ? API + '/corridor' : '../data/demo/corridor.json';
-const fmt$ = (n) => n == null ? '-' : (Math.abs(n) >= 1e6 ? '$' + (n / 1e6).toFixed(2) + 'M' : Math.abs(n) >= 1e3 ? '$' + Math.round(n / 1e3) + 'k' : '$' + Math.round(n));
-const tierColor = { green:'#3fb950', amber:'#d29922', red:'#f85149', 'red-uncertain':'#f85149', unverified:'#6e7681', grey:'#6e7681', excluded:'#484f58' };
 
-let D, cfg, horizon = 10, layer = 'risk', selected = null, map, lines = {}, audit = [];
+// Hex mirrors of the CSS tokens (SVG attributes and Leaflet need literal colours).
+const C = { green:'#6fd08f', amber:'#f2a93b', red:'#ff5d4f', 'red-uncertain':'#ff5d4f', unverified:'#5d625a', grey:'#5d625a', excluded:'#3a3e38',
+  build:'#d6f35f', buildDim:'#7d8a45', sub:'#82c8ff', ink:'#eceee6', ink2:'#a5aa9f', ink3:'#7a7f75', line:'#252925', line2:'#323732', s1:'#101210', s2:'#161916', bg:'#0a0b0a',
+  rain:'#82c8ff', freeze:'#c3b6ff', wet:'#5fd4c4', fire:'#ff8a5c', dry:'#d9b46a', river:'#5aa9ff' };
+const HAZ = { ground: 'Ground failure', crossing: 'River crossing', wildfire: 'Wildfire weather', drought: 'Drought' };
+const TIER_LABEL = { green:'Low', amber:'Medium', red:'High', 'red-uncertain':'High · models disagree', unverified:'Missing data', grey:'Poor site', excluded:'Too steep' };
+const STOPS = ['y0', 'y5', 'y10'];
+const STOP_LABEL = { y0:'Today', y5:'2031', y10:'2036' };
+const DRIVER_WORD = { rain:'heavy rain', freezeThaw:'freeze-thaw', saturation:'soaked ground', vegetation:'plant loss', slope:'slope' };
+const PAGES = ['overview', 'triage', 'segment', 'money', 'build', 'log'];
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 1.5v11l9.5-5.5z" fill="currentColor"/></svg>';
+const ICON_PAUSE = '<svg width="14" height="14" viewBox="0 0 14 14"><rect x="2.5" y="1.5" width="3.2" height="11" rx="1" fill="currentColor"/><rect x="8.3" y="1.5" width="3.2" height="11" rx="1" fill="currentColor"/></svg>';
 
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const fmt$ = (n) => n == null ? '–' : (n < 0 ? '−' : '') + (Math.abs(n) >= 1e6 ? '$' + (Math.abs(n) / 1e6).toFixed(2) + 'M' : Math.abs(n) >= 1e3 ? '$' + Math.round(Math.abs(n) / 1e3) + 'k' : '$' + Math.round(Math.abs(n)));
+const sign = (n) => n == null ? '–' : (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
 const costFromSlider = (v) => Math.round(430000 * Math.pow(11700000 / 430000, v / 100) / 1000) * 1000;
+const sliderFromCost = (c) => Math.round(100 * Math.log(c / 430000) / Math.log(11700000 / 430000));
 
+let D, cfg, segs, page = null, stop = 'y10', layer = 'risk', selected = null, hover = null, filter = 'attn', hazardFilter = 'all', buildFilter = 'ready';
+let map, baseLayers = {}, lines = {}, casings = {}, sunBands = {}, sunLayer, crossLayer, crossMarkers = [], annoLayer, audit = [], firstDraw = true, anim = null, playing = false;
+const byId = (id) => D.segments.find((s) => s.id === id);
+const years = () => stop === 'y5' ? 5 : 10;
+const kmOf = (n) => n * ((D.config && D.config.segmentKm) || 1);
+
+/* ---------- config + derived data ---------- */
 function readConfig() {
-  cfg = ENGINE.mergeConfig({ ...D.config, money: { ...D.config.money,
+  cfg = ENGINE.mergeConfig({ ...D.config, buildStripM: +sStrip.value, money: { ...D.config.money,
     costOfFailure: costFromSlider(+sCost.value),
     baseFailRatePerKmYr: +sRate.value * 1e-5,
     mitigationEffectiveness: +sEff.value / 100,
     leaseRatePerAcreYr: +sLease.value,
     partnerShare: +sShare.value / 100,
     programCostYr: +sProg.value,
-  }});
+  } });
   vCost.textContent = fmt$(cfg.money.costOfFailure);
-  vRate.textContent = (cfg.money.baseFailRatePerKmYr).toExponential(1);
+  vRate.textContent = cfg.money.baseFailRatePerKmYr.toExponential(1);
   vEff.textContent = Math.round(cfg.money.mitigationEffectiveness * 100) + '%';
   vLease.textContent = '$' + cfg.money.leaseRatePerAcreYr;
+  vStrip.textContent = cfg.buildStripM + ' m · ' + ((1000 * cfg.buildStripM) / 4046.86).toFixed(1) + ' ac/km';
   vShare.textContent = Math.round(cfg.money.partnerShare * 100) + '%';
   vProg.textContent = fmt$(cfg.money.programCostYr);
+  document.querySelectorAll('input[type=range]').forEach((r) => r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min)) * 100 + '%'));
 }
 
-function key() { return horizon === 5 ? 'y5' : 'y10'; }
+// "Today": the same engine, with every climate model held at the observed 1995-2025 baseline (no change).
+function addObservedStop() {
+  for (const s of D.segments) {
+    const b = s.baseline;
+    if (!b || !s.projections) { s.risk.y0 = ENGINE.riskScore({ ...s, projections: null }, 'y0', cfg); continue; }
+    const obs = { extremeDaysPerYr: b.extremeDaysPerYr, refExtremeDaysPerYr: b.extremeDaysPerYr,
+      freezeThawDaysPerYr: b.freezeThawDaysPerYr, refFreezeThawDaysPerYr: b.freezeThawDaysPerYr,
+      wetSoilDaysPerYr: b.wetSoilDaysPerYr, refWetSoilDaysPerYr: b.wetSoilDaysPerYr,
+      drySoilDaysPerYr: b.drySoilDaysPerYr, refDrySoilDaysPerYr: b.drySoilDaysPerYr,
+      drySpellDays: b.drySpellDays, refDrySpellDays: b.drySpellDays,
+      fireWeatherDaysPerYr: b.fireWeatherDaysPerYr, refFireWeatherDaysPerYr: b.fireWeatherDaysPerYr };
+    const r0 = ENGINE.riskScore({ ...s, projections: { y0: { OBSERVED: obs } } }, 'y0', cfg);
+    // Today uses no climate models, so "models disagree" can't apply.
+    s.risk.y0 = { ...r0, tier: r0.tier === 'red-uncertain' ? 'red' : r0.tier, agreement: 'observed' };
+  }
+}
 
+function summarize(c = cfg) {
+  const k = stop, view = D.segments.map((s) => ({ ...s, risk: { y5: s.risk[k], y10: s.risk[k] } }));
+  return ENGINE.corridorSummary(view, c, { years: years(), topN: 10 });
+}
+
+// Projected change (%) in a climate driver vs the observed baseline. "Today" is 0 by definition.
+function climateAt(s, k) {
+  const val = (st) => {
+    if (st === 'y0') return s.baseline ? 0 : null;
+    const hz = s.risk[st].hazards || {};
+    if (k === 'fire') return hz.wildfire ? hz.wildfire.change.fireDays : null;
+    if (k === 'drySoil') return hz.drought ? hz.drought.change.drySoil : null;
+    const d = (s.risk[st].drivers || []).find((x) => x.key === k); return d ? d.change : null;
+  };
+  if (!anim) return val(stop);
+  const a = val(anim.from), b = val(anim.to);
+  if (a == null || b == null) return b ?? a;
+  const e = anim.t < .5 ? 2 * anim.t * anim.t : 1 - Math.pow(-2 * anim.t + 2, 2) / 2;
+  return a + (b - a) * e;
+}
+// Corridor mean of a climate driver: observed days/yr and bias-corrected projected days/yr at a stop.
+function corridorClimate(k, st = stop) {
+  let base = 0, proj = 0, n = 0;
+  for (const s of segs) {
+    const d = (s.risk.y10.drivers || []).find((x) => x.key === k); if (!d || d.base == null) continue;
+    const dp = st === 'y0' ? d : (s.risk[st].drivers || []).find((x) => x.key === k);
+    if (!dp || dp.proj == null) continue;
+    base += d.base; proj += st === 'y0' ? d.base : dp.proj; n++;
+  }
+  return n ? { base: base / n, proj: proj / n, change: Math.round((proj / base - 1) * 100), n } : null;
+}
+// Corridor mean of a hazard measure (fire-weather days, dry-soil days, longest dry spell) at a stop.
+function corridorHazard(hk, field, st = stop) {
+  let base = 0, proj = 0, n = 0;
+  for (const s of segs) {
+    const h10 = (s.risk.y10.hazards || {})[hk]; if (!h10 || h10.base[field] == null) continue;
+    const hp = st === 'y0' ? h10 : (s.risk[st].hazards || {})[hk];
+    const pv = st === 'y0' ? h10.base[field] : hp && hp.proj[field]; if (pv == null) continue;
+    base += h10.base[field]; proj += pv; n++;
+  }
+  return n ? { base: base / n, proj: proj / n, change: Math.round((proj / base - 1) * 100), n } : null;
+}
+// One short phrase for why a kilometre ranks where it does: its worst hazard.
+function whyText(r) {
+  const h = r.hazards && r.hazards[r.hazard];
+  if (!h || r.hazard === 'ground') return driverText(r.drivers[0]);
+  if (r.hazard === 'wildfire') return `wildfire weather ${sign(h.change.fireDays)}%`;
+  if (r.hazard === 'drought') return h.change.drySoil != null ? `drought: dry soil ${sign(h.change.drySoil)}%` : 'drought';
+  return `river crossing${h.crossings && h.crossings[0] && h.crossings[0].name ? ': ' + h.crossings[0].name : ''}`;
+}
+function scoreAt(s) {
+  if (!anim) return s.risk[stop].score;
+  const a = s.risk[anim.from].score, b = s.risk[anim.to].score;
+  if (a == null || b == null) return null;
+  const e = anim.t < .5 ? 2 * anim.t * anim.t : 1 - Math.pow(-2 * anim.t + 2, 2) / 2;
+  return a + (b - a) * e;
+}
+function tierOf(s) {
+  if (s.override && s.override.stop === stop && !anim) return s.override.tier;
+  if (!anim) return s.risk[stop].tier || 'unverified';
+  const v = scoreAt(s);
+  return v == null ? 'unverified' : v >= cfg.tiers.red ? 'red' : v >= cfg.tiers.amber ? 'amber' : 'green';
+}
+const isHigh = (s) => tierOf(s).startsWith('red');
+function mapColor(s) {
+  if (layer === 'build') { const t = s.build ? s.build.tier : 'unverified'; return t === 'green' ? C.build : t === 'amber' ? C.buildDim : C[t] || C.grey; }
+  return C[tierOf(s)] || C.grey;
+}
+
+// Runs of high-risk kilometres (gaps of up to 2 km are bridged), with their main driver.
+function clusters() {
+  const out = []; let cur = null;
+  segs.forEach((s, i) => {
+    if (!isHigh(s)) return;
+    if (cur && i - cur.to <= 3) cur.to = i; else { cur = { from: i, to: i }; out.push(cur); }
+  });
+  return out.map((c) => {
+    const ss = segs.slice(c.from, c.to + 1).filter(isHigh);
+    const counts = {};
+    for (const s of ss) { const r = s.risk[stop]; if (r && r.hazard) (counts[r.hazard] = counts[r.hazard] || []).push(s); }
+    const [hk, list] = Object.entries(counts).sort((a, b) => b[1].length - a[1].length)[0] || [];
+    const all = segs.slice(c.from, c.to + 1);
+    // The cluster's label is the hazard most of its high-risk km share, phrased from its worst km.
+    const worst = list ? list.reduce((a, x) => (x.risk[stop].score > a.risk[stop].score ? x : a), list[0]) : null;
+    return { ...c, n: ss.length, kpFrom: all[0].kmFrom, kpTo: all[all.length - 1].kmTo, mid: all[Math.floor(all.length / 2)], key: hk,
+      text: worst ? whyText(worst.risk[stop]) : '' };
+  });
+}
+const kpRange = (c) => `KP ${c.kpFrom}–${c.kpTo}`;
+const listJoin = (a) => a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+
+/* ---------- recompute + refresh ---------- */
 function recompute() {
   readConfig();
-  for (const s of D.segments) {
-    if (s.override) s.risk[key()].tierShown = s.override.tier;
-    s.build = ENGINE.buildScore(s, s.risk.y10, cfg);
+  for (const s of D.segments) s.build = ENGINE.buildScore(s, s.risk.y10, cfg);
+  D.live = summarize();
+  refresh();
+}
+function refresh() {
+  paint(); renderLegend(); drawStrip(); updateTimeline(); renderPage(); updateAnnotations();
+}
+function renderPage() {
+  ({ overview: renderOverview, triage: renderTriage, segment: renderSegment, money: renderMoney, build: renderBuild, log: renderLog })[page]();
+}
+
+/* ---------- router ---------- */
+function parse() {
+  const [p, id] = location.hash.replace(/^#\/?/, '').split('/');
+  return { p: PAGES.includes(p) ? p : 'overview', id: id || null };
+}
+const go = (p, id) => { location.hash = '#/' + (p === 'overview' ? '' : p) + (id ? '/' + id : ''); };
+
+function onRoute() {
+  const { p, id } = parse();
+  const sid = id && byId(id) ? id : null;
+  if (p === 'segment' && !sid) return go('triage');
+  const prev = page, selPrev = selected;
+  page = p;
+  selected = ['triage', 'build', 'segment'].includes(p) ? sid : null;
+  layer = p === 'build' ? 'build' : 'risk';
+  if (prev !== p) {
+    for (const v of PAGES) $('view-' + v).hidden = v !== p;
+    document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('on', a.dataset.p === p || (p === 'segment' && a.dataset.p === 'triage')));
+    mount();
+    $('view-' + p).scrollTop = 0;
+  } else if (p === 'segment') $('view-segment').scrollTop = 0;
+  refresh();
+  if (mapMounted()) {
+    if (prev !== p) requestAnimationFrame(() => { map.invalidateSize(); selected ? flyTo(selected, true) : fitAll(); });
+    else if (selected && selected !== selPrev) flyTo(selected);
+    else if (!selected && selPrev) fitAll(true);
   }
-  const sum = ENGINE.corridorSummary(D.segments, cfg, { years: horizon, topN: 10 });
-  D.live = sum;
-  kTiers.textContent = `${sum.tiers.red || 0} / ${sum.tiers.amber || 0}`;
-  kTiersS.textContent = `of ${sum.segments} km-segments, ${sum.tiers.unverified || 0} unverified`;
-  kConc.textContent = sum.topShareOfLoss == null ? '-' : Math.round(sum.topShareOfLoss * 100) + '%';
-  kConcS.textContent = `${fmt$(sum.expectedLossTotal)} expected loss over ${horizon} yr`;
-  kInsp.textContent = fmt$(sum.inspectionSavingsYr);
-  kInspS.textContent = `${sum.greenKm} green km inspected every ${cfg.money.greenInspectEveryYrs} yr`;
-  kBreak.textContent = sum.breakEvenFailures;
-  kBreakS.textContent = `in ${horizon} yr; one avoided failure pays ${sum.yearsPaidByOneFailure} yr`;
-  kLease.textContent = fmt$(sum.leaseRevenueYr);
-  kLeaseS.textContent = `${sum.buildableKm} km buildable, partner ${fmt$(sum.partnerRevenueYr)}`;
-  kNet.textContent = fmt$(sum.netValue);
-  kNet.style.color = sum.netValue >= 0 ? 'var(--green)' : 'var(--red)';
-  kNetS.textContent = 'avoided loss + inspection savings - work orders - program';
-  paint();
-  renderTop();
-  if (selected) renderSeg(selected);
 }
 
-function segTier(s) {
-  if (layer === 'build') return s.build ? s.build.tier : 'unverified';
-  if (s.override && s.override.horizon === horizon) return s.override.tier;
-  return (s.risk[key()] || {}).tier || 'unverified';
+function mount() {
+  const view = $('view-' + page), ms = view.querySelector('[data-map]'), ss = view.querySelector('[data-strip]');
+  (ms || $('parking')).appendChild(mapBox);
+  (ss || $('parking')).appendChild(sheet);
+  firstDraw = true;
 }
+const mapMounted = () => mapBox.parentElement && mapBox.parentElement.id !== 'parking';
 
+/* ---------- sun exposure ---------- */
+// NASA POWER all-sky irradiance (kWh/m2/day). The ramp is stretched to this corridor's own range,
+// and the legend prints the real min and max so the stretch is never hidden.
+const SUN_STOPS = [[0, [74, 44, 18]], [.5, [242, 169, 59]], [1, [255, 236, 140]]];
+function sunRange() {
+  const v = segs.map((s) => s.irradiance).filter((x) => x != null);
+  return v.length ? [Math.min(...v), Math.max(...v)] : [0, 1];
+}
+function sunColor(v) {
+  const [lo, hi] = sunRange(), t = hi > lo ? Math.min(1, Math.max(0, (v - lo) / (hi - lo))) : .5;
+  const i = t <= .5 ? 0 : 1, a = SUN_STOPS[i], b = SUN_STOPS[i + 1], k = (t - a[0]) / (b[0] - a[0]);
+  return 'rgb(' + a[1].map((c, j) => Math.round(c + (b[1][j] - c) * k)).join(',') + ')';
+}
+const sunGradient = () => `linear-gradient(to right, ${[0, .25, .5, .75, 1].map((t) => { const [lo, hi] = sunRange(); return sunColor(lo + t * (hi - lo)); }).join(',')})`;
+
+/* ---------- map ---------- */
+function initMap() {
+  // setView now so Leaflet counts as "loaded"; otherwise invalidateSize() is a no-op and the first fit uses a 0x0 size.
+  map = L.map('map', { zoomControl: false, zoomSnap: .25, zoomDelta: .5 }).setView([53.1, -112.4], 8);
+  L.control.zoom({ position: 'topright' }).addTo(map);
+  baseLayers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagery: Esri, Maxar, Earthstar Geographics', maxZoom: 18 });
+  baseLayers.map = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap contributors © CARTO', subdomains: 'abcd', maxZoom: 19 });
+  baseLayers.sat.addTo(map);
+  const all = [];
+  sunLayer = L.layerGroup();
+  for (const s of segs) {
+    if (s.irradiance == null) continue;
+    sunBands[s.id] = L.polyline(s.centreline.map((p) => [p[1], p[0]]), { color: sunColor(s.irradiance), weight: 30, opacity: .62, lineCap: 'butt', interactive: false }).addTo(sunLayer);
+  }
+  for (const s of segs) {
+    const ll = s.centreline.map((p) => [p[1], p[0]]); all.push(...ll);
+    casings[s.id] = L.polyline(ll, { color: C.bg, weight: 9, opacity: .9, interactive: false }).addTo(map);
+  }
+  for (const s of segs) {
+    const ll = s.centreline.map((p) => [p[1], p[0]]);
+    lines[s.id] = L.polyline(ll, { color: C.grey, weight: 5, lineCap: 'butt' }).addTo(map)
+      .on('click', () => select(s.id)).on('mouseover', () => setHover(s.id)).on('mouseout', () => setHover(null))
+      .bindTooltip(() => tipText(s), { sticky: true, className: 'tc', direction: 'top', offset: [0, -10] });
+  }
+  (D.substations || []).forEach((p) => L.circleMarker([p[1], p[0]], { radius: 5, color: C.bg, weight: 2, fillColor: C.sub, fillOpacity: 1 })
+    .addTo(map).bindTooltip('Substation (illustrative)', { className: 'tc' }));
+  crossLayer = L.layerGroup().addTo(map);
+  for (const s of segs) for (const x of s.crossings || []) {
+    if (!x.at) continue;
+    crossMarkers.push({ s, m: L.circleMarker([x.at[1], x.at[0]], { radius: 7, color: C.bg, weight: 2, fillColor: C.river, fillOpacity: 1 })
+      .addTo(crossLayer).on('click', () => select(s.id))
+      .bindTooltip(() => { const h = (s.risk[stop].hazards || {}).crossing; return `<b>River crossing</b> · ${esc(x.name || x.kind)}${x.peakFlowM3s != null ? ' · peak ' + Math.round(x.peakFlowM3s) + ' m³/s' : ''}${h ? ' · ' + TIER_LABEL[h.tier] + ' ' + Math.round(h.score) : ''}`; }, { className: 'tc', direction: 'top', offset: [0, -8] }) });
+  }
+  annoLayer = L.layerGroup().addTo(map);
+  D.bounds = L.latLngBounds(all);
+  new ResizeObserver(() => map.invalidateSize()).observe(mapBox);
+}
+function fitAll(animate) {
+  // Overview sits back a little so the corridor reads in its landscape; workspaces fit tighter.
+  const pad = page === 'overview' ? D.bounds.pad(.12) : D.bounds;
+  map.fitBounds(pad, { paddingTopLeft: [48, 48], paddingBottomRight: [48, 120], animate: !!animate });
+}
+function cardPad() { return window.innerWidth > 860 && page !== 'overview' ? 440 : 0; }
+function flyTo(id, instant) {
+  const s = byId(id); if (!s || !mapMounted()) return;
+  const b = L.latLngBounds(s.studyPolygon.map((p) => [p[1], p[0]])).pad(1.6);
+  const opts = { paddingTopLeft: [40, 40], paddingBottomRight: [cardPad() + 40, 120], maxZoom: 14 };
+  if (instant || REDUCED) map.fitBounds(b, { ...opts, animate: false }); else map.flyToBounds(b, { ...opts, duration: .8 });
+}
+function tipText(s) {
+  if (layer === 'build') return `<b>${s.id}</b> · ${TIER_LABEL[s.build.tier] === 'Low' ? 'Build-ready' : s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier] || s.build.tier}${s.build.mw ? ' · ' + s.build.mw + ' MW' : ''}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
+  const v = scoreAt(s);
+  const r = s.risk[stop];
+  return `<b>${s.id}</b> · ${TIER_LABEL[tierOf(s)]} risk · ${v == null ? '–' : v.toFixed(0)}${r && r.hazard ? ' · ' + esc(whyText(r)) : ''}`;
+}
 function paint() {
-  for (const s of D.segments) {
-    const t = segTier(s);
-    lines[s.id].setStyle({ color: tierColor[t] || '#6e7681', weight: s.id === selected ? 9 : (t.startsWith('red') ? 7 : 5), opacity: 0.95 });
+  if (!map) return;
+  if (layer === 'build' && !map.hasLayer(sunLayer)) { sunLayer.addTo(map); sunLayer.eachLayer((l) => l.bringToBack()); }
+  if (layer !== 'build' && map.hasLayer(sunLayer)) map.removeLayer(sunLayer);
+  for (const s of segs) {
+    const isSel = s.id === selected, isHov = s.id === hover, t = tierOf(s);
+    const w = isSel ? 9 : isHov ? 8 : (layer === 'risk' && t.startsWith('red') ? 6.5 : 5);
+    lines[s.id].setStyle({ color: mapColor(s), weight: w, opacity: selected && !isSel && !isHov ? .75 : 1 });
+    casings[s.id].setStyle({ color: isSel ? C.ink : C.bg, weight: w + (isSel ? 6 : 4) });
+    if (isSel || isHov) { casings[s.id].bringToFront(); lines[s.id].bringToFront(); }
+  }
+  // Crossing markers take the crossing hazard's own colour ring, always on top.
+  for (const { s, m } of crossMarkers) {
+    const h = (s.risk[anim ? anim.to : stop].hazards || {}).crossing;
+    m.setStyle({ color: h ? C[h.tier] : C.bg, weight: 3, fillColor: C.river });
+    if (layer === 'risk') m.bringToFront();
+  }
+  if (crossLayer) { if (layer === 'risk' && !map.hasLayer(crossLayer)) crossLayer.addTo(map); if (layer !== 'risk' && map.hasLayer(crossLayer)) map.removeLayer(crossLayer); }
+}
+function renderLegend() {
+  const rows = layer === 'build'
+    ? [['Good site', C.build], ['Possible', C.buildDim], ['Poor site', C.grey], ['Too steep', C.excluded]]
+    : [['High · send a crew', C.red], ['Medium · watch', C.amber], ['Low · inspect less', C.green], ['Missing data', null]];
+  legend.innerHTML = `<div class="t">${layer === 'build' ? 'Where solar panels fit' : 'Natural-hazard risk · ' + STOP_LABEL[anim ? anim.to : stop]}</div>` +
+    rows.map(([l, c]) => `<span class="li"><span class="sw ${c ? '' : 'hatch'}" style="${c ? 'background:' + c : ''}"></span>${l}</span>`).join('') +
+    `<span class="li"><span class="sw" style="background:${C.sub};width:8px;height:8px;border-radius:50%;margin:0 4px"></span>Substation</span>` +
+    (layer === 'risk' ? `<span class="li"><span class="sw" style="background:${C.river};width:10px;height:10px;border-radius:50%;margin:0 3px;box-shadow:0 0 0 2px ${C.amber}"></span>River crossing (ring = its risk)</span>` : '') +
+    (layer === 'build' ? (() => { const [lo, hi] = sunRange(); return `<div class="sun"><div class="t">Sunlight (wide band)</div><span class="ramp" style="background:${sunGradient()}"></span>
+      <span class="rl"><span>${lo.toFixed(2)}</span><span>${hi.toFixed(2)} kWh/m²/day</span></span><span class="cap" style="margin:4px 0 0">Brighter = more sun. NASA satellite data, kWh/m² per day. Colours are stretched to this corridor's range.</span></div>`; })() : '');
+  timeline.hidden = layer === 'build';
+}
+function updateAnnotations() {
+  if (!annoLayer) return;
+  annoLayer.clearLayers();
+  if (layer !== 'risk' || anim) return;
+  for (const c of clusters()) {
+    if (c.n < 2) continue;
+    const m = c.mid.mid;
+    L.tooltip({ permanent: true, direction: 'right', className: 'anno', offset: [14, 0] })
+      .setLatLng([m[1], m[0]]).setContent(`<b>${kpRange(c)}</b>${esc(c.text)}`).addTo(annoLayer);
   }
 }
 
-function renderTop() {
-  if (layer === 'build') {
-    topTitle.textContent = 'Best stretches to build';
-    const best = [...D.segments].filter((s) => s.build && s.build.tier === 'green').sort((a, b) => b.build.score - a.build.score).slice(0, 10);
-    topList.innerHTML = best.map((s) => `<div class="row ${s.id === selected ? 'sel' : ''}" data-id="${s.id}"><span><span class="dot tier-green"></span>${s.id} <span class="muted">km ${s.kmFrom}</span></span><span>${s.build.mw} MW · ${fmt$(s.build.leaseYr)}/yr</span></div>`).join('') || '<span class="muted">No green stretches with these assumptions.</span>';
-  } else {
-    topTitle.textContent = `Top 10 risks, ${horizon}-year outlook`;
-    topList.innerHTML = D.live.top.map((t) => `<div class="row ${t.id === selected ? 'sel' : ''}" data-id="${t.id}"><span><span class="dot tier-${t.tier}"></span>${t.id} <span class="muted">${t.driver.label} ${t.driver.key === 'slope' ? t.driver.change + '% grade' : t.driver.key === 'vegetation' ? t.driver.change + ' NDVI' : (t.driver.change > 0 ? '+' : '') + t.driver.change + '%'}</span></span><span>${t.score}</span></div>`).join('');
+/* ---------- projection timeline ---------- */
+function updateTimeline() {
+  const pos = { y0: 0, y5: 50, y10: 100 };
+  const at = anim ? pos[anim.from] + (pos[anim.to] - pos[anim.from]) * anim.t : pos[stop];
+  tlFill.style.width = at + '%';
+  const cur = anim ? anim.to : stop;
+  document.querySelectorAll('[data-stop]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.stop === cur);
+    b.classList.toggle('past', pos[b.dataset.stop] <= at);
+    b.setAttribute('aria-pressed', b.dataset.stop === cur);
+  });
+  bPlay.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+  bPlay.setAttribute('aria-label', playing ? 'Pause' : 'Play the projection');
+}
+function transitionTo(to, done) {
+  if (to === stop) return done && done();
+  if (REDUCED) { stop = to; recompute(); return done && done(); }
+  anim = { from: stop, to, t: 0 };
+  annoLayer && annoLayer.clearLayers();
+  const t0 = performance.now(), dur = 1300;
+  const step = (now) => {
+    if (!anim) return;
+    anim.t = Math.min(1, (now - t0) / dur);
+    paint(); drawStrip(); updateTimeline();
+    if (anim.t < 1) requestAnimationFrame(step);
+    else { anim = null; stop = to; recompute(); done && done(); }
+  };
+  renderLegend();
+  requestAnimationFrame(step);
+}
+function setStop(to) { stopPlay(); if (anim) { anim = null; } transitionTo(to); }
+function stopPlay() { playing = false; clearTimeout(play._t); updateTimeline(); }
+function play() {
+  if (playing) return stopPlay();
+  playing = true; updateTimeline();
+  const run = () => {
+    if (!playing) return;
+    const i = STOPS.indexOf(stop);
+    if (i === STOPS.length - 1) { stopPlay(); return; }
+    transitionTo(STOPS[i + 1], () => { if (playing) play._t = setTimeout(run, 900); });
+  };
+  if (stop === 'y10') { stop = 'y0'; recompute(); play._t = setTimeout(run, 700); } else run();
+}
+
+/* ---------- alignment strip ---------- */
+const LANES = [
+  { k: 'score', label: 'Risk (0–100)', h: 56 },
+  { k: 'tier', label: 'High / med / low', h: 8 },
+  { k: 'slope', label: 'Slope', h: 20 },
+  { k: 'ndvi', label: 'Plant cover Δ', h: 20 },
+  { k: 'build', label: 'Solar MW', h: 20 },
+];
+// Build strip: sun, capacity and the constraints that limit it.
+const BUILD_LANES = [
+  { k: 'build', label: 'Solar MW', h: 40 },
+  { k: 'sun', label: 'Sunlight', h: 20 },
+  { k: 'slope', label: 'Slope', h: 20 },
+  { k: 'tier', label: 'Risk by 2036', h: 8, fixed: 'y10' },
+];
+// Overview strip: climate only.
+const CLIMATE_LANES = [
+  { k: 'score', label: 'Risk (0–100)', h: 56 },
+  { k: 'tier', label: 'High / med / low', h: 8 },
+  { k: 'rain', label: 'Heavy rain', h: 28, clim: true, col: C.rain },
+  { k: 'freezeThaw', label: 'Freeze-thaw', h: 28, clim: true, col: C.freeze },
+  { k: 'saturation', label: 'Soaked ground', h: 28, clim: true, col: C.wet },
+  { k: 'fire', label: 'Fire weather', h: 28, clim: true, col: C.fire },
+  { k: 'drySoil', label: 'Dry soil', h: 28, clim: true, col: C.dry },
+  { k: 'cross', label: 'River crossings', h: 10 },
+];
+const LW = 92, GAP = 10, RULER = 20;
+let G = null;
+
+function drawStrip() {
+  const slot = sheet.parentElement;
+  if (!slot || slot.id === 'parking' || !strip.clientWidth) return;
+  const sc = +slot.dataset.strip || 1, annot = !!slot.dataset.annot && layer === 'risk';
+  const W = strip.clientWidth, n = segs.length, top = annot ? 46 : 0;
+  const lanes = (slot.dataset.lanes === 'climate' ? CLIMATE_LANES : slot.dataset.lanes === 'build' ? BUILD_LANES : LANES).map((l) => ({ ...l, h: Math.round(l.h * (l.k === 'tier' ? 1 : sc)) }));
+  const H = top + lanes.reduce((a, l) => a + l.h, 0) + GAP * (lanes.length - 1) + RULER;
+  strip.setAttribute('viewBox', `0 0 ${W} ${H}`); strip.setAttribute('height', H);
+  const bw = (W - LW) / n, pad = bw > 4 ? 1 : 0, x = (i) => LW + i * bw;
+  const maxMw = Math.max(...segs.map((s) => (s.build && s.build.mw) || 0), 1);
+  let y = top, out = `<defs><pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.5" height="4" fill="${C.grey}"/></pattern></defs>`;
+  const g = (i) => firstDraw && !REDUCED ? ` class="grow" style="animation-delay:${Math.round(i * 2.5)}ms"` : '';
+  let scoreTop = y;
+  for (const lane of lanes) {
+    const h = lane.h;
+    out += `<text x="0" y="${y + Math.min(h, 14) - 2}" fill="${C.ink2}" font-size="11.5">${lane.label}</text>`;
+    out += `<rect x="${LW}" y="${y}" width="${W - LW}" height="${h}" fill="${C.s2}" rx="2"/>`;
+    if (lane.k === 'score') {
+      scoreTop = y;
+      for (const t of [cfg.tiers.amber, cfg.tiers.red]) {
+        const ty = y + h * (1 - t / 100);
+        out += `<line x1="${LW}" x2="${W}" y1="${ty}" y2="${ty}" stroke="${C.line2}" stroke-dasharray="2 3"/><text x="${LW - 6}" y="${ty + 3.5}" fill="${C.ink3}" font-size="9.5" text-anchor="end" font-family="JetBrains Mono, monospace">${t}</text>`;
+      }
+    }
+    segs.forEach((s, i) => {
+      const X = x(i), w = Math.max(bw - pad, .6);
+      if (lane.k === 'score') {
+        const v = scoreAt(s), t = tierOf(s);
+        if (v == null) out += `<rect x="${X}" y="${y}" width="${w}" height="${h}" fill="url(#hatch)" opacity=".7"/>`;
+        else { const bh = Math.max(1, h * v / 100); out += `<rect${g(i)} x="${X}" y="${y + h - bh}" width="${w}" height="${bh}" fill="${C[t]}"/>`; }
+      } else if (lane.k === 'tier') {
+        const t = lane.fixed ? (s.risk[lane.fixed].tier || 'unverified') : tierOf(s);
+        out += `<rect x="${X}" y="${y}" width="${w}" height="${h}" fill="${t === 'unverified' ? 'url(#hatch)' : C[t]}" opacity="${t === 'green' ? .5 : 1}"/>`;
+      } else if (lane.k === 'slope') {
+        if (s.slopePct == null) return;
+        const bh = Math.max(1, h * Math.min(1, s.slopePct / cfg.slopeFullPct));
+        out += `<rect${g(i)} x="${X}" y="${y + h - bh}" width="${w}" height="${bh}" fill="${s.slopePct > cfg.buildMaxSlopePct ? C.ink2 : C.ink3}" opacity=".8"/>`;
+      } else if (lane.k === 'ndvi') {
+        const v = s.ndvi && s.ndvi.change5yr; if (v == null) return;
+        const mid = y + h / 2, bh = Math.max(1, (h / 2) * Math.min(1, Math.abs(v) / cfg.ndviDropFull));
+        out += `<rect x="${X}" y="${v < 0 ? mid : mid - bh}" width="${w}" height="${bh}" fill="${v < 0 ? C.amber : C.green}" opacity="${v < 0 ? .85 : .55}"/>`;
+      } else if (lane.k === 'cross') {
+        if (!(s.crossings && s.crossings.length)) return;
+        const h = (s.risk[anim ? anim.to : stop].hazards || {}).crossing;
+        out += `<rect x="${X - .5}" y="${y}" width="${Math.max(w + 1, 3)}" height="${h ? lane.h : lane.h}" fill="${C.river}" stroke="${h ? C[h.tier] : 'none'}" stroke-width="1.5" rx="1"/>`;
+      } else if (lane.k === 'sun') {
+        if (s.irradiance == null) { out += `<rect x="${X}" y="${y}" width="${w}" height="${h}" fill="url(#hatch)" opacity=".5"/>`; return; }
+        out += `<rect x="${X}" y="${y}" width="${w}" height="${h}" fill="${sunColor(s.irradiance)}"/>`;
+      } else if (lane.clim) {
+        // Diverging bars: change vs the 1995-2025 baseline, full lane half = ±100%.
+        const v = climateAt(s, lane.k); if (v == null) { out += `<rect x="${X}" y="${y}" width="${w}" height="${h}" fill="url(#hatch)" opacity=".5"/>`; return; }
+        if (Math.abs(v) < .5) return;
+        const mid = y + h / 2, bh = Math.max(1, (h / 2) * Math.min(1, Math.abs(v) / 100));
+        out += `<rect x="${X}" y="${v < 0 ? mid : mid - bh}" width="${w}" height="${bh}" fill="${v < 0 ? C.ink3 : lane.col}" opacity="${v < 0 ? .7 : 1}"/>`;
+      } else if (lane.k === 'build') {
+        const b = s.build; if (!b || !b.mw) return;
+        const bh = Math.max(1, h * b.mw / maxMw);
+        out += `<rect${g(i)} x="${X}" y="${y + h - bh}" width="${w}" height="${bh}" fill="${b.tier === 'green' ? C.build : C.buildDim}"/>`;
+      }
+    });
+    if (lane.k === 'ndvi' || lane.clim) out += `<line x1="${LW}" x2="${W}" y1="${y + h / 2}" y2="${y + h / 2}" stroke="${C.ink3}" stroke-width=".6"/>`;
+    if (lane.clim) out += `<text x="0" y="${y + h - 2}" fill="${C.ink3}" font-size="9.5" font-family="JetBrains Mono, monospace">change</text>`;
+    y += h + GAP;
   }
-  topList.querySelectorAll('.row').forEach((r) => r.onclick = () => select(r.dataset.id));
+  y -= GAP;
+  // Annotations above the high-risk runs (NYT-style labels on the chart itself)
+  if (annot && !anim) {
+    const rowEnd = [-Infinity, -Infinity];
+    for (const c of clusters()) {
+      if (c.n < 2) continue;
+      const x0 = x(c.from), x1 = x(c.to + 1), cx = (x0 + x1) / 2, label = `${kpRange(c)}  ${c.text}`, tw = label.length * 6.4;
+      const tx = Math.min(Math.max(cx, LW + tw / 2), W - tw / 2);
+      const row = tx - tw / 2 > rowEnd[0] + 12 ? 0 : 1;   // second row when labels would collide
+      rowEnd[row] = tx + tw / 2;
+      const ty = top - 14 - row * 16;
+      out += `<line x1="${x0}" x2="${x1}" y1="${top - 8}" y2="${top - 8}" stroke="${C.ink}" stroke-width="1"/><line x1="${cx}" x2="${cx}" y1="${ty + 3}" y2="${scoreTop + 2}" stroke="${C.ink3}" stroke-width=".6" stroke-dasharray="1 2"/>`;
+      out += `<text x="${tx}" y="${ty}" fill="${C.ink}" font-size="11.5" text-anchor="middle"><tspan font-weight="600" font-family="JetBrains Mono, monospace">${kpRange(c)}</tspan>  ${esc(c.text)}</text>`;
+    }
+  }
+  const step = bw * 10 < 34 ? 20 : 10;
+  for (let k = 0; k <= n; k += step) {
+    const X = LW + k * bw;
+    out += `<line x1="${X}" x2="${X}" y1="${y + 3}" y2="${y + 7}" stroke="${C.ink3}"/><text x="${X}" y="${y + 18}" fill="${C.ink3}" font-size="10" font-family="JetBrains Mono, monospace" text-anchor="${k === 0 ? 'start' : k >= n - 2 ? 'end' : 'middle'}">${k}</text>`;
+  }
+  out += `<text x="0" y="${y + 18}" fill="${C.ink2}" font-size="11.5">Distance along pipeline (km)</text><g id="stripOver"></g>`;
+  strip.innerHTML = out;
+  G = { W, H, bw, top };
+  firstDraw = false;
+  drawOverlay();
+}
+function drawOverlay() {
+  const o = document.getElementById('stripOver'); if (!o || !G) return;
+  const h = G.H - RULER - G.top + 4;
+  const col = (id, fill, stroke) => { const i = segs.findIndex((s) => s.id === id); if (i < 0) return ''; const X = LW + i * G.bw;
+    return `<rect x="${X - 1.5}" y="${G.top - 2}" width="${Math.max(G.bw, 2) + 3}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" rx="2"/>`; };
+  o.innerHTML = (selected ? col(selected, 'rgba(236,238,230,.07)', C.ink) : '') + (hover && hover !== selected ? col(hover, 'rgba(236,238,230,.08)', C.ink3) : '');
+  readoutFor(hover || selected);
+}
+function readoutFor(id) {
+  if (!id) { readout.textContent = `${segs.length} km · ${STOP_LABEL[stop]} · hover a column to read it`; return; }
+  const s = byId(id), v = scoreAt(s), b = s.build, t = tierOf(s);
+  if (page === 'overview') {
+    const c = (k) => { const x = climateAt(s, k); return x == null ? '–' : sign(Math.round(x)) + '%'; };
+    readout.innerHTML = `<b>${s.id}</b> · km ${s.kmFrom}–${s.kmTo} · <span style="color:${C[t]};font-weight:600">${TIER_LABEL[t]} ${v == null ? '' : v.toFixed(0)}</span> · heavy rain ${c('rain')} · freeze-thaw ${c('freezeThaw')} · soaked ground ${c('saturation')} · fire weather ${c('fire')} · dry soil ${c('drySoil')} vs the past 30 years${s.crossings && s.crossings.length ? ' · river crossing' : ''}`;
+    return;
+  }
+  readout.innerHTML = `<b>${s.id}</b> · km ${s.kmFrom}–${s.kmTo} · <span style="color:${C[t]};font-weight:600">${TIER_LABEL[t]} ${v == null ? '' : v.toFixed(0)}</span> · slope ${s.slopePct ?? '–'}% · vegetation ${s.ndvi ? sign(s.ndvi.change5yr) : '–'} · ${b && b.mw ? b.mw + ' MW solar' : 'no build'}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
+}
+function stripIndex(ev) {
+  const r = strip.getBoundingClientRect(), xPx = (ev.clientX - r.left) * (G.W / r.width);
+  const i = Math.floor((xPx - LW) / G.bw);
+  return i >= 0 && i < segs.length ? i : -1;
+}
+function setHover(id) {
+  if (hover === id) return;
+  hover = id; paint(); drawOverlay();
+  document.querySelectorAll('.qrow').forEach((r) => r.classList.toggle('hov', r.dataset.id === id));
+}
+function select(id) {
+  const target = page === 'overview' || page === 'money' || page === 'log' ? 'triage' : page;
+  go(target, id);
 }
 
-function chartRain(s) {
-  const b = s.baseline, p = s.projections[key()];
-  const models = Object.entries(p).filter(([, v]) => v && v.extremeDaysPerYr != null);
-  // Bias-corrected: observed history x each model's own change ratio (delta method)
-  const corr = (v) => Math.round(b.extremeDaysPerYr * (v.refExtremeDaysPerYr ? v.extremeDaysPerYr / v.refExtremeDaysPerYr : 1) * 10) / 10;
-  const bars = [['Observed', b.extremeDaysPerYr, '#8b949e'], ...models.map(([m, v]) => [m.split('_')[0], corr(v), '#58a6ff'])];
-  const max = Math.max(...bars.map((x) => x[1]), 1), W = 360, H = 110, top = 18, bw = 60, gap = 26;
-  return `<svg viewBox="0 0 ${W} ${H + top + 18}" width="100%" role="img" aria-label="Extreme-rain days per year">
-    ${bars.map(([l, v, c], i) => { const h = (v / max) * H, x = 10 + i * (bw + gap), y = top + H - h; return `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" fill="${c}"/><text x="${x + bw / 2}" y="${y - 4}" text-anchor="middle" fill="#e6edf3" font-size="11">${v}</text><text x="${x + bw / 2}" y="${top + H + 14}" text-anchor="middle" fill="#8b949e" font-size="10">${l}</text>`; }).join('')}
-  </svg><div class="muted">Extreme-rain days per year: observed 1995-2025 vs each climate model for ${horizon === 5 ? '2026-2031' : '2026-2036'}, bias-corrected against the model's own history</div>`;
+/* ---------- shared segment pieces ---------- */
+function driverText(d) {
+  if (!d || d.change == null) return d ? d.label + ': no data' : '';
+  if (d.key === 'slope') return `${d.change}% slope`;
+  if (d.key === 'vegetation') return `vegetation ${sign(d.change)} NDVI`;
+  return `${DRIVER_WORD[d.key]} ${sign(d.change)}%`;
 }
-
-function chartNdvi(s) {
-  const pts = (s.ndviSeries || []).filter((p) => p.ndvi != null);
-  if (!pts.length) return '<div class="muted">No NDVI series yet.</div>';
-  const W = 360, H = 60, x0 = +pts[0].date.slice(0, 4), x1 = +pts[pts.length - 1].date.slice(0, 4) + 1;
-  const ys = pts.map((p) => p.ndvi), lo = Math.min(...ys) - 0.02, hi = Math.max(...ys) + 0.02;
-  const X = (p) => ((+p.date.slice(0, 4) + (+p.date.slice(5, 7) - 1) / 12 - x0) / (x1 - x0)) * W;
-  const Y = (v) => H - ((v - lo) / (hi - lo)) * H;
-  return `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="NDVI"><polyline fill="none" stroke="#3fb950" stroke-width="1.5" points="${pts.map((p) => X(p) + ',' + Y(p.ndvi)).join(' ')}"/><text x="0" y="${H + 12}" fill="#8b949e" font-size="10">${x0}</text><text x="${W}" y="${H + 12}" text-anchor="end" fill="#8b949e" font-size="10">${x1 - 1}</text></svg>
-  <div class="muted">Sentinel-2 NDVI, growing season. 5-year change: ${s.ndvi ? s.ndvi.change5yr : '-'}</div>`;
-}
-
 function fallbackExplain(s, r) {
   const d = r.drivers[0];
-  const what = d.key === 'slope' ? `a ${d.change}% grade` : d.key === 'vegetation' ? `an NDVI change of ${d.change} over 5 years` : `${d.base} a year historically, ${d.proj} projected (${d.change > 0 ? '+' : ''}${d.change}%)`;
-  return `${s.id} scores ${r.score} (${r.tier}). The biggest driver is ${d.label.toLowerCase()}: ${what}. Model agreement is ${r.agreement}.`;
+  if (!d) return `${s.id} is unverified: missing ${(r.missing || []).join(', ')}. Missing data is never treated as safe.`;
+  if (stop === 'y0') return `${s.id} scores ${r.score} on today's conditions, where only slope and vegetation change count. Its biggest factor is ${d.label.toLowerCase()} (${driverText(d)}).`;
+  const what = d.key === 'slope' ? `a ${d.change}% grade` : d.key === 'vegetation' ? `an NDVI change of ${d.change} over 5 years` : `${d.base} days a year historically, ${d.proj} projected (${sign(d.change)}%)`;
+  if (r.hazard && r.hazard !== 'ground' && r.hazards[r.hazard]) return `${s.id} scores ${r.score} (${TIER_LABEL[r.tier].toLowerCase()}) by ${STOP_LABEL[stop]}, set by its worst hazard, ${HAZ[r.hazard].toLowerCase()}: ${r.hazards[r.hazard].why}. Ground failure alone scores ${r.groundScore}.`;
+  return `${s.id} scores ${r.score} (${TIER_LABEL[r.tier].toLowerCase()}) by ${STOP_LABEL[stop]}. The biggest driver is ${d.label.toLowerCase()}: ${what}. Model agreement is ${r.agreement}.`;
+}
+function hazardsHTML(s, r) {
+  const hz = r.hazards || {};
+  return ['ground', 'crossing', 'wildfire', 'drought'].map((k) => {
+    const h = hz[k];
+    if (!h) return `<div class="drv"><span class="l" style="color:var(--ink-3)">${HAZ[k]}</span><span class="n" style="color:var(--ink-3)">${k === 'crossing' ? 'no crossing' : 'no data'}</span></div>`;
+    const top = r.hazard === k;
+    return `<div class="drv"><span class="l">${top ? '<b>' : ''}${HAZ[k]}${top ? '</b> · worst' : ''}<div class="cap" style="margin-top:2px">${esc(h.why)}</div></span><span class="n" style="color:${C[h.tier]}">${Math.round(h.score)}</span><span class="mbar"><i style="width:${h.score}%;background:${C[h.tier]}"></i></span></div>`;
+  }).join('');
+}
+function chipHTML(t) { return `<span class="chip" style="color:${C[t]};background:${C[t]}1a"><span class="led"></span>${TIER_LABEL[t]}</span>`; }
+function gaugeHTML(r) {
+  return `<div class="gauge">
+    <div class="row1"><span class="big">${r.score ?? '–'}<small> / 100</small></span><span class="label">${r.agreement === 'observed' ? 'Observed conditions' : 'Model agreement: <b style="color:var(--ink)">' + (r.agreement ?? '–') + '</b>'}</span></div>
+    <div class="track"><span style="background:${C.green}"></span><span style="background:${C.amber}"></span><span style="background:${C.red}"></span>${r.score != null ? `<i class="pin" style="left:calc(${r.score}% - 1.5px)"></i>` : ''}</div>
+    <div class="ticks"><span style="left:0">0</span><span style="left:${cfg.tiers.amber}%">${cfg.tiers.amber}</span><span style="left:${cfg.tiers.red}%">${cfg.tiers.red}</span><span style="left:100%">100</span></div></div>`;
+}
+function explainHTML(s, r) {
+  return `<div class="explain">${esc(s.explanation && stop !== 'y0' ? s.explanation : fallbackExplain(s, r))}
+    <div class="src">${s.explanation && stop !== 'y0' ? 'AI explanation, restating engine numbers only.' : 'Template text. The n8n run replaces this with an AI explanation.'}</div></div>`;
+}
+function driversHTML(r, n = 5) {
+  const maxW = Math.max(...r.drivers.map((d) => d.w), .0001);
+  return r.drivers.slice(0, n).map((d) => `<div class="drv"><span class="l">${esc(d.label)}</span><span class="n">${d.change == null ? 'no data' : d.key === 'slope' ? d.change + '%' : d.key === 'vegetation' ? sign(d.change) : sign(d.change) + '%'}</span><span class="mbar"><i style="width:${(d.w / maxW) * 100}%;background:${C.ink2}"></i></span></div>`).join('');
+}
+function rainBars(s) {
+  const b = s.baseline, k = stop === 'y0' ? 'y10' : stop, p = s.projections && s.projections[k];
+  if (!b || !p) return '<div class="cap">No climate data for this segment.</div>';
+  const models = Object.entries(p).filter(([, v]) => v && v.extremeDaysPerYr != null);
+  const corr = (v) => Math.round(b.extremeDaysPerYr * (v.refExtremeDaysPerYr ? v.extremeDaysPerYr / v.refExtremeDaysPerYr : 1) * 10) / 10;
+  const rows = [['Observed', b.extremeDaysPerYr, C.ink3], ...models.map(([m, v]) => [m.split('_').slice(0, 2).join(' ').replace('3P', '3'), corr(v), corr(v) > b.extremeDaysPerYr ? C.amber : C.green])];
+  const max = Math.max(...rows.map((r) => r[1]), 1) * 1.08, basePct = (b.extremeDaysPerYr / max) * 100;
+  return rows.map(([l, v, c], i) => `<div class="hb"><span class="lab">${esc(l)}</span><span class="bar"><i style="width:${(v / max) * 100}%;background:${c}"></i>${i ? `<b style="left:${basePct}%"></b>` : ''}</span><span class="val">${v}</span></div>`).join('') +
+    `<div class="cap">Extreme-rain days a year. Observed 1995–2025 against each CMIP6 model for ${k === 'y5' ? '2026–2031' : '2026–2036'}, bias-corrected against the model's own history. The black tick marks the observed value.${stop === 'y0' ? ' Showing 2036 because Today has no projection.' : ''}</div>`;
+}
+function ndviSpark(s) {
+  const pts = (s.ndviSeries || []).filter((p) => p.ndvi != null);
+  if (!pts.length) return '<div class="cap">No vegetation series yet.</div>';
+  const W = 480, H = 72, x0 = +pts[0].date.slice(0, 4), x1 = +pts[pts.length - 1].date.slice(0, 4) + 1;
+  const ys = pts.map((p) => p.ndvi), lo = Math.min(...ys) - .02, hi = Math.max(...ys) + .02;
+  const X = (p) => ((+p.date.slice(0, 4) + (+p.date.slice(5, 7) - 1) / 12 - x0) / (x1 - x0)) * W, Y = (v) => H - ((v - lo) / (hi - lo)) * H;
+  const line = pts.map((p) => X(p).toFixed(1) + ',' + Y(p.ndvi).toFixed(1)).join(' ');
+  const ch = s.ndvi ? s.ndvi.change5yr : null, col = ch != null && ch < 0 ? C.amber : C.green;
+  const gid = 'ng' + s.id;
+  return `<svg viewBox="0 0 ${W} ${H + 18}" width="100%" role="img" aria-label="Vegetation index over time">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".22"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    <polygon fill="url(#${gid})" points="${X(pts[0]).toFixed(1)},${H} ${line} ${X(pts[pts.length - 1]).toFixed(1)},${H}"/>
+    <polyline fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" points="${line}"/>
+    <text x="0" y="${H + 15}" fill="${C.ink3}" font-size="11" font-family="JetBrains Mono, monospace">${x0}</text>
+    <text x="${W}" y="${H + 15}" text-anchor="end" fill="${C.ink3}" font-size="11" font-family="JetBrains Mono, monospace">${x1 - 1}</text></svg>
+    <div class="cap">Sentinel-2 NDVI (vegetation greenness), growing season. Five-year change <b class="num" style="color:${col}">${ch != null ? sign(ch) : '–'}</b>. Falling greenness on a slope can mean the ground is moving.</div>`;
+}
+function moneyHTML(s, r) {
+  const m = ENGINE.moneyForSegment(r, years(), cfg);
+  return `<table class="kv">
+    <tr><td>Chance of failure in ${years()} years</td><td>${m ? (m.pFailHorizon * 100).toFixed(3) + '%' : '–'}</td></tr>
+    <tr><td>Expected loss</td><td>${fmt$(m && m.expectedLoss)}</td></tr>
+    <tr><td>Avoided if inspected and fixed</td><td>${fmt$(m && m.avoidedIfFixed)}</td></tr>
+    <tr><td>Net of one work order (${fmt$(cfg.money.workOrderCost)})</td><td style="color:${m && m.netIfFixed >= 0 ? 'var(--green)' : 'var(--ink-2)'}">${fmt$(m && m.netIfFixed)}</td></tr></table>`;
+}
+function buildHTML(s) {
+  const b = s.build, steep = b.tier === 'excluded';
+  return `<table class="kv">
+    <tr><td>Sun exposure (NASA POWER)</td><td>${s.irradiance != null ? s.irradiance.toFixed(2) + ' kWh/m²/day' : 'no data'}</td></tr>
+    <tr><td>Solar capacity</td><td>${steep ? 'too steep' : b.mw + ' MW'}</td></tr>
+    <tr><td>Energy a year</td><td>${steep ? '–' : (b.mwhYr ?? 0).toLocaleString() + ' MWh'}</td></tr>
+    <tr><td>Lease a year · landowner share</td><td>${steep ? '–' : fmt$(b.leaseYr) + ' · ' + fmt$(b.partnerYr)}</td></tr>
+    <tr><td>Avoided tCO₂ a year if built</td><td>${steep ? '–' : (b.avoidedTco2Yr ?? 0).toLocaleString()}</td></tr>
+    <tr><td>Slope · nearest substation</td><td>${s.slopePct ?? '–'}% · ${s.substationKm ?? '–'} km</td></tr></table>`;
+}
+const fmtDate = (d) => { try { return new Date(d + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { return d; } };
+const DELIVERY = {
+  local: 'Kept in this browser: n8n is not connected in this demo file.',
+  sending: 'Sending to n8n…',
+  n8n: 'Created and stored by n8n. The crew gets it by email or Slack once that step is switched on.',
+  failed: 'n8n did not accept it; kept in this browser.',
+};
+function woHTML(s) {
+  const w = s.workOrder; if (!w) return '';
+  const off = w.status === 'cancelled';
+  return `<div class="wo ${off ? 'cancelled' : ''}">
+    <div class="h"><span><span class="pri ${w.priority}">${w.priority}</span> <b>${esc(w.id)}</b></span><span class="label">${off ? 'Cancelled' : 'Due ' + fmtDate(w.dueBy)}</span></div>
+    <div class="meta">${esc(w.why)} · score ${w.score ?? '–'} · est. ${fmt$(w.estCost)}</div>
+    ${off ? '' : `<ol>${w.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ol>`}
+    <div class="row2">${w.mapUrl ? `<a href="${esc(w.mapUrl)}" target="_blank" rel="noopener">Open location ↗</a>` : ''}<button class="linkbtn" data-copy="${esc(s.id)}">Copy work order text</button></div>
+    <div class="cap" style="margin-top:8px">${DELIVERY[w.delivery] || ''}</div>
+  </div>`;
+}
+function actionsHTML(s, compact) {
+  return `<div class="actions">
+    ${woHTML(s)}
+    <div class="btnrow">
+      <button class="btn primary" data-act="approved" aria-pressed="${s.wo === 'approved'}">${s.wo === 'approved' ? '✓ Work order sent' : 'Approve: send a crew'}</button>
+      <button class="btn" data-act="rejected" aria-pressed="${s.wo === 'rejected'}">${s.wo === 'rejected' ? 'Rejected' : s.wo === 'approved' ? 'Cancel' : 'Reject'}</button>
+    </div>
+    <details class="ovr" style="margin-top:12px"><summary>Override the risk level (reason required)</summary>
+      <div class="ovrform">
+        <select class="field" data-o="tier" aria-label="New risk level"><option value="">Level…</option><option value="green">Low</option><option value="amber">Moderate</option><option value="red">High</option></select>
+        <input class="field" type="text" data-o="reason" placeholder="Why? e.g. culvert replaced 2025" aria-label="Override reason">
+        <button class="btn" data-o="apply" style="flex:none">Apply</button>
+        <span class="err" data-o="err" hidden>Pick a level and give a reason. Overrides are audited.</span>
+      </div></details>
+    ${compact ? `<div class="linkrow"><span class="label">Approve with <kbd>A</kbd>, reject with <kbd>R</kbd></span><a href="#/segment/${s.id}">Full report →</a></div>` : ''}
+  </div>`;
+}
+function wireActions(root, s) {
+  root.querySelectorAll('[data-act]').forEach((b) => b.onclick = () => decide(s, b.dataset.act));
+  root.querySelectorAll('[data-copy]').forEach((b) => b.onclick = async () => {
+    try { await navigator.clipboard.writeText(ENGINE.workOrderText(s.workOrder)); toast('Work order text copied'); } catch (e) { toast('Copy failed: select the text from the Work orders page'); }
+  });
+  const q = (k) => root.querySelector(`[data-o="${k}"]`);
+  if (!q('apply')) return;
+  q('apply').onclick = () => {
+    const tier = q('tier').value, reason = q('reason').value.trim();
+    q('tier').classList.toggle('bad', !tier); q('reason').classList.toggle('bad', !reason);
+    if (!tier || !reason) { q('err').hidden = false; (tier ? q('reason') : q('tier')).focus(); return; }
+    const from = s.risk[stop].tier;
+    s.override = { tier, reason, stop };
+    act(s, 'override_tier', { from, to: tier, reason, stop, horizon: STOP_LABEL[stop] });
+    saveLocal(); refresh();
+  };
+}
+// Approve = a real work order: priority and due date from the tier, a checklist from the score's own drivers.
+// With n8n connected, n8n rebuilds it from its stored corridor and its copy replaces this one.
+function decide(s, v) {
+  const k = stop === 'y0' ? 'y10' : stop;
+  if (v === 'approved') {
+    if (s.wo === 'approved' && s.workOrder && s.workOrder.status !== 'cancelled') return;
+    s.wo = 'approved';
+    s.workOrder = { ...ENGINE.workOrder(s, k, cfg, { by: 'operator (demo)' }), delivery: API ? 'sending' : 'local' };
+    act(s, 'approve_work_order', { stop: k, workOrderId: s.workOrder.id, priority: s.workOrder.priority, dueBy: s.workOrder.dueBy });
+    toast(`${s.workOrder.priority} work order for ${s.id} created · due ${fmtDate(s.workOrder.dueBy)}`);
+  } else {
+    if (s.wo === 'rejected') return;
+    s.wo = 'rejected';
+    if (s.workOrder) s.workOrder = { ...s.workOrder, status: 'cancelled' };
+    act(s, 'reject_work_order', { stop: k, workOrderId: s.workOrder ? s.workOrder.id : null });
+    toast(`${s.id}: no crew sent. Logged.`);
+  }
+  saveLocal(); renderPage(); renderLog();
+}
+function statusOf(s) {
+  if (s.wo === 'approved' && s.workOrder) return `<span class="status ok">${s.workOrder.priority} · due ${fmtDate(s.workOrder.dueBy).replace(/, \d{4}$/, '')}</span>`;
+  return s.wo === 'rejected' ? '<span class="status no">Rejected</span>' : '';
+}
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 3200);
+}
+// Without n8n, decisions survive a reload in this browser only. With n8n, n8n is the record.
+function saveLocal() {
+  if (API) return;
+  try {
+    const decisions = {};
+    for (const s of D.segments) if (s.wo || s.override) decisions[s.id] = { wo: s.wo || null, workOrder: s.workOrder || null, override: s.override || null };
+    localStorage.setItem('tc-state', JSON.stringify({ decisions, audit: audit.slice(0, 200) }));
+  } catch (e) {}
+}
+function loadSaved() {
+  if (API) {
+    for (const w of D.workOrders || []) {
+      const s = byId(w.segment); if (!s) continue;
+      if (w.status === 'rejected') s.wo = 'rejected';
+      else { s.wo = w.status === 'cancelled' ? 'rejected' : 'approved'; s.workOrder = { ...w, delivery: 'n8n' }; }
+    }
+    for (const s of D.segments) if (s.override && !s.override.stop) s.override.stop = 'y10';
+    audit = (D.audit || []).filter((a) => a.segment).map((a) => ({ ...a, note: 'stored in n8n' }));
+    return;
+  }
+  try {
+    const st = JSON.parse(localStorage.getItem('tc-state') || 'null'); if (!st) return;
+    for (const [id, d] of Object.entries(st.decisions || {})) { const s = byId(id); if (s) Object.assign(s, { wo: d.wo || undefined, workOrder: d.workOrder || undefined, override: d.override || undefined }); }
+    audit = st.audit || [];
+  } catch (e) {}
+}
+function wireRows(root) {
+  root.querySelectorAll('.qrow').forEach((r) => { r.onclick = () => select(r.dataset.id); r.onmouseenter = () => setHover(r.dataset.id); r.onmouseleave = () => setHover(null); });
+}
+function stopSeg() {
+  return `<div class="seg" role="group" aria-label="Projection">${STOPS.map((k) => `<button data-stop="${k}" class="${k === stop ? 'on' : ''}">${STOP_LABEL[k]}</button>`).join('')}</div>`;
 }
 
-function renderSeg(id) {
-  const s = D.segments.find((x) => x.id === id);
-  const r = s.risk[key()];
-  const m = ENGINE.moneyForSegment(r, horizon, cfg);
-  const b = s.build;
-  segSec.hidden = false;
-  segSec.innerHTML = `
-    <h2>${s.id} · km ${s.kmFrom} to ${s.kmTo}</h2>
-    <div><span class="dot tier-${r.tier}"></span><b>${r.tier}</b> · score ${r.score ?? '-'} · agreement ${r.agreement ?? '-'} · <span class="muted">${r.method || ''}</span></div>
-    ${s.override ? `<div class="assump">Overridden to ${s.override.tier}: ${s.override.reason}</div>` : ''}
-    <p class="explain">${s.explanation || fallbackExplain(s, r)}<br><span class="muted">${s.explanation ? 'AI explanation from the n8n run.' : 'Template text. The n8n run replaces this with an AI explanation.'}</span></p>
-    ${r.drivers.map((d) => `<div class="muted">${d.label}${d.change == null ? ': no data' : d.key === 'slope' ? ': ' + d.change + '% grade' : d.key === 'vegetation' ? ': ' + d.change + ' NDVI' : ': ' + (d.change > 0 ? '+' : '') + d.change + '%'}</div><div class="bar"><div style="width:${Math.min(100, d.w * 100 / 0.35)}%"></div></div>`).join('')}
-    ${chartRain(s)}
-    ${chartNdvi(s)}
-    <table class="mini">
-      <tr><td>Failure chance over ${horizon} yr</td><td>${m ? (m.pFailHorizon * 100).toFixed(3) + '%' : '-'}</td></tr>
-      <tr><td>Expected loss over ${horizon} yr</td><td>${fmt$(m && m.expectedLoss)}</td></tr>
-      <tr><td>Avoided if inspected and fixed</td><td>${fmt$(m && m.avoidedIfFixed)}</td></tr>
-      <tr><td>Slope · NDVI change · substation</td><td>${s.slopePct}% · ${s.ndvi ? s.ndvi.change5yr : '-'} · ${s.substationKm} km</td></tr>
-      <tr><td>Build: MW · MWh/yr</td><td>${b.tier === 'excluded' ? 'too steep' : b.mw + ' · ' + b.mwhYr.toLocaleString()}</td></tr>
-      <tr><td>Lease/yr · partner share</td><td>${b.tier === 'excluded' ? '-' : fmt$(b.leaseYr) + ' · ' + fmt$(b.partnerYr)}</td></tr>
-      <tr><td>Avoided tCO2/yr (if built)</td><td>${b.tier === 'excluded' ? '-' : b.avoidedTco2Yr.toLocaleString()}</td></tr>
-    </table>
-    <p style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
-      <button class="act primary" id="bApprove">Approve inspection work order</button>
-      <button class="act" id="bReject">Reject</button>
-    </p>
-    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap">
-      <select id="oTier"><option value="">Override tier...</option><option>green</option><option>amber</option><option>red</option></select>
-      <input type="text" id="oReason" placeholder="Reason (required)" style="flex:1; min-width:120px">
-      <button class="act" id="bOverride">Override</button>
-    </div>`;
-  bApprove.onclick = () => act(s, 'approve_work_order', {});
-  bReject.onclick = () => act(s, 'reject_work_order', {});
-  bOverride.onclick = () => {
-    if (!oTier.value || !oReason.value.trim()) { oReason.focus(); oReason.style.borderColor = 'var(--red)'; return; }
-    s.override = { tier: oTier.value, reason: oReason.value.trim(), horizon };
-    act(s, 'override_tier', { from: r.tier, to: oTier.value, reason: oReason.value.trim(), horizon });
-    paint(); renderSeg(s.id);
+/* ---------- pages ---------- */
+function tween(el, to, fmt) {
+  const from = el._v ?? to; el._v = to;
+  if (REDUCED || from === to) { el.textContent = fmt(to); return; }
+  const t0 = performance.now(), dur = 420;
+  cancelAnimationFrame(el._raf);
+  const step = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(from + (to - from) * e); if (k < 1) el._raf = requestAnimationFrame(step); };
+  el._raf = requestAnimationFrame(step);
+}
+const HELP = {
+  risk: 'Each km gets four 0-100 scores: ground failure, river crossing, wildfire weather and drought. Its level is its worst one. 65+ is high, 40-65 medium.',
+  fire: 'Days a year with no rain, at least 25 °C and humidity at or below 35%: weather that lets wildfire spread. Fire threatens valve sites and leaves burn scars that slide.',
+  drought: 'Days a year the topsoil is drier than the driest 10% of 1995-2025. Drying clay cracks and settles along the trench, and dry land burns.',
+  crossing: 'Places where the pipe crosses a river, stream or canal. Bigger rivers, higher peak flow and more heavy rain mean more scour at the crossing.',
+  rain: 'Days a year with rain heavy enough to trigger washouts and landslides (the wettest 5% of days in 1995-2025).',
+  freezeThaw: 'Days the ground freezes overnight and thaws by day. Repeated cycles loosen soil and heave pipe supports.',
+  saturation: 'Days the topsoil is close to fully soaked. Soaked slopes slide more easily.',
+  agree: 'We use three independent climate models. When all three point the same way, the projection is more trustworthy.',
+  hot: 'The longest run of high-risk kilometres. Click to open it in Triage.',
+};
+// Overview: observed and projected climate only. No money, no build.
+function renderOverview() {
+  mapBox.classList.remove("has-card");
+  const t = D.live.tiers, hi = (t.red || 0) + (t['red-uncertain'] || 0), mod = t.amber || 0, unv = t.unverified || 0;
+  const when = stop === 'y0' ? 'observed 1995–2025' : `${stop === 'y5' ? '2026–2031' : '2026–2036'} vs 1995–2025`;
+  if (!ovLedger.children.length) {
+    ovLedger.innerHTML = ['risk', 'rain', 'freezeThaw', 'fire', 'drought', 'crossing'].map((k) =>
+      `<a class="cell" href="#/triage" data-k="${k}" title="${esc(HELP[k])}"><div class="e"></div><div class="v"></div><div class="s"></div>${k === 'risk' ? '<div class="stack"></div>' : ''}</a>`).join('');
+  }
+  const cell = (k) => ovLedger.querySelector(`[data-k="${k}"]`);
+  const set = (k, e, v, s) => { const c = cell(k); c.querySelector('.e').innerHTML = esc(e) + ' <i aria-hidden="true">?</i>'; c.querySelector('.s').textContent = s; if (typeof v === 'function') v(c.querySelector('.v')); else c.querySelector('.v').innerHTML = v; };
+
+  set('risk', `High / medium risk km`, `${kmOf(hi)}<small>/</small>${kmOf(mod)}`, `out of ${D.live.km} km of pipeline${unv ? ' · ' + unv + ' km missing data' : ''}`);
+  cell('risk').querySelector('.stack').innerHTML = [['red', hi], ['amber', mod], ['green', t.green || 0], ['unverified', unv]]
+    .map(([k, v]) => `<span style="flex-grow:${v};background:${C[k]}" title="${TIER_LABEL[k]}: ${v}"></span>`).join('');
+
+  for (const [k, e] of [['rain', 'Heavy-rain days / yr'], ['freezeThaw', 'Freeze-thaw days / yr']]) {
+    const c = corridorClimate(k);
+    if (!c) { set(k, e, '–', 'no data'); continue; }
+    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? `average along the line, past 30 years` : `${sign(c.change)}% vs the past 30 years`);
+    const v = cell(k).querySelector('.v'); v.style.color = stop !== 'y0' && c.change > 5 ? C[k === 'rain' ? 'rain' : k === 'freezeThaw' ? 'freeze' : 'wet'] : '';
+  }
+
+  for (const [k, hk, field, e, col] of [['fire', 'wildfire', 'fireWeatherDaysPerYr', 'Fire-weather days / yr', C.fire], ['drought', 'drought', 'drySoilDaysPerYr', 'Dry-soil days / yr', C.dry]]) {
+    const c = corridorHazard(hk, field);
+    if (!c) { set(k, e, '–', 'no humidity or soil data'); continue; }
+    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? 'average along the line, past 30 years' : `${sign(c.change)}% vs the past 30 years`);
+    cell(k).querySelector('.v').style.color = stop !== 'y0' && c.change > 5 ? col : '';
+  }
+
+  const xs = segs.filter((s) => s.crossings && s.crossings.length);
+  const xHigh = xs.filter((s) => { const h = (s.risk[stop].hazards || {}).crossing; return h && h.score >= cfg.tiers.red; }).length;
+  const xMed = xs.filter((s) => { const h = (s.risk[stop].hazards || {}).crossing; return h && h.score >= cfg.tiers.amber && h.score < cfg.tiers.red; }).length;
+  set('crossing', 'River crossings at risk', `${xHigh}<small>/</small>${xMed}`, `high / medium, of ${xs.length} crossings on the line`);
+}
+
+function renderTriage() {
+  const hs = (s) => hazardFilter === 'all' ? s.risk[stop].score : ((s.risk[stop].hazards || {})[hazardFilter] || {}).score;
+  const all = segs.filter((s) => hs(s) != null).sort((a, b) => hs(b) - hs(a));
+  const attn = (s) => tierOf(s) !== 'green';
+  const F = { attn: ['Needs attention', attn], high: ['High', isHigh], pending: ['Undecided', (s) => attn(s) && !s.wo], decided: ['Decided', (s) => !!s.wo], all: ['All', () => true] };
+  const rows = all.filter(F[filter][1]);
+  const HF = { all: 'All hazards', ground: 'Ground', crossing: 'Crossings', wildfire: 'Wildfire', drought: 'Drought' };
+  triageList.innerHTML = `<h2>Triage</h2><p class="lede">Ranked by ${hazardFilter === 'all' ? 'each kilometre\'s worst hazard' : HAZ[hazardFilter].toLowerCase() + ' score'} ${stop === 'y0' ? 'today' : 'for ' + STOP_LABEL[stop]}. Approving sends a work order through n8n, and every decision is logged.</p>
+    <div style="margin-bottom:12px">${stopSeg()}</div>
+    <div class="chips" style="margin-bottom:8px">${Object.entries(HF).map(([k, l]) => `<button data-h="${k}" class="${k === hazardFilter ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="chips">${Object.entries(F).map(([k, [l, f]]) => `<button data-f="${k}" class="${k === filter ? 'on' : ''}">${l}<small>${all.filter(f).length}</small></button>`).join('')}</div>
+    ${rows.length ? rows.slice(0, 80).map((s, i) => { const r = s.risk[stop], t = tierOf(s); return `<button class="qrow ${s.id === selected ? 'sel' : ''} ${s.id === hover ? 'hov' : ''}" data-id="${s.id}">
+      <span class="rk">${String(i + 1).padStart(2, '0')}</span><span class="id">${s.id}</span><span class="why">${esc(hazardFilter === 'all' ? whyText(r) : ((r.hazards || {})[hazardFilter] || {}).why || '')} ${statusOf(s)}</span>
+      <span class="sc">${Math.round(hs(s))}<span class="mbar"><i style="width:${hs(s)}%;background:${C[hazardFilter === 'all' ? t : (r.hazards[hazardFilter].tier)]}"></i></span></span></button>`; }).join('') : '<div class="empty">Nothing here.</div>'}`;
+  triageList.querySelectorAll('[data-f]').forEach((b) => b.onclick = () => { filter = b.dataset.f; renderTriage(); });
+  triageList.querySelectorAll('[data-h]').forEach((b) => b.onclick = () => { hazardFilter = b.dataset.h; renderTriage(); });
+  wireRows(triageList);
+  renderCard(triageCard, 'risk');
+}
+
+function renderCard(el, mode) {
+  const s = selected && byId(selected);
+  mapBox.classList.toggle('has-card', !!s && innerWidth > 860);
+  if (!s) { el.hidden = true; return; }
+  const r = s.risk[stop], t = tierOf(s), wasHidden = el.hidden, ovrOpen = el.querySelector('details.ovr')?.open;
+  el.hidden = false;
+  if (!wasHidden) el.style.animation = 'none';
+  el.innerHTML = `<button class="x" aria-label="Close">×</button>
+    <div class="label">Kilometre post</div><div class="kp">${s.id}</div><div class="km">km ${s.kmFrom}–${s.kmTo} · ${s.lengthM} m</div>
+    <div style="margin-top:14px">${mode === 'build' ? `<span class="chip" style="color:${C.build};background:${C.build}1f"><span class="led"></span>${s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier]}</span> ` : ''}${chipHTML(t)}</div>
+    ${s.override && s.override.stop === stop ? `<div class="note">Overridden to ${TIER_LABEL[s.override.tier]}: “${esc(s.override.reason)}”</div>` : ''}
+    ${mode === 'build' ? `<div class="blk"><h3>Solar + storage</h3>${buildHTML(s)}</div><div class="cap">Build potential is halved where 2036 risk is high. Stays outside the ${cfg.exclusionM} m prescribed area.</div>
+      <div class="linkrow" style="margin:20px 0 24px"><span></span><a href="#/segment/${s.id}">Full report →</a></div>`
+    : `${gaugeHTML(r)}${explainHTML(s, r)}<div class="blk"><h3>Natural hazards (worst sets the level)</h3>${hazardsHTML(s, r)}</div>${actionsHTML(s, true)}`}`;
+  el.querySelector('.x').onclick = () => go(page);
+  wireActions(el, s);
+  if (ovrOpen) el.querySelector('details.ovr').open = true;
+}
+
+function renderSegment() {
+  const s = byId(selected); if (!s) return;
+  const r = s.risk[stop], t = tierOf(s), i = segs.indexOf(s), prev = segs[i - 1], next = segs[i + 1];
+  segHead.innerHTML = `<div class="crumbs"><a href="#/triage/${s.id}">← Triage</a><span class="label">/</span><span class="label">${s.id}</span></div>
+    <div class="seghead"><div><div class="label">Kilometre post</div><div class="kp" style="font-size:64px">${s.id}</div><div class="km">km ${s.kmFrom}–${s.kmTo} · ${s.lengthM} m · cell ${esc(s.cell || '–')} · ${s.studyAreaAcres ?? '–'} acre study strip</div></div>
+      <div style="display:grid;gap:12px;justify-items:end">${stopSeg()}<div class="pager">
+        <a class="btn ghost" ${prev ? `href="#/segment/${prev.id}"` : 'aria-disabled="true" style="opacity:.35"'}>← ${prev ? prev.id : ''}</a>
+        <a class="btn ghost" ${next ? `href="#/segment/${next.id}"` : 'aria-disabled="true" style="opacity:.35"'}>${next ? next.id : ''} →</a></div></div></div>`;
+  segBody.innerHTML = `<div class="cols c2" style="margin-top:48px">
+    <div>
+      <div>${chipHTML(t)}</div>
+      ${s.override && s.override.stop === stop ? `<div class="note">Overridden ${TIER_LABEL[r.tier]} → ${TIER_LABEL[s.override.tier]}: “${esc(s.override.reason)}”</div>` : ''}
+      ${gaugeHTML(r)}${explainHTML(s, r)}
+      <div class="blk"><h3>Natural hazards (worst sets the level)</h3>${hazardsHTML(s, r)}</div>
+      <div class="blk"><h3>What drives ground failure</h3>${driversHTML(r)}</div>
+      ${actionsHTML(s, false)}
+    </div>
+    <div>
+      <div class="blk" style="margin-top:0"><h3>Extreme rain across three climate models</h3>${rainBars(s)}</div>
+      <div class="blk"><h3>Vegetation over time</h3>${ndviSpark(s)}</div>
+      <div class="blk"><h3>Money over ${years()} years</h3>${moneyHTML(s, r)}</div>
+      <div class="blk"><h3>If this stretch carried solar</h3>${buildHTML(s)}</div>
+    </div></div>`;
+  wireActions(segBody, s);
+}
+
+// The tool has two halves: protect the pipeline (risk) and put stable right-of-way to work (build).
+// The money case adds them up, then says plainly whether to run it and what that depends on.
+function moneyCase(c = cfg) {
+  const sum = summarize(c), yrs = years(), share = c.money.partnerShare;
+  const operatorLease = Math.round(sum.leaseRevenueYr * (1 - share) * yrs);
+  return { sum, yrs, operatorLease, partnerLease: Math.round(sum.partnerRevenueYr * yrs), risk: sum.netValue, total: sum.netValue + operatorLease };
+}
+function renderMoney() {
+  const m = moneyCase(), s = m.sum, yrs = m.yrs, share = cfg.money.partnerShare, rate = cfg.money.leaseRatePerAcreYr;
+  mDek.textContent = `Over ${yrs} years, ${stop === 'y0' ? 'if the climate stayed at its 1995–2025 baseline' : 'under the ' + STOP_LABEL[stop] + ' climate projection'}. Two halves: protect the pipeline where the ground is getting riskier, and lease the stable stretches for solar. Move any assumption and the recommendation updates.`;
+  mStops.innerHTML = stopSeg();
+
+  // Lease rate at which the combined case breaks even (operator share only).
+  const acres = rate ? s.leaseRevenueYr / rate : 0, opShare = 1 - share;
+  const beRate = acres && opShare > 0 ? Math.ceil(Math.max(0, -m.risk) / (acres * opShare * yrs)) : null;
+  const extras = `Landowner partners also get <b>${fmt$(m.partnerLease)}</b>, and the panels avoid <b>${(s.avoidedTco2Yr || 0).toLocaleString()} tCO₂</b> a year. Neither is counted in the total.`;
+  let v;
+  if (m.total > 0 && m.risk < 0) v = { ok: true, title: 'Recommended: run both together',
+    why: `On its own, watching the pipeline costs <b>${fmt$(-m.risk)}</b> more than it saves over ${yrs} years. Leasing a ${cfg.buildStripM} m strip beside <b>${s.buildableKm} km</b> of stable pipeline for solar earns the operator <b>${fmt$(m.operatorLease)}</b>, so together the program comes out <b>${fmt$(m.total)}</b> ahead.`,
+    dep: beRate != null ? `This holds while the solar lease stays above $${beRate} per acre per year (now $${rate}), with every other assumption as set.` : '' };
+  else if (m.risk >= 0) v = { ok: true, title: 'Recommended: run both together',
+    why: `Risk monitoring pays for itself (<b>${fmt$(m.risk)}</b> over ${yrs} years), and solar on the stable stretches adds <b>${fmt$(m.operatorLease)}</b> for the operator, <b>${fmt$(m.total)}</b> in total.`, dep: '' };
+  else v = { ok: false, title: 'Not worth it at these assumptions',
+    why: `Even with <b>${fmt$(m.operatorLease)}</b> from solar leases, the program is <b>${fmt$(-m.total)}</b> short over ${yrs} years.`,
+    dep: beRate != null ? `It turns positive at a solar lease of about $${beRate} per acre per year (now $${rate}).` : 'Raise the lease rate or failure cost to see when it turns positive.' };
+  mVerdict.innerHTML = `<div class="verdict ${v.ok ? '' : 'warn'}"><h3>${v.title}</h3><p>${v.why}</p>${v.dep ? `<p class="dep">${v.dep}</p>` : ''}
+    <p class="dep">The two halves need each other: the risk map is what tells you which ground is safe to build on. Stretches that turn high-risk by 2036 are left out or downgraded.</p></div>`;
+
+  mNet.innerHTML = `<div class="label">Combined net value over ${yrs} years, operator's share</div>
+    <div class="huge" style="color:${m.total >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt$(m.total)}</div>
+    <p class="muted" style="margin:0 0 8px;max-width:60ch">${extras}</p>`;
+
+  const rows = [
+    ['grp', 'Protect the pipeline'],
+    ['Loss avoided', `inspections on the ${s.workOrders} worst km`, s.lossAvoided],
+    ['Inspection savings', `low-risk km checked less often · ${fmt$(s.inspectionSavingsYr)}/yr × ${yrs}`, s.inspectionSavingsYr * yrs],
+    ['Inspection crews', `${s.workOrders} × ${fmt$(cfg.money.workOrderCost)}`, -s.workOrderCost],
+    ['Running the program', `${fmt$(cfg.money.programCostYr)}/yr × ${yrs}`, -s.programCost],
+    ['sub', 'Pipeline protection alone', m.risk],
+    ['grp', 'Build on stable pipeline land'],
+    ['Solar lease, operator share', `${s.buildableKm} km · ${fmt$(s.leaseRevenueYr)}/yr × ${Math.round(opShare * 100)}% × ${yrs}`, m.operatorLease],
+  ];
+  const vals = rows.filter((r) => r[0] !== 'grp').map((r) => Math.abs(r[2]));
+  const max = Math.max(...vals, Math.abs(m.total), 1);
+  const bar = (x, strong) => { const w = Math.abs(x) / max * 50; return `<span class="trk"><b></b><i style="left:${x < 0 ? 50 - w : 50}%;width:${w}%;background:${x >= 0 ? C.green : strong ? C.red : C.ink3}"></i></span>`; };
+  const money = (x) => `${x >= 0 ? '+' : ''}${fmt$(x)}`;
+  mWf.innerHTML = rows.map((r) => r[0] === 'grp' ? `<div class="wf grp">${r[1]}</div>`
+    : r[0] === 'sub' ? `<div class="wf"><span class="l" style="color:var(--ink-2)">${r[1]}</span>${bar(r[2], true)}<span class="n" style="color:var(--ink-2)">${money(r[2])}</span></div>`
+    : `<div class="wf"><span class="l">${r[0]}<small>${r[1]}</small></span>${bar(r[2])}<span class="n">${money(r[2])}</span></div>`).join('') +
+    `<div class="wf total"><span class="l">Combined net value</span>${bar(m.total, true)}<span class="n">${money(m.total)}</span></div>`;
+
+  const at = (cost) => moneyCase(ENGINE.mergeConfig({ ...cfg, money: { ...cfg.money, costOfFailure: cost } })).total;
+  mScen.innerHTML = [[430000, 'Average ground-movement failure', 'PHMSA average, sourced'], [11700000, 'One geohazard rupture', 'Single sourced incident']].map(([c, t, src]) => {
+    const x = at(c); return `<button data-cost="${c}" class="${cfg.money.costOfFailure === c ? 'on' : ''}"><small>${t} · ${fmt$(c)}</small><span class="v" style="color:${x >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt$(x)}</span><small>${src}. Combined, over ${yrs} years.</small></button>`; }).join('');
+  mScen.querySelectorAll('[data-cost]').forEach((b) => b.onclick = () => { sCost.value = sliderFromCost(+b.dataset.cost); recompute(); });
+
+  mLease.innerHTML = `<div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    <div class="stat"><div class="v">${fmt$(s.partnerRevenueYr)}</div><p>a year to landowner partners at a ${Math.round(share * 100)}% share.</p></div>
+    <div class="stat"><div class="v">${s.mw} MW</div><p>of solar on ${s.buildableKm} km, about ${Math.round((s.mwhYr || 0) / 1000).toLocaleString()} GWh a year.</p></div>
+    <div class="stat"><div class="v">${(s.avoidedTco2Yr || 0).toLocaleString()}</div><p>tonnes of CO₂ avoided a year if built.</p></div></div>`;
+}
+
+function renderBuild() {
+  const ok = (s) => s.build && (buildFilter === 'ready' ? s.build.tier === 'green' : ['green', 'amber'].includes(s.build.tier));
+  const rows = segs.filter(ok).sort((a, b) => b.build.score - a.build.score), sum = D.live;
+  buildList.innerHTML = `<h2>Build</h2><p class="lede">Solar plus storage on stable ground outside the ${cfg.exclusionM} m prescribed area. A stretch's build score is halved if its 2036 risk is high.</p>
+    <div class="totals">
+      <div><div class="v">${sum.mw} MW</div><div class="label">${sum.buildableKm} km build-ready</div></div>
+      <div><div class="v">${fmt$(sum.leaseRevenueYr)}</div><div class="label">lease a year</div></div>
+      <div><div class="v">${Math.round((sum.mwhYr || 0) / 1000).toLocaleString()} GWh</div><div class="label">energy a year</div></div>
+      <div><div class="v">${fmt$(sum.partnerRevenueYr)}</div><div class="label">to landowners a year</div></div>
+    </div>
+    <div class="chips"><button data-bf="ready" class="${buildFilter === 'ready' ? 'on' : ''}">Build-ready</button><button data-bf="all" class="${buildFilter === 'all' ? 'on' : ''}">Include marginal</button></div>
+    ${rows.length ? rows.map((s, i) => `<button class="qrow ${s.id === selected ? 'sel' : ''}" data-id="${s.id}">
+      <span class="rk">${String(i + 1).padStart(2, '0')}</span><span class="id">${s.id}</span><span class="why">${s.build.mw} MW · ${fmt$(s.build.leaseYr)} a year</span>
+      <span class="sc">${s.build.score}<span class="mbar"><i style="width:${s.build.score}%;background:${s.build.tier === 'green' ? C.build : C.buildDim}"></i></span></span></button>`).join('') : '<div class="empty">No build-ready stretches with these assumptions.</div>'}`;
+  buildList.querySelectorAll('[data-bf]').forEach((b) => b.onclick = () => { buildFilter = b.dataset.bf; renderBuild(); });
+  wireRows(buildList);
+  renderCard(buildCard, 'build');
+}
+
+function renderLog() {
+  const wos = D.segments.filter((x) => x.workOrder).map((x) => x.workOrder).sort((a, b) => (a.status === 'cancelled') - (b.status === 'cancelled') || a.priority.localeCompare(b.priority) || a.dueBy.localeCompare(b.dueBy));
+  const open = wos.filter((w) => w.status !== 'cancelled').length;
+  logCount.textContent = open; logCount.dataset.n = open;
+  if (page !== 'log') return;
+  logDoc.innerHTML = `<p class="kicker">Work orders</p><h1 class="ph">${open ? open + ' crew visit' + (open === 1 ? '' : 's') + ' approved' : 'No crews sent yet'}</h1>
+    <p class="dek">Approving a kilometre creates a work order: priority from its risk level (High = P1 within ${cfg.workOrderDueDays.P1} days, Medium = P2 within ${cfg.workOrderDueDays.P2}), and a checklist built from what drives its score. ${API ? 'n8n stores each one and hands it to email or Slack.' : 'n8n is not connected in this demo file, so they are kept in this browser.'}</p>
+    <div style="margin:24px 0 16px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:none" id="bCsv" ${wos.length ? '' : 'disabled'}>Download work orders (CSV)</button><button class="btn" style="flex:none" id="bExport" ${audit.length ? '' : 'disabled'}>Download audit log (JSON)</button></div>
+    ${wos.length ? `<table class="log"><thead><tr><th>Work order</th><th>Priority</th><th>Due</th><th>Main driver</th><th>Checks</th><th>Status</th></tr></thead><tbody>${wos.map((w) => `<tr style="${w.status === 'cancelled' ? 'opacity:.55' : ''}">
+      <td class="m"><a href="#/segment/${w.segment}">${esc(w.id)}</a><div class="cap" style="margin-top:2px">km ${w.kmFrom}–${w.kmTo}${w.mapUrl ? ` · <a href="${esc(w.mapUrl)}" target="_blank" rel="noopener">map ↗</a>` : ''}</div></td>
+      <td><span class="pri ${w.priority}">${w.priority}</span></td><td class="m">${fmtDate(w.dueBy)}</td>
+      <td>${esc(w.why)}</td><td class="m">${w.checks.length}</td>
+      <td class="label">${w.status === 'cancelled' ? 'Cancelled' : esc((DELIVERY[w.delivery] || '').split(':')[0].split('.')[0])}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="empty">Open Triage, pick a red kilometre and press Approve to send a crew.</div>'}
+    <section class="s"><div class="shead"><h2>Audit log</h2><p>Every approval, rejection and override, with the score at the time.</p></div>
+    ${audit.length ? `<table class="log"><thead><tr><th>Time</th><th>Segment</th><th>Action</th><th>Score</th><th>Status</th></tr></thead><tbody>${audit.map((a) => `<tr>
+      <td class="m">${esc((a.at || '').slice(5, 16).replace('T', ' '))}</td><td class="m"><a href="#/segment/${esc(a.segment)}">${esc(a.segment)}</a></td>
+      <td>${esc(a.action.replace(/_/g, ' '))}${a.details && a.details.workOrderId ? `<div class="cap" style="margin-top:2px">${esc(a.details.workOrderId)} · ${esc(a.details.priority || '')}</div>` : ''}${a.details && a.details.reason ? `<div class="cap" style="margin-top:2px">${esc(TIER_LABEL[a.details.from] || a.details.from)} → ${esc(TIER_LABEL[a.details.to] || a.details.to)} · “${esc(a.details.reason)}”</div>` : ''}</td>
+      <td class="m">${a.score ?? '–'}</td><td class="label">${esc(a.note || '')}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="empty">No decisions yet.</div>'}</section>`;
+  const dl = (name, type, text) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); };
+  const b = $('bExport'); if (b) b.onclick = () => dl('terracorridor-audit.json', 'application/json', JSON.stringify(audit, null, 2));
+  const c = $('bCsv'); if (c) c.onclick = () => {
+    const cols = ['id', 'segment', 'kmFrom', 'kmTo', 'priority', 'dueBy', 'status', 'score', 'tier', 'why', 'lat', 'lon', 'mapUrl', 'checks'];
+    const q = (v) => '"' + String(Array.isArray(v) ? v.join(' | ') : v ?? '').replace(/"/g, '""') + '"';
+    dl('terracorridor-work-orders.csv', 'text/csv', [cols.join(','), ...wos.map((w) => cols.map((k) => q(w[k])).join(','))].join('\n'));
   };
 }
 
+/* ---------- audit ---------- */
 async function act(s, action, details) {
-  const entry = { at: new Date().toISOString(), segment: s.id, action, details, score: s.risk[key()].score, by: 'operator (demo)' };
-  let note = 'logged locally (no n8n API)';
+  const entry = { at: new Date().toISOString(), segment: s.id, action, details, score: s.risk[stop].score, projection: STOP_LABEL[stop], by: 'operator (demo)' };
+  const item = { ...entry, note: API ? 'sending to n8n…' : 'kept in this browser' };
+  audit.unshift(item); renderLog();
   if (API) {
     try {
       const r = await fetch(API + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
-      note = r.ok ? 'sent to n8n' : 'n8n returned ' + r.status;
-    } catch (e) { note = 'n8n unreachable, logged locally'; }
+      let body = null; try { body = await r.json(); } catch (e) {}
+      if (r.ok && body && body.ok !== false) {
+        item.note = 'stored in n8n';
+        if (body.workOrder) s.workOrder = { ...body.workOrder, delivery: 'n8n' };
+      } else {
+        item.note = 'n8n refused: ' + ((body && body.error) || r.status);
+        if (s.workOrder && s.workOrder.delivery === 'sending') s.workOrder.delivery = 'failed';
+      }
+    } catch (e) { item.note = 'n8n unreachable, kept locally'; if (s.workOrder && s.workOrder.delivery === 'sending') s.workOrder.delivery = 'failed'; }
+    renderLog(); renderPage();
   }
-  audit.unshift({ ...entry, note });
-  auditLog.innerHTML = audit.map((a) => `<div>${a.at.slice(11, 19)} · ${a.segment} · ${a.action.replace(/_/g, ' ')}${a.details.reason ? ' · "' + a.details.reason + '"' : ''} <span class="muted">(${a.note})</span></div>`).join('');
 }
 
-function select(id) {
-  selected = id;
-  const s = D.segments.find((x) => x.id === id);
-  map.fitBounds(L.latLngBounds(s.studyPolygon.map((p) => [p[1], p[0]])).pad(2), { maxZoom: 14 });
-  paint(); renderTop(); renderSeg(id);
+/* ---------- input ---------- */
+function stepSel(d) {
+  const i = selected ? segs.findIndex((s) => s.id === selected) : (d > 0 ? -1 : segs.length);
+  const j = Math.max(0, Math.min(segs.length - 1, i + d));
+  go(['triage', 'build', 'segment'].includes(page) ? page : 'triage', segs[j].id);
 }
-
-function initMap() {
-  map = L.map('map', { zoomControl: true });
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Imagery: Esri, Maxar, Earthstar Geographics', maxZoom: 18,
-  }).addTo(map);
-  const all = [];
-  for (const s of D.segments) {
-    const ll = s.centreline.map((p) => [p[1], p[0]]);
-    all.push(...ll);
-    lines[s.id] = L.polyline(ll, { color: '#6e7681', weight: 5 }).addTo(map).on('click', () => select(s.id))
-      .bindTooltip(() => `${s.id} · ${segTier(s)}`, { sticky: true });
-  }
-  (D.substations || []).forEach((p) => L.circleMarker([p[1], p[0]], { radius: 5, color: '#58a6ff', fillOpacity: 1 }).addTo(map).bindTooltip('Substation (illustrative)'));
-  map.fitBounds(L.latLngBounds(all).pad(0.05));
-}
-
-function wireToggles() {
-  for (const [id, set] of [['horizon', (v) => horizon = +v], ['layer', (v) => layer = v]]) {
-    document.querySelectorAll(`#${id} button`).forEach((b) => b.onclick = () => {
-      document.querySelectorAll(`#${id} button`).forEach((x) => x.classList.toggle('on', x === b));
-      set(b.dataset.v); recompute();
-    });
-  }
+function wire() {
+  addEventListener('hashchange', onRoute);
+  document.addEventListener('click', (e) => { const b = e.target instanceof Element && e.target.closest('[data-stop]'); if (b) setStop(b.dataset.stop); });
+  bPlay.onclick = play;
+  try { if (localStorage.getItem('tc-hint') === '1') ovHint.hidden = true; } catch (e) {}
+  bHint.onclick = () => { ovHint.hidden = true; try { localStorage.setItem('tc-hint', '1'); } catch (e) {} requestAnimationFrame(() => map.invalidateSize()); };
+  basemap.querySelectorAll('button').forEach((b) => b.onclick = () => {
+    basemap.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    for (const [k, l] of Object.entries(baseLayers)) k === b.dataset.bm ? l.addTo(map) : map.removeLayer(l);
+  });
   document.querySelectorAll('input[type=range]').forEach((r) => r.oninput = recompute);
+  bReset.onclick = () => { sCost.value = 0; sRate.value = 5; sEff.value = 75; sLease.value = 400; sStrip.value = 60; sShare.value = 50; sProg.value = 50000; recompute(); };
+  strip.addEventListener('mousemove', (e) => { if (!G) return; const i = stripIndex(e); setHover(i < 0 ? null : segs[i].id); });
+  strip.addEventListener('mouseleave', () => setHover(null));
+  strip.addEventListener('click', (e) => { if (!G) return; const i = stripIndex(e); if (i >= 0) select(segs[i].id); });
+  new ResizeObserver(() => drawStrip()).observe(strip);
+  addEventListener('keydown', (e) => {
+    if ((e.target instanceof Element && e.target.closest('input, select, textarea, summary')) || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'arrowright' || k === 'j') { e.preventDefault(); stepSel(1); }
+    else if (k === 'arrowleft' || k === 'k') { e.preventDefault(); stepSel(-1); }
+    else if (k === 'escape') { if (page === 'segment') go('triage', selected); else if (selected) go(page); }
+    else if (k === 'p') play();
+    else if (k === 't') setStop(STOPS[(STOPS.indexOf(stop) + 1) % STOPS.length]);
+    else if (k === 'a' && selected) decide(byId(selected), 'approved');
+    else if (k === 'r' && selected) decide(byId(selected), 'rejected');
+    else if ('12345'.includes(k) && k) go(['overview', 'triage', 'money', 'build', 'log'][+k - 1]);
+  });
 }
 
 (async () => {
   D = window.TC_DATA || await (await fetch(DATA_URL)).json();
-  corridorName.textContent = `${D.meta.name} · ${D.segments.length} km`;
-  synthBadge.hidden = !D.meta.synthetic;
+  segs = [...D.segments].sort((a, b) => a.kmFrom - b.kmFrom);
+  synthBadge.hidden = !D.meta.synthetic; liveBadge.hidden = !!D.meta.synthetic;
   if (D.meta.synthetic) synthBadge.title = D.meta.note;
-  sourcesSec.innerHTML = `Data: ${D.meta.synthetic ? 'synthetic demo. ' : ''}Open-Meteo archive and CMIP6 climate projections (${(D.meta.models || []).join(', ')}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. Generated ${D.meta.generatedAt.slice(0, 16).replace('T', ' ')} UTC. Thresholds and weights are provisional, for expert review.`;
-  initMap(); wireToggles(); recompute();
+  genAt.textContent = 'Run ' + D.meta.generatedAt.slice(0, 16).replace('T', ' ') + ' UTC';
+  sourcesSec.innerHTML = `<b style="font-weight:600;color:var(--ink-2)">Sources.</b> ${D.meta.synthetic ? '<b style="color:var(--amber);font-weight:600">Synthetic demo.</b> ' : ''}Open-Meteo archive and CMIP6 projections (${esc((D.meta.models || []).join(', '))}), Sentinel-2 NDVI via Copernicus, NASA POWER irradiance, OpenStreetMap. $430k average failure and $11.7M rupture are sourced; other inputs are ours. Thresholds and weights are provisional, for expert review.`;
+  readConfig();
+  addObservedStop();
+  for (const s of D.segments) s.build = ENGINE.buildScore(s, s.risk.y10, cfg);
+  D.live = summarize();
+  loadSaved();
+  initMap(); wire(); renderLog();
+  onRoute();
 })();
 </script>
 </body>
