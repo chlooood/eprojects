@@ -39,7 +39,23 @@ if (wiring.apiBase) {
   write('deploy/index.html', live.replace(needle, () => `new URLSearchParams(location.search).get('api') || ${JSON.stringify(wiring.apiBase)};`));
 }
 
-const sw = read('web/sw.js').replace('__BUILD_HASH__', crypto.createHash('sha256').update(live + (wiring.apiBase || '')).digest('hex').slice(0, 16));
+
+// Renewables screening page: its own file, its own module (src/renewables.js) and cached public inputs
+// (data/renewables/<corridor>/inputs.json). It reads no pipeline risk and writes nothing back.
+const RN_CORRIDORS = [
+  { id: 'ab-strathcona-demo', name: 'Edmonton' },
+  { id: 'bc-coquihalla', name: 'Coquihalla' },
+];
+const rnSrc = read('web/renewables.html');
+if (!rnSrc.includes(LEAFLET_JS) || !rnSrc.includes(LEAFLET_CSS) || !rnSrc.includes('/*__RENEWABLES__*/')) throw new Error('web/renewables.html: placeholders not found');
+const rnData = { default: 'ab-strathcona-demo', corridors: RN_CORRIDORS, inputs: Object.fromEntries(RN_CORRIDORS.map(c => [c.id, JSON.parse(read(`data/renewables/${c.id}/inputs.json`))])) };
+const rnPage = rnSrc.replace(LEAFLET_CSS, () => inline('<style>', read('web/vendor/leaflet.css')))
+  .replace(LEAFLET_JS, () => inline('<script>', read('web/vendor/leaflet.js')))
+  .replace('/*__RENEWABLES__*/', () => read('src/renewables.js').replace(/<\/(script)/gi, '<\\/$1') + '\nwindow.TC_RENEWABLES = ' + safeJson(rnData) + ';');
+write('dist/renewables.html', rnPage);
+write('deploy/renewables.html', rnPage);
+
+const sw = read('web/sw.js').replace('__BUILD_HASH__', crypto.createHash('sha256').update(live + rnPage + (wiring.apiBase || '')).digest('hex').slice(0, 16));
 write('deploy/sw.js', sw);
 write('dist/sw.js', sw);
 

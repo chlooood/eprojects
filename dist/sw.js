@@ -1,7 +1,7 @@
 // Cache only the application shell. API responses and POST decisions always use the network.
-const CACHE = 'terracorridor-797ea3414ac95f3b';
+const CACHE = 'terracorridor-929b47b48f204f68';
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.add(new URL('./', self.registration.scope).href)));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(['./', './renewables.html'].map((p) => new URL(p, self.registration.scope).href))));
   self.skipWaiting();
 });
 self.addEventListener('activate', (event) => {
@@ -9,5 +9,5 @@ self.addEventListener('activate', (event) => {
 });
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || event.request.mode !== 'navigate' || new URL(event.request.url).origin !== self.location.origin) return;
-  event.respondWith(fetch(event.request).catch(() => caches.open(CACHE).then((cache) => cache.match(new URL('./', self.registration.scope).href))));
+  event.respondWith(fetch(event.request).catch(() => caches.open(CACHE).then((cache) => cache.match(new URL(new URL(event.request.url).pathname.endsWith('/renewables.html') ? './renewables.html' : './', self.registration.scope).href))));
 });

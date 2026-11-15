@@ -12,6 +12,7 @@ Three things it does, in order of importance:
 1. **Climate resilience.** Which segments are more exposed to ground failure, stream and river crossings, wildfire weather and drought, today and under 5 and 10 year climate projections.
 2. **Cost prioritization.** A ranked shortlist for a limited inspection budget, with scenario maths for expected loss. Scenarios, not measured savings.
 3. **Conditional solar screening.** Never counted in the pipeline-protection case.
+4. **Renewables screening page** (`renewables.html`): solar and wind map layers for both pipelines, a transparent score with input coverage, fail-closed missing data, and editable revenue scenarios. Separate from pipeline risk. See [docs/RENEWABLES.md](docs/RENEWABLES.md).
 
 **AI explains. Rules (or a small, visible learned model) decide. People approve.**
 

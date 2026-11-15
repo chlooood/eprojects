@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TerraCorridor · Renewables screening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  /* Tokens and rules: .claude/skills/frontend-design/SKILL.md. Tier colours are for pipeline risk only and are not used here. */
+  :root {
+    --bg:#0a0b0a; --s1:#101210; --s2:#161916; --s3:#1d211d; --line:#252925; --line-2:#323732;
+    --ink:#eceee6; --ink-2:#a5aa9f; --ink-3:#7a7f75; --grey:#5d625a;
+    --build:#d6f35f; --sub:#82c8ff; --wind:#b9a4ff;
+    --sans:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --serif:'Instrument Serif', Georgia, serif;
+    --mono:'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    --ease:cubic-bezier(.2,.7,.1,1); color-scheme:dark;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 var(--sans); -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+  button, input, select { font:inherit; color:inherit; }
+  a { color:inherit; }
+  :focus-visible { outline:2px solid var(--ink); outline-offset:2px; border-radius:4px; }
+  [hidden] { display:none !important; }
+  .num { font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .eyebrow { font:500 10.5px/1.2 var(--mono); text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3); margin:0 0 6px; }
+  .muted { color:var(--ink-2); }
+  header.top { flex:none; display:flex; align-items:center; gap:12px; padding:8px 20px; min-height:58px; flex-wrap:wrap; background:var(--s1); border-bottom:1px solid var(--line); }
+  .mark { display:flex; align-items:center; gap:9px; font:600 16px/1 var(--sans); letter-spacing:-.02em; text-decoration:none; }
+  .mark em { font:italic 400 21px/1 var(--serif); margin-left:-3px; }
+  nav.pages { display:flex; gap:2px; }
+  nav.pages a { padding:7px 12px; border-radius:8px; color:var(--ink-2); text-decoration:none; font-weight:500; }
+  nav.pages a:hover { color:var(--ink); background:var(--s2); }
+  nav.pages a.on { color:var(--ink); background:var(--s3); }
+  .ctl { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-2); }
+  select, input[type=number] { background:var(--s2); border:1px solid var(--line-2); border-radius:6px; padding:5px 7px; }
+  .seg { display:inline-flex; border:1px solid var(--line-2); border-radius:6px; overflow:hidden; }
+  .seg button { background:none; border:0; padding:5px 11px; cursor:pointer; color:var(--ink-2); }
+  .seg button[aria-pressed=true] { background:var(--s3); color:var(--ink); }
+  .spacer { flex:1; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font:500 12px/1 var(--sans); padding:6px 10px; border-radius:999px; border:1px solid var(--line-2); color:var(--ink-2); }
+  main { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 420px; }
+  #mapWrap { position:relative; min-height:0; }
+  #map { position:absolute; inset:0; background:#0e100e; }
+  .overlay { position:absolute; z-index:500; background:rgba(16,18,16,.94); border:1px solid var(--line-2); border-radius:10px; padding:10px 12px; font-size:12px; box-shadow:0 12px 36px rgba(0,0,0,.5); }
+  #legend { top:12px; left:12px; max-width:290px; }
+  #legend .row { display:flex; align-items:center; gap:8px; margin:3px 0; }
+  .sw { width:14px; height:10px; border-radius:2px; flex:none; border:1px solid transparent; }
+  #resNote { bottom:12px; left:12px; right:12px; max-width:560px; color:var(--ink-2); }
+  aside { border-left:1px solid var(--line); background:var(--s1); display:flex; flex-direction:column; min-height:0; }
+  .tabs { display:flex; border-bottom:1px solid var(--line); flex:none; overflow-x:auto; }
+  .tabs button { background:none; border:0; border-bottom:2px solid transparent; padding:10px 12px; cursor:pointer; color:var(--ink-2); white-space:nowrap; }
+  .tabs button[aria-selected=true] { color:var(--ink); border-bottom-color:var(--ink); }
+  .panel { overflow:auto; padding:16px 20px 40px; flex:1; min-height:0; }
+  .kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:4px 0 16px; }
+  .kpi { border-top:1px solid var(--line-2); padding-top:8px; }
+  .kpi .v { font:500 20px/1.15 var(--mono); letter-spacing:-.03em; }
+  .kpi p { margin:2px 0 0; font-size:12px; color:var(--ink-2); }
+  .filters { display:grid; gap:8px; margin-bottom:12px; padding:10px; border:1px solid var(--line); border-radius:10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chips label { display:inline-flex; align-items:center; gap:5px; font-size:12px; border:1px solid var(--line-2); border-radius:999px; padding:3px 9px; cursor:pointer; }
+  ul.list { list-style:none; margin:0; padding:0; }
+  ul.list li button { width:100%; text-align:left; background:none; border:0; border-top:1px solid var(--line); padding:9px 4px; cursor:pointer; display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; }
+  ul.list li button:hover, ul.list li button[aria-current=true] { background:var(--s2); }
+  .dot { width:10px; height:10px; border-radius:50%; }
+  .status { font:500 11px/1 var(--mono); padding:3px 6px; border-radius:999px; border:1px solid var(--line-2); color:var(--ink-2); white-space:nowrap; }
+  .bar { height:6px; background:var(--s3); border-radius:3px; overflow:hidden; }
+  .bar i { display:block; height:100%; }
+  table { border-collapse:collapse; width:100%; font-size:12px; }
+  th, td { text-align:left; padding:6px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--ink-3); font-weight:500; cursor:pointer; position:sticky; top:0; background:var(--s1); }
+  td.n { font-family:var(--mono); text-align:right; }
+  .btn { background:var(--ink); color:var(--s1); border:0; border-radius:6px; padding:7px 12px; font-weight:600; cursor:pointer; }
+  .btn.o { background:none; color:var(--ink); border:1px solid var(--line-2); }
+  .factor { display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:8px 0; border-top:1px solid var(--line); }
+  .factor .why { grid-column:1/-1; font-size:12px; color:var(--ink-2); }
+  .unknown { color:var(--ink); background:repeating-linear-gradient(45deg,#2a2e2a 0 4px,#1a1d1a 4px 8px); padding:1px 6px; border-radius:4px; }
+  .note { font-size:12.5px; color:var(--ink-2); border-left:2px solid var(--line-2); padding-left:10px; margin:12px 0; }
+  .assume { display:grid; grid-template-columns:1fr 110px; gap:4px 10px; align-items:center; padding:7px 0; border-top:1px solid var(--line); }
+  .assume small { grid-column:1/-1; color:var(--ink-3); font-size:11.5px; }
+  .assume input { width:110px; text-align:right; font-family:var(--mono); }
+  h2 { font:600 15px/1.3 var(--sans); margin:18px 0 8px; }
+  h3 { font:600 13px/1.3 var(--sans); margin:14px 0 6px; }
+  .src { border-top:1px solid var(--line); padding:8px 0; font-size:12px; }
+  .src code { font-family:var(--mono); font-size:11px; color:var(--ink-3); word-break:break-all; }
+  @media (max-width: 900px) {
+    body { height:auto; overflow:auto; display:block; }
+    header.top { position:sticky; top:0; z-index:1000; padding:8px 12px; }
+    main { display:block; }
+    #mapWrap { height:58vh; }
+    aside { border-left:0; border-top:1px solid var(--line); }
+    .panel { overflow:visible; padding:16px 14px 60px; }
+    #legend { max-width:200px; font-size:11px; padding:8px; }
+    #resNote { display:none; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="./" aria-label="TerraCorridor pipeline dashboard">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 16 C6 16 7 6 11 6 S16 15 20 13" fill="none" stroke="#eceee6" stroke-width="1.6"/><circle cx="2" cy="16" r="2" fill="#eceee6"/><circle cx="11" cy="6" r="2.2" fill="#d6f35f"/><circle cx="20" cy="13" r="2" fill="#eceee6"/></svg>
+    <span>Terra<em>Corridor</em></span>
+  </a>
+  <nav class="pages" aria-label="Pages"><a href="./">Pipeline risk</a><a href="./renewables.html" class="on" aria-current="page">Renewables</a></nav>
+  <label class="ctl">Pipeline <select id="pipelineSel" aria-label="Filter by pipeline"></select></label>
+  <span class="ctl">Layer <span class="seg" id="layerSeg" role="group" aria-label="Map layer">
+    <button data-layer="solar" aria-pressed="true">Solar</button><button data-layer="wind" aria-pressed="false">Wind</button><button data-layer="both" aria-pressed="false">Both</button></span></span>
+  <span class="spacer"></span>
+  <span class="pill" title="Screening only: land rights, interconnection capacity and permits are not assessed">Screening, not feasibility</span>
+</header>
+<main>
+  <div id="mapWrap">
+    <div id="map" role="region" aria-label="Renewable candidate map"></div>
+    <div class="overlay" id="legend" aria-label="Legend"></div>
+    <div class="overlay" id="resNote"></div>
+  </div>
+  <aside>
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="summary" aria-selected="true">Candidates</button>
+      <button role="tab" data-tab="detail" aria-selected="false">Detail</button>
+      <button role="tab" data-tab="table" aria-selected="false">Table</button>
+      <button role="tab" data-tab="money" aria-selected="false">Money</button>
+      <button role="tab" data-tab="sources" aria-selected="false">Sources</button>
+    </div>
+    <div class="panel" id="panel" role="tabpanel"></div>
+  </aside>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>/*__RENEWABLES__*/</script>
+<script>
+(() => {
+const R = window.RENEWABLES, DATA = window.TC_RENEWABLES;
+const C = { solar:'#d6f35f', wind:'#b9a4ff', sub:'#82c8ff', grey:'#5d625a', ink:'#eceee6', ink3:'#7a7f75', pipe:'#eceee6', prot:'#c9c1a3' };
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const fmt = (v, d = 0) => v == null || !Number.isFinite(v) ? '—' : v.toLocaleString('en-CA', { maximumFractionDigits:d, minimumFractionDigits:d });
+const money = (v) => v == null || !Number.isFinite(v) ? '—' : (Math.abs(v) >= 1e6 ? '$' + fmt(v / 1e6, 1) + 'M' : '$' + fmt(v / 1e3, 0) + 'k');
+const STATUS = ['strong', 'moderate', 'weak', 'excluded', 'incomplete'];
+const params = new URLSearchParams(location.search);
+const ids = DATA.corridors.map((c) => c.id);
+const state = {
+  pipeline: ids.includes(params.get('pipeline')) || params.get('pipeline') === 'all' ? params.get('pipeline') : DATA.default,
+  layer: ['solar', 'wind', 'both'].includes(params.get('layer')) ? params.get('layer') : 'solar',
+  tab: 'summary', selected: decodeURIComponent(location.hash.slice(1)) || null,
+  statuses: new Set(['strong', 'moderate', 'weak', 'excluded', 'incomplete']), minScore: 0, side: 'both',
+  sort: { key: 'score', dir: -1 }, overrides: {},
+};
+let results = {}, inputsById = {};
+function compute() {
+  results = {}; inputsById = {};
+  for (const c of DATA.corridors) {
+    const inp = DATA.inputs[c.id];
+    const o = state.overrides[c.id] || {};
+    results[c.id] = R.assessCorridor(inp, { ...state.overrides.shared, ...o, solar: { ...(state.overrides.shared || {}).solar }, wind: { ...(state.overrides.shared || {}).wind } });
+    for (const x of inp.candidates) inputsById[x.id] = x;
+  }
+}
+const activeCorridors = () => state.pipeline === 'all' ? ids : [state.pipeline];
+const allRows = () => activeCorridors().flatMap((id) => results[id].rows);
+const techOk = (r) => state.layer === 'both' || r.tech === state.layer;
+const filtered = () => allRows().filter((r) => techOk(r) && state.statuses.has(r.status) && (state.side === 'both' || r.side === state.side)
+  && (state.minScore === 0 || (r.score ?? -1) >= state.minScore));
+const rank = (r) => ({ strong:0, moderate:1, weak:2, incomplete:3, excluded:4 })[r.status];
+const sorted = (rows) => rows.slice().sort((a, b) => rank(a) - rank(b) || (b.score ?? b.partialScore ?? 0) - (a.score ?? a.partialScore ?? 0));
+const nameOf = (id) => (DATA.corridors.find((c) => c.id === id) || {}).name || id;
+
+// ---------- map
+const map = L.map('map', { zoomControl:true, preferCanvas:false });
+const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom:18, attribution:'Imagery © Esri, Maxar, Earthstar Geographics' }).addTo(map);
+map.attributionControl.addAttribution('Global Wind Atlas v4 · Global Solar Atlas 2.0 · ESA WorldCover 2021 · Copernicus DEM · CPCAD (ECCC) · CanVec (NRCan) · © OpenStreetMap contributors');
+const ctx = L.layerGroup().addTo(map), cand = L.layerGroup().addTo(map);
+const polys = {};
+function styleFor(r, sel) {
+  const col = C[r.tech];
+  if (r.status === 'excluded') return { color:C.grey, weight:sel ? 3 : 1, fillColor:C.grey, fillOpacity:.15, dashArray:'4 4' };
+  if (r.status === 'incomplete') return { color:C.ink3, weight:sel ? 3 : 1.2, fillColor:C.ink3, fillOpacity:.25, dashArray:'2 5' };
+  const s = r.score ?? 0;
+  return { color:sel ? C.ink : col, weight:sel ? 3 : 1, fillColor:col, fillOpacity:.15 + .6 * (s / 100) };
+}
+function drawMap(fit) {
+  ctx.clearLayers(); cand.clearLayers();
+  for (const id of activeCorridors()) {
+    const L1 = DATA.inputs[id].layers;
+    L.geoJSON(L1.protected, { style:{ color:C.prot, weight:1, dashArray:'6 4', fillOpacity:.06 }, onEachFeature:(f, l) => l.bindTooltip('Protected or conserved: ' + esc(f.properties.NAME_E) + ' (' + esc(f.properties.TYPE_E) + ')') }).addTo(ctx);
+    L.geoJSON(L1.powerLines, { style:{ color:C.sub, weight:1.5, opacity:.8, dashArray:'5 3' }, onEachFeature:(f, l) => l.bindTooltip('Mapped power line (CanVec), source dates ' + esc(f.properties.datemin) + '–' + esc(f.properties.datemax) + '. No voltage or capacity attributed.') }).addTo(ctx);
+    L.geoJSON(L1.stations, { pointToLayer:(f, ll) => L.circleMarker(ll, { radius:5, color:C.sub, fillColor:C.sub, fillOpacity:.9, weight:1 }), onEachFeature:(f, l) => l.bindTooltip('Mapped transformer station (CanVec), source dates ' + esc(f.properties.datemin) + '–' + esc(f.properties.datemax)) }).addTo(ctx);
+    for (const s of L1.pipeline) L.polyline(s.centreline.map(([x, y]) => [y, x]), { color:C.pipe, weight:3, opacity:.9 }).bindTooltip('Pipeline km ' + s.kmFrom + '–' + s.kmTo + ' (mapped route, ' + esc(nameOf(id)) + ')').addTo(ctx);
+  }
+  const rows = filtered();
+  for (const r of rows) {
+    const g = inputsById[r.id].polygon;
+    const lay = L.geoJSON(g, { style:styleFor(r, r.id === state.selected) });
+    lay.on('click', () => select(r.id, true));
+    lay.bindTooltip(`${r.tech === 'solar' ? 'Solar' : 'Wind'} · km ${r.kmFrom}–${r.kmTo} ${r.side === 'L' ? 'left' : 'right'} · ${R.STATUS_LABEL[r.status]}${r.score != null ? ' · ' + r.score : ''}`);
+    lay.addTo(cand); polys[r.id] = lay;
+  }
+  if (fit) {
+    const b = L.latLngBounds([]);
+    for (const id of activeCorridors()) { const bb = DATA.inputs[id].bbox; b.extend([[bb[1], bb[0]], [bb[3], bb[2]]]); }
+    if (b.isValid()) map.fitBounds(b, { padding:[20, 20] });
+  }
+  drawLegend(rows);
+}
+function drawLegend(rows) {
+  const n = (s) => rows.filter((r) => r.status === s).length;
+  const sw = (bg, extra = '') => `<span class="sw" style="background:${bg};${extra}"></span>`;
+  const techs = state.layer === 'both' ? ['solar', 'wind'] : [state.layer];
+  document.getElementById('legend').innerHTML = `<p class="eyebrow">Legend</p>
+    ${techs.map((t) => `<div class="row">${sw(`linear-gradient(90deg, ${C[t]}33, ${C[t]})`)}${t === 'solar' ? 'Solar' : 'Wind'} candidate: brighter = higher screening score</div>`).join('')}
+    <div class="row">${sw('#5d625a44', 'border:1px dashed #5d625a')}Excluded (${n('excluded')}): protected or too little usable land</div>
+    <div class="row">${sw('repeating-linear-gradient(45deg,#7a7f75 0 3px,#1a1d1a 3px 6px)')}Incomplete data (${n('incomplete')}): not ranked</div>
+    <div class="row">${sw('#eceee6')}Pipeline (mapped route)</div>
+    <div class="row">${sw('#82c8ff')}Mapped power line / substation (CanVec)</div>
+    <div class="row">${sw('#c9c1a322', 'border:1px dashed #c9c1a3')}Protected or conserved area (CPCAD)</div>`;
+  const res = state.layer === 'wind' ? 'Wind: Global Wind Atlas, 250 m grid at 100 m height.' : state.layer === 'solar' ? 'Solar: Global Solar Atlas, one modelled value per strip (~250 m grid).' : 'Wind 250 m grid at 100 m; solar one modelled value per strip.';
+  document.getElementById('resNote').innerHTML = `<b>Resolution.</b> ${res} Land cover 10 m, slope 30 m. Bands are drawn from the mapped pipeline line (solar 30–230 m, wind 300–2,000 m), not from parcels. A score is a regional screen, not a site survey.`;
+}
+function select(id, fromMap) {
+  state.selected = id; history.replaceState(null, '', location.pathname + location.search + '#' + encodeURIComponent(id));
+  for (const [pid, lay] of Object.entries(polys)) { const r = allRows().find((x) => x.id === pid); if (r) lay.setStyle(styleFor(r, pid === id)); }
+  if (!fromMap && polys[id]) map.fitBounds(polys[id].getBounds(), { maxZoom:15, padding:[30, 30] });
+  setTab('detail');
+}
+
+// ---------- panels
+function setTab(t) {
+  state.tab = t;
+  for (const b of document.querySelectorAll('#tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === t));
+  ({ summary:renderSummary, detail:renderDetail, table:renderTable, money:renderMoney, sources:renderSources })[t]();
+}
+const panel = document.getElementById('panel');
+function pooledFor(tech) { return activeCorridors().map((id) => ({ id, p:results[id].pooled[tech], price:results[id].assumptions.priceCadPerMwh })); }
+function renderSummary() {
+  const rows = sorted(filtered());
+  const pass = rows.filter((r) => r.status === 'strong' || r.status === 'moderate');
+  const techs = state.layer === 'both' ? ['solar', 'wind'] : [state.layer];
+  const pooledMw = techs.flatMap(pooledFor).reduce((s, x) => s + (x.p.mw || 0), 0);
+  const pooledRev = techs.flatMap(pooledFor).reduce((s, x) => s + (x.p.revenue || 0), 0);
+  panel.innerHTML = `
+    <p class="eyebrow">${esc(state.pipeline === 'all' ? 'All pipelines' : nameOf(state.pipeline))} · ${state.layer === 'both' ? 'solar and wind' : state.layer}</p>
+    <div class="kpis">
+      <div class="kpi"><div class="v num">${pass.length}<span class="muted" style="font-size:13px"> / ${rows.length}</span></div><p>candidates pass screening (strong or moderate)</p></div>
+      <div class="kpi"><div class="v num">${fmt(pooledMw, 0)} MW</div><p>scenario capacity on passing land</p></div>
+      <div class="kpi"><div class="v num">${money(pooledRev)}</div><p>scenario gross revenue per year, before costs</p></div>
+      <div class="kpi"><div class="v num">${rows.filter((r) => r.status === 'incomplete').length}</div><p>incomplete, not ranked</p></div>
+    </div>
+    <div class="filters" aria-label="Filters">
+      <div class="chips" id="statusChips">${STATUS.map((s) => `<label><input type="checkbox" value="${s}" ${state.statuses.has(s) ? 'checked' : ''}> ${R.STATUS_LABEL[s]}</label>`).join('')}</div>
+      <label class="ctl">Minimum score <input type="range" min="0" max="90" step="5" value="${state.minScore}" id="minScore" aria-label="Minimum screening score"> <span class="num" id="minScoreV">${state.minScore}</span></label>
+      <label class="ctl">Side of pipeline <select id="sideSel"><option value="both">Both</option><option value="L">Left</option><option value="R">Right</option></select></label>
+    </div>
+    <p class="note">Separate from pipeline risk: no risk score, tier, threshold or work order is read or changed here.</p>
+    <ul class="list" id="candList">${rows.map((r) => `<li><button data-id="${esc(r.id)}" ${r.id === state.selected ? 'aria-current="true"' : ''}>
+      <span class="dot" style="background:${r.status === 'excluded' || r.status === 'incomplete' ? C.grey : C[r.tech]}"></span>
+      <span><b>${r.tech === 'solar' ? 'Solar' : 'Wind'} · km ${r.kmFrom}–${r.kmTo} ${r.side === 'L' ? 'left' : 'right'}</b><br><span class="muted" style="font-size:12px">${esc(state.pipeline === 'all' ? nameOf(r.corridorId) + ' · ' : '')}coverage ${r.coverage}%${r.scenario.mw ? ' · ' + fmt(r.scenario.mw, 1) + ' MW scenario' : ''}</span></span>
+      <span style="text-align:right"><span class="num">${r.score ?? '—'}</span><br><span class="status">${R.STATUS_LABEL[r.status]}</span></span></button></li>`).join('')}</ul>
+    ${rows.length ? '' : '<p class="muted">No candidates match these filters.</p>'}`;
+  document.getElementById('sideSel').value = state.side;
+  panel.querySelectorAll('#statusChips input').forEach((i) => i.onchange = () => { i.checked ? state.statuses.add(i.value) : state.statuses.delete(i.value); refresh(); });
+  const ms = document.getElementById('minScore'); ms.oninput = () => { document.getElementById('minScoreV').textContent = ms.value; }; ms.onchange = () => { state.minScore = +ms.value; refresh(); };
+  document.getElementById('sideSel').onchange = (e) => { state.side = e.target.value; refresh(); };
+  panel.querySelectorAll('#candList button').forEach((b) => b.onclick = () => select(b.dataset.id));
+}
+function renderDetail() {
+  const r = allRows().find((x) => x.id === state.selected);
+  if (!r) { panel.innerHTML = '<p class="muted">Select a candidate on the map or in the list.</p>'; return; }
+  const c = inputsById[r.id], s = r.scenario, A = results[r.corridorId].assumptions;
+  const srcName = (k) => (DATA.inputs[r.corridorId].sources.find((x) => x.key === k) || {}).name || k;
+  const srcRes = (k) => (DATA.inputs[r.corridorId].sources.find((x) => x.key === k) || {}).resolution || '';
+  const lc = Object.entries(c.land.landCoverPct || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${esc(k)} ${v}%`).join(', ');
+  panel.innerHTML = `
+    <p class="eyebrow">${esc(nameOf(r.corridorId))} · ${r.tech} · ${r.side === 'L' ? 'left' : 'right'} side</p>
+    <h2 style="margin-top:0">km ${r.kmFrom}–${r.kmTo}: <span class="num">${r.score ?? '—'}</span> <span class="status">${R.STATUS_LABEL[r.status]}</span></h2>
+    <p>${esc(r.explanation)}</p>
+    <p class="muted" style="font-size:12px">Input coverage <span class="num">${r.coverage}%</span>${r.score == null && r.partialScore != null ? ` · partial score on known inputs <span class="num">${r.partialScore}</span> (not ranked)` : ''}. Band ${fmt(c.bandAreaHa, 1)} ha; ${fmt(c.land.samples)} sample points every ${c.land.spacingM} m.</p>
+    <h3>Score, factor by factor</h3>
+    ${r.factors.map((f) => `<div class="factor"><span>${esc(f.label)} <span class="muted">· weight ${Math.round(f.weight * 100)}%</span></span>
+      <span class="num">${f.known ? esc(f.display) + ' → ' + f.score : '<span class="unknown">unknown</span>'}</span>
+      <div class="bar" style="grid-column:1/-1"><i style="width:${f.known ? f.score : 0}%;background:${C[r.tech]}"></i></div>
+      <span class="why">${esc(f.why)}${f.known ? '' : ' Missing: ' + esc(f.reason) + '. Not scored as zero cost or best case.'} Source: ${esc(srcName(f.source))}${srcRes(f.source) ? ', ' + esc(srcRes(f.source)) : ''}.</span></div>`).join('')}
+    <h3>Land in the band</h3>
+    <p class="muted" style="font-size:12.5px">Land cover: ${lc || 'unknown'}. Eligible for ${r.tech}: ${esc(c.land.eligibleClasses.join(', '))}; slope at most ${c.land.maxSlopePct}%. Median slope ${fmt(c.land.slopeMedianPct, 1)}%, 90th percentile ${fmt(c.land.slopeP90Pct, 1)}%. Protected or conserved: ${fmt(c.land.protectedPct, 1)}%${c.land.protectedNames.length ? ' (' + esc(c.land.protectedNames.join('; ')) + ')' : ''}.</p>
+    <p class="muted" style="font-size:12.5px">Grid: nearest mapped transformer station ${c.grid.stationKm != null ? fmt(c.grid.stationKm, 2) + ' km (CanVec source dates ' + esc(c.grid.station.datemin) + '–' + esc(c.grid.station.datemax) + ')' : esc(c.grid.reason)}; nearest mapped power line ${c.grid.lineKm != null ? fmt(c.grid.lineKm, 2) + ' km' : 'none in search radius'}. Mapped is not the same as available capacity.</p>
+    ${r.tech === 'wind' ? `<p class="muted" style="font-size:12.5px">Wind at 100 m across the band: mean ${fmt(c.resource.ws100, 2)} m/s, range ${fmt(c.resource.ws100Min, 2)}–${fmt(c.resource.ws100Max, 2)} over ${c.resource.gridCells} Global Wind Atlas cells. Gross capacity factor ${c.resource.cfGross != null ? fmt(c.resource.cfGross * 100, 1) + '%' : 'unknown'} (IEC class II generic turbine).</p>`
+      : `<p class="muted" style="font-size:12.5px">Solar: PVOUT ${fmt(c.resource.pvout, 0)} kWh/kWp/yr, GHI ${fmt(c.resource.ghi, 0)} kWh/m²/yr at the strip centre (one value for the whole strip).</p>`}
+    <h3>Scenario if built (editable on the Money tab)</h3>
+    ${s.mw == null ? `<p class="muted">${esc(s.reasons.join('; ') || 'not computed')}</p>` : `
+    <div class="kpis">
+      <div class="kpi"><div class="v num">${fmt(s.mw, 1)} MW</div><p>${r.tech === 'wind' ? s.turbines + ' × ' + A.wind.turbineMw + ' MW turbines' : 'at ' + A.solar.densityMwPerHa + ' MWdc/ha'}</p></div>
+      <div class="kpi"><div class="v num">${fmt(s.mwh, 0)}</div><p>MWh per year</p></div>
+      <div class="kpi"><div class="v num">${money(s.revenue)}</div><p>gross revenue / yr at $${fmt(A.priceCadPerMwh, 2)}/MWh</p></div>
+      <div class="kpi"><div class="v num">${money(s.netBeforeLand)}</div><p>net before land cost / yr</p></div>
+      <div class="kpi"><div class="v num">${money(s.capex)}</div><p>capital incl. own grid connection</p></div>
+      <div class="kpi"><div class="v num">${s.paybackYears != null ? fmt(s.paybackYears, 1) + ' yr' : '—'}</div><p>simple payback, standalone</p></div>
+    </div>${s.reasons.length ? `<p class="note">${esc(s.reasons.join('; '))}</p>` : ''}`}
+    <h3>Gates this page does not check</h3>
+    <p class="muted" style="font-size:12.5px">${esc(r.gates.join(' · '))}. A strong screen means "worth a desktop study", not "buildable".</p>`;
+}
+function tableRows() {
+  const rows = filtered(); const { key, dir } = state.sort;
+  const val = (r) => key === 'score' ? (r.score ?? -1) : key === 'mw' ? (r.scenario.mw ?? -1) : key === 'revenue' ? (r.scenario.revenue ?? -1) : key === 'km' ? r.kmFrom : key === 'coverage' ? r.coverage : String(r[key]);
+  return rows.slice().sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * dir);
+}
+function renderTable() {
+  const rows = tableRows();
+  const cols = [['km', 'km'], ['tech', 'Tech'], ['side', 'Side'], ['status', 'Status'], ['score', 'Score'], ['coverage', 'Coverage'], ['mw', 'MW'], ['revenue', 'Revenue/yr']];
+  panel.innerHTML = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><button class="btn" id="csvBtn">Export CSV (${rows.length})</button><span class="muted" style="font-size:12px">Exports the rows matching the current filters, with the explanation for each.</span></div>
+    <div style="overflow:auto"><table><thead><tr>${state.pipeline === 'all' ? '<th>Pipeline</th>' : ''}${cols.map(([k, l]) => `<th data-k="${k}" aria-sort="${state.sort.key === k ? (state.sort.dir > 0 ? 'ascending' : 'descending') : 'none'}">${l}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map((r) => `<tr data-id="${esc(r.id)}" style="cursor:pointer">${state.pipeline === 'all' ? `<td>${esc(nameOf(r.corridorId).split(' ·')[0])}</td>` : ''}<td class="n">${r.kmFrom}–${r.kmTo}</td><td>${r.tech}</td><td>${r.side}</td><td>${R.STATUS_LABEL[r.status]}</td><td class="n">${r.score ?? '—'}</td><td class="n">${r.coverage}%</td><td class="n">${fmt(r.scenario.mw, 1)}</td><td class="n">${money(r.scenario.revenue)}</td></tr>`).join('')}</tbody></table></div>`;
+  panel.querySelectorAll('th[data-k]').forEach((th) => th.onclick = () => { state.sort = { key:th.dataset.k, dir:state.sort.key === th.dataset.k ? -state.sort.dir : -1 }; renderTable(); });
+  panel.querySelectorAll('tr[data-id]').forEach((tr) => tr.onclick = () => select(tr.dataset.id));
+  document.getElementById('csvBtn').onclick = () => {
+    const blob = new Blob([R.toCSV(rows, inputsById)], { type:'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `terracorridor-renewables-${state.pipeline}-${state.layer}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+}
+function renderMoney() {
+  const first = activeCorridors()[0], A = results[first].assumptions, AS = R.ASSUMPTIONS;
+  const field = (path, label, src, step = 'any') => {
+    const v = path.split('.').reduce((o, k) => o && o[k], A);
+    return `<div class="assume"><label for="a-${path}">${esc(label)}</label><input type="number" step="${step}" id="a-${path}" data-path="${path}" value="${v ?? ''}" placeholder="not set">
+      <small>${esc(src.source)}${src.url ? ' · <a href="' + esc(src.url) + '" target="_blank" rel="noopener">source</a>' : ''}</small></div>`;
+  };
+  const block = (tech) => pooledFor(tech).map(({ id, p, price }) => `
+    <h3>${tech === 'solar' ? 'Solar' : 'Wind'} · ${esc(nameOf(id))}</h3>
+    ${p.candidates ? `<div class="kpis">
+      <div class="kpi"><div class="v num">${fmt(p.mw, 1)} MW</div><p>${p.candidates} passing candidates pooled</p></div>
+      <div class="kpi"><div class="v num">${fmt(p.mwh, 0)}</div><p>MWh per year</p></div>
+      <div class="kpi"><div class="v num">${money(p.revenue)}</div><p>gross revenue / yr at $${fmt(price, 2)}/MWh</p></div>
+      <div class="kpi"><div class="v num">${money(p.net)}</div><p>net after O&amp;M${p.landCost != null ? ' and land' : ', before land cost'} / yr</p></div>
+      <div class="kpi"><div class="v num">${money(p.capex)}</div><p>capital, one connection ${fmt(p.stationKm, 2)} km to the nearest mapped substation</p></div>
+      <div class="kpi"><div class="v num">${money(p.npv)}</div><p>NPV over ${A.lifeYears} yr at ${A.discountRatePct}%</p></div>
+      <div class="kpi"><div class="v num">${p.paybackYears != null ? fmt(p.paybackYears, 1) + ' yr' : '—'}</div><p>simple payback</p></div>
+      <div class="kpi"><div class="v num">${p.breakEvenPriceCadPerMwh != null ? '$' + fmt(p.breakEvenPriceCadPerMwh, 0) : '—'}</div><p>break-even price per MWh at these costs</p></div>
+    </div>` : ''}${p.reasons.length ? `<p class="note">${esc(p.reasons.join('; '))}</p>` : ''}`).join('');
+  const techs = state.layer === 'both' ? ['solar', 'wind'] : [state.layer];
+  panel.innerHTML = `
+    <p class="eyebrow">Scenario, not a prediction</p>
+    <p class="muted" style="font-size:12.5px">Pools every strong or moderate candidate into one project per technology and pipeline, with one connection to the nearest mapped substation. Collector lines, storage, curtailment, financing structure, taxes and land cost are not modelled unless you enter them. Change any number below and every figure updates.</p>
+    ${techs.map(block).join('')}
+    <h2>Assumptions</h2>
+    ${state.pipeline === 'all' ? '<p class="note">Electricity price is set per pipeline. Choose one pipeline to edit its price; other assumptions apply to both.</p>' : field('priceCadPerMwh', 'Electricity price, $/MWh (CAD)', AS.priceCadPerMwh[first])}
+    ${field('landCostCadPerHaYr', 'Land cost, $/ha/yr (blank = not included)', AS.landCostCadPerHaYr)}
+    ${field('spurCadPerKm', 'New line to substation, $/km', AS.spurCadPerKm)}
+    ${field('connectionUsdPerKw', 'Grid connection, US$/kW', AS.connectionUsdPerKw)}
+    ${field('fxCadPerUsd', 'CAD per USD', AS.fxCadPerUsd)}
+    ${field('discountRatePct', 'Discount rate, %', AS.discountRatePct)}
+    ${field('lifeYears', 'Project life, years', AS.lifeYears, '1')}
+    <h3>Solar</h3>
+    ${field('solar.densityMwPerHa', 'MWdc per usable hectare', AS.solar.densityMwPerHa)}
+    ${field('solar.captureRatio', 'Price capture ratio (0–1)', AS.solar.captureRatio)}
+    ${field('solar.capexCadPerWdc', 'Installed cost, $/Wdc', AS.solar.capexCadPerWdc)}
+    ${field('solar.opexCadPerKwYr', 'O&M, $/kW/yr', AS.solar.opexCadPerKwYr)}
+    <h3>Wind</h3>
+    ${field('wind.densityMwPerKm2', 'MW per usable km²', AS.wind.densityMwPerKm2)}
+    ${field('wind.turbineMw', 'Turbine rating, MW', AS.wind.turbineMw)}
+    ${field('wind.lossPct', 'Losses, %', AS.wind.lossPct)}
+    ${field('wind.capexUsdPerKw', 'Installed cost, US$/kW', AS.wind.capexUsdPerKw)}
+    ${field('wind.opexUsdPerKwYr', 'O&M, US$/kW/yr', AS.wind.opexUsdPerKwYr)}
+    <p style="margin-top:12px"><button class="btn o" id="resetA">Reset to defaults</button></p>`;
+  panel.querySelectorAll('input[data-path]').forEach((inp) => inp.onchange = () => {
+    const path = inp.dataset.path, raw = inp.value.trim(), v = raw === '' ? null : Number(raw);
+    if (raw !== '' && !Number.isFinite(v)) return;
+    if (path === 'priceCadPerMwh') { state.overrides[first] = { ...(state.overrides[first] || {}), priceCadPerMwh:v }; }
+    else {
+      const sh = state.overrides.shared = state.overrides.shared || {};
+      const [a, b] = path.split('.');
+      if (b) sh[a] = { ...(sh[a] || {}), [b]:v }; else sh[a] = v;
+    }
+    compute(); drawMap(false); renderMoney();
+  });
+  document.getElementById('resetA').onclick = () => { state.overrides = {}; compute(); drawMap(false); renderMoney(); };
+}
+function renderSources() {
+  panel.innerHTML = activeCorridors().map((id) => {
+    const inp = DATA.inputs[id];
+    return `<p class="eyebrow">${esc(nameOf(id))} · inputs generated ${esc(inp.generatedAt)}</p>
+      ${inp.sources.map((s) => `<div class="src"><b>${esc(s.name)}</b><br>${esc(s.resolution)}. ${esc(s.note || '')}<br>
+        <span class="muted">Licence: ${esc(s.licence)}</span><br>Retrieved ${esc(s.retrievedAt)} · <a href="${esc(s.url.split(';')[0])}" target="_blank" rel="noopener">source</a><br><code>sha256 ${esc(s.rawSha256)}</code></div>`).join('')}
+      <h3>Not assessed (always unknown here)</h3><p class="muted" style="font-size:12.5px">${esc(inp.notAssessed.join(' · '))}</p>`;
+  }).join('<hr style="border:0;border-top:1px solid var(--line-2);margin:20px 0">');
+}
+
+// ---------- wiring
+const sel = document.getElementById('pipelineSel');
+sel.innerHTML = DATA.corridors.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('') + '<option value="all">All pipelines</option>';
+sel.value = state.pipeline;
+function syncUrl() { const u = new URL(location.href); u.searchParams.set('pipeline', state.pipeline); u.searchParams.set('layer', state.layer); history.replaceState(null, '', u.pathname + u.search + u.hash); }
+sel.onchange = () => { state.pipeline = sel.value; if (state.selected && !allRows().some((r) => r.id === state.selected)) state.selected = null; syncUrl(); drawMap(true); setTab(state.tab === 'detail' && !state.selected ? 'summary' : state.tab); };
+document.querySelectorAll('#layerSeg button').forEach((b) => b.onclick = () => { state.layer = b.dataset.layer; document.querySelectorAll('#layerSeg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); syncUrl(); refresh(); });
+document.querySelectorAll('#layerSeg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.layer === state.layer)));
+document.querySelectorAll('#tabs button').forEach((b) => b.onclick = () => setTab(b.dataset.tab));
+function refresh() { drawMap(false); setTab(state.tab); }
+compute();
+if (state.selected && !allRows().some((r) => r.id === state.selected)) state.selected = null;
+if (state.selected) { const r = allRows().find((x) => x.id === state.selected); if (r && !techOk(r)) { state.layer = r.tech; document.querySelectorAll('#layerSeg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.layer === state.layer))); } }
+drawMap(true);
+setTab(state.selected ? 'detail' : 'summary');
+window.TC_RENEWABLES_STATE = state;
+})();
+</script>
+</body>
+</html>
