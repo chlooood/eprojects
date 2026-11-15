@@ -231,6 +231,9 @@ test('W2 never invents humidity or dry-soil data: missing inputs leave the hazar
   assert.match(hz.status.drought, /dry spells only/);
   const oldCache = (await scoreW2([w2seg('s', '[]')], cellRec({ MRI_AGCM3_2_S: ratios({}), EC_Earth3P_HR: ratios({}), MPI_ESM1_2_XR: ratios({}) }, { fire: undefined }))).find((x) => x.horizon_years === 10);
   assert.match(JSON.parse(oldCache.hazards_json).status.wildfire, /no observed humidity in the cached baseline/);
+  const v1 = (await scoreW2([w2seg("s", "[]")], cellRec({ MRI_AGCM3_2_S: ratios({ dry: null, spell: null, fire: null }), EC_Earth3P_HR: ratios({ dry: null, spell: null, fire: null }), MPI_ESM1_2_XR: ratios({ dry: null, spell: null, fire: null }) }, { fire: undefined, dry: undefined, spell: undefined }))).find((x) => x.horizon_years === 10);
+  assert.match(JSON.parse(v1.hazards_json).status.drought, /cached before dry-soil and dry-spell metrics were added/);
+  assert.equal(v1.status, "verified", "an old cache cell still scores ground failure");
 });
 
 test('W2 helper counts dry-soil days, dry spells and fire-weather days, and returns null without humidity', () => {

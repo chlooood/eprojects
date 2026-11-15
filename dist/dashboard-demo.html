@@ -2688,7 +2688,7 @@ function renderMoney() {
   // What this run measurably did: a ranked shortlist. Shares are of the 0-100 priority index, not of failure probability.
   const scored = segs.filter((x) => x.risk[stop].score != null).sort((p, q) => q.risk[stop].score - p.risk[stop].score);
   const flagged = scored.filter((x) => x.risk[stop].score >= cfg.tiers.amber);
-  const short = flagged.length ? flagged : scored.slice(0, Math.min(3, scored.length));
+  const short = flagged.length >= 3 ? flagged : scored.slice(0, Math.min(3, scored.length));
   const sumAll = scored.reduce((t, x) => t + x.risk[stop].score, 0), sumShort = short.reduce((t, x) => t + x.risk[stop].score, 0);
   const VISIT_H = cfg.money.visitHours || 6;
   const kmAll = scored.reduce((t, x) => t + x.lengthM / 1000, 0), kmShort = short.reduce((t, x) => t + x.lengthM / 1000, 0);
@@ -2696,7 +2696,7 @@ function renderMoney() {
     <div class="stats" style="grid-template-columns:repeat(4,minmax(0,1fr))">
     <div class="stat"><div class="v">${kmAll.toFixed(1)} km</div><p>assessed in ${scored.length} segments${segs.length - scored.length ? `, ${segs.length - scored.length} missing data` : ''}.</p></div>
     <div class="stat"><div class="v">${flagged.length}</div><p>segment${flagged.length === 1 ? '' : 's'} at or above the Medium threshold (${cfg.tiers.amber}) for ${STOP_LABEL[stop].toLowerCase()}.</p></div>
-    <div class="stat"><div class="v">${scored.length} → ${short.length}</div><p>first review list: ${flagged.length ? 'the flagged segments' : 'the top 3 by score, since none is flagged'}, ${sumAll ? Math.round(100 * sumShort / sumAll) : 0}% of the corridor's total score in ${kmAll ? Math.round(100 * kmShort / kmAll) : 0}% of its length.</p></div>
+    <div class="stat"><div class="v">${scored.length} → ${short.length}</div><p>first review list: ${flagged.length >= 3 ? 'the flagged segments' : 'the top 3 by score'}, ${sumAll ? Math.round(100 * sumShort / sumAll) : 0}% of the corridor's total score in ${kmAll ? Math.round(100 * kmShort / kmAll) : 0}% of its length.</p></div>
     <div class="stat"><div class="v">${short.length * VISIT_H} h</div><p>field time for that list at ${VISIT_H} h a visit (our assumption), against ${scored.length * VISIT_H} h to walk every segment once.</p></div></div></section>`;
   let v;
   const be = `One avoided failure at ${fmt$(cfg.money.costOfFailure)} pays for ${s.yearsPaidByOneFailure} years of the program; the program breaks even at ${s.breakEvenFailures} avoided failure${s.breakEvenFailures === 1 ? '' : 's'} over ${yrs} years.`;
