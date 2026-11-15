@@ -37,13 +37,13 @@ footer .mark{font:600 15px var(--sans)}footer .mark em{font:italic 400 19px var(
 .ico{width:34px;height:34px}
 .wf{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px}.wf>*,.split>*,.grid>*{min-width:0}
 .tabsr{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabsr button{background:var(--s1);border:1px solid var(--line-2);color:var(--ink-2);border-radius:999px;padding:6px 12px;cursor:pointer;font:500 13.5px var(--sans)}.tabsr button[aria-pressed=true]{background:var(--ink);color:var(--s1);border-color:var(--ink)}
-.canvas{background:#0d0f0d radial-gradient(#252925 1px,transparent 1px) 0 0/18px 18px;border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:58vh;min-height:260px}
-.canvas svg{display:block}
+.canvas{background:#0d0f0d radial-gradient(#252925 1px,transparent 1px) 0 0/18px 18px;border:1px solid var(--line);border-radius:12px;overflow:hidden;height:min(52vh,500px);min-height:300px;display:grid;place-items:center;padding:8px}
+.canvas svg{display:block;width:100%;height:100%}
 .nd rect{fill:#1a1d1a;stroke:#3a403a;stroke-width:1.5;transition:fill .25s,stroke .25s}.nd text{fill:#eceee6;font:500 12px var(--sans)}.nd .ty{fill:#7a7f75;font:10px var(--mono)}
 .nd{cursor:pointer}.nd.run rect{stroke:#f2a93b;fill:#2a2412}.nd.done rect{stroke:#6fd08f}.nd.sel rect{stroke:#eceee6;stroke-width:2.5}
 .nd .ok{opacity:0}.nd.done .ok{opacity:1}
 .ed{fill:none;stroke:#3a403a;stroke-width:1.6}.ed.done{stroke:#6fd08f}
-.side{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:16px;max-height:58vh;overflow:auto}
+.side{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:16px;height:min(52vh,500px);min-height:300px;overflow:auto}
 pre{font:12px/1.5 var(--mono);background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-word;margin:8px 0 0;color:#cfd3c8}
 .log{font:12px/1.6 var(--mono);color:var(--ink-2);margin-top:10px;max-height:120px;overflow:auto}
 .wo{font:13px/1.6 var(--mono);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:14px;white-space:pre-wrap;min-height:150px}
@@ -87,10 +87,32 @@ function hookTips(el){const tip=el.querySelector('.tip');el.querySelectorAll('[d
 const tierLine=t=>Object.entries(t).sort((a,b)=>['High','Medium','Low','Missing data'].indexOf(a[0])-['High','Medium','Low','Missing data'].indexOf(b[0])).map(([k,v])=>'<span class="tag" style="border-color:'+TC[k]+'55;color:'+TC[k]+'">'+v+' '+k+'</span>').join('');
 
 // ---------- n8n canvas replay
-function canvas(f){const xs=f.nodes.map(n=>n.x),ys=f.nodes.map(n=>n.y),x0=Math.min(...xs)-30,y0=Math.min(...ys)-40,W=Math.max(...xs)-x0+230,H=Math.max(...ys)-y0+90;
- const at=n=>f.nodes.find(x=>x.n===n);let s='<svg width="'+Math.max(W*0.82,560)+'" viewBox="'+x0+' '+y0+' '+W+' '+H+'">';
- f.edges.forEach(([a,b],i)=>{const A=at(a),Bn=at(b);if(!A||!Bn)return;const ax=A.x+180,ay=A.y+24,bx=Bn.x,by=Bn.y+24,m=Math.max(40,(bx-ax)/2);s+='<path class="ed" data-e="'+i+'" d="M'+ax+' '+ay+' C'+(ax+m)+' '+ay+' '+(bx-m)+' '+by+' '+bx+' '+by+'"/>'});
- f.nodes.forEach((n,i)=>{s+='<g class="nd" data-n="'+i+'" tabindex="0" role="button" aria-label="'+esc(n.n)+'" transform="translate('+n.x+' '+n.y+')"><rect width="180" height="48" rx="9"/><text x="12" y="20">'+esc(n.n.length>24?n.n.slice(0,23)+'…':n.n)+'</text><text class="ty" x="12" y="37">'+esc(n.t)+'</text><circle class="ok" cx="166" cy="14" r="5" fill="#6fd08f"/></g>'});
+// Build a compact topological layout for this slide instead of replaying the
+// very wide editor coordinates stored by n8n. Seven columns wrap in a snake,
+// so every real node and connection remains visible without canvas scrolling.
+function canvasLayout(f){
+ const NW=148,NH=44,XG=28,YG=18,COLS=7,ROW_GAP=42,PAD=24,STEP=NW+XG;
+ const by=new Map(f.nodes.map((n,i)=>[n.n,{...n,i}])),out=new Map(f.nodes.map(n=>[n.n,[]])),deg=new Map(f.nodes.map(n=>[n.n,0])),rank=new Map(f.nodes.map(n=>[n.n,0])),connected=new Set;
+ f.edges.forEach(([a,b])=>{if(!by.has(a)||!by.has(b))return;out.get(a).push(b);deg.set(b,deg.get(b)+1);connected.add(a);connected.add(b)});
+ const stable=(a,b)=>by.get(a).x-by.get(b).x||by.get(a).y-by.get(b).y||by.get(a).i-by.get(b).i;
+ const q=[...connected].filter(n=>deg.get(n)===0).sort(stable),seen=[];
+ while(q.length){const n=q.shift();seen.push(n);out.get(n).forEach(c=>{rank.set(c,Math.max(rank.get(c),rank.get(n)+1));deg.set(c,deg.get(c)-1);if(deg.get(c)===0){q.push(c);q.sort(stable)}})}
+ let maxRank=seen.length?Math.max(...seen.map(n=>rank.get(n))):0;
+ f.nodes.filter(n=>!connected.has(n.n)).forEach(n=>rank.set(n.n,++maxRank));
+ const layers=new Map;f.nodes.forEach(n=>{const r=rank.get(n.n);if(!layers.has(r))layers.set(r,[]);layers.get(r).push(n.n)});
+ layers.forEach(a=>a.sort((x,y)=>by.get(x).y-by.get(y).y||stable(x,y)));
+ const blocks=Math.floor(maxRank/COLS)+1,tops=[],heights=[];let top=PAD;
+ for(let b=0;b<blocks;b++){let lanes=1;for(let r=b*COLS;r<Math.min((b+1)*COLS,maxRank+1);r++)lanes=Math.max(lanes,(layers.get(r)||[]).length);const h=lanes*NH+(lanes-1)*YG;tops[b]=top;heights[b]=h;top+=h+ROW_GAP}
+ const pos=new Map;
+ layers.forEach((names,r)=>{const block=Math.floor(r/COLS),col=r%COLS,x=PAD+(block%2?COLS-1-col:col)*STEP,lh=names.length*NH+(names.length-1)*YG,y0=tops[block]+(heights[block]-lh)/2;names.forEach((name,i)=>pos.set(name,{x,y:y0+i*(NH+YG),i:by.get(name).i}))});
+ return{pos,NW,NH,W:PAD*2+COLS*NW+(COLS-1)*XG,H:top-ROW_GAP+PAD};
+}
+function canvas(f){const L=canvasLayout(f),at=n=>L.pos.get(n);let s='<svg viewBox="0 0 '+L.W+' '+L.H+'" preserveAspectRatio="xMidYMid meet" aria-label="'+esc(f.t)+' workflow">';
+ f.edges.forEach(([a,b],i)=>{const A=at(a),Bn=at(b);if(!A||!Bn)return;let ax,ay,bx,by,c1x,c1y,c2x,c2y;const dx=Bn.x-A.x,dy=Bn.y-A.y;
+  if(Math.abs(dx)>L.NW*.65){const d=dx>0?1:-1,m=Math.max(24,Math.abs(dx)*.45);ax=A.x+(d>0?L.NW:0);ay=A.y+L.NH/2;bx=Bn.x+(d>0?0:L.NW);by=Bn.y+L.NH/2;c1x=ax+d*m;c1y=ay;c2x=bx-d*m;c2y=by}
+  else{const d=dy>=0?1:-1,m=Math.max(24,Math.abs(dy)*.45);ax=A.x+L.NW/2;ay=A.y+(d>0?L.NH:0);bx=Bn.x+L.NW/2;by=Bn.y+(d>0?0:L.NH);c1x=ax;c1y=ay+d*m;c2x=bx;c2y=by-d*m}
+  s+='<path class="ed" data-e="'+i+'" d="M'+ax+' '+ay+' C'+c1x+' '+c1y+' '+c2x+' '+c2y+' '+bx+' '+by+'"/>'});
+ f.nodes.forEach((n,i)=>{const p=L.pos.get(n.n),label=n.n.length>20?n.n.slice(0,19)+'…':n.n;s+='<g class="nd" data-n="'+i+'" tabindex="0" role="button" aria-label="'+esc(n.n)+'" transform="translate('+p.x+' '+p.y+')"><rect width="'+L.NW+'" height="'+L.NH+'" rx="8"/><text x="10" y="18">'+esc(label)+'</text><text class="ty" x="10" y="34">'+esc(n.t)+'</text><circle class="ok" cx="'+(L.NW-12)+'" cy="12" r="4.5" fill="#6fd08f"/></g>'});
  return s+'</svg>'}
 
 const SL=[
