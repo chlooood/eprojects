@@ -5,3 +5,5 @@ node_modules/
 _to_delete/
 ml/cache/
 ml/raw/
+
+work/

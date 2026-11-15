@@ -1034,7 +1034,7 @@ function hazardsHTML(s, r) {
   const hz = r.hazards || {};
   return ['ground', 'crossing', 'wildfire', 'drought'].map((k) => {
     const h = hz[k];
-    if (!h) {
+    if (!h || h.score == null) {
       // Not applicable (no mapped crossing), not checked, and data unavailable are different things: say which.
       const st = (r.hazardStatus && r.hazardStatus[k]) || (k === 'crossing' ? (s.crossings ? 'not applicable: no mapped waterway crosses this segment' : 'not checked') : 'unavailable: no input data');
       return `<div class="drv" title="${esc(st)}"><span class="l" style="color:var(--ink-3)">${HAZ[k]}<div class="cap" style="margin-top:2px">${esc(st.split(': ').slice(1).join(': ') || st)}</div></span><span class="n" style="color:var(--ink-3)">${esc(st.split(':')[0].replace(/ \(.*$/, ''))}</span></div>`;
@@ -1051,11 +1051,17 @@ function horizonHTML(s) {
   const mv = (b.drivers || []).filter((d) => ['rain', 'freezeThaw', 'saturation'].includes(d.key)).map((d) => { const p = (a.drivers || []).find((x) => x.key === d.key); return p && p.change != null && d.change != null ? { label: d.label, from: p.change, to: d.change, delta: Math.abs(d.change - p.change) } : null; }).filter(Boolean).sort((x, y) => y.delta - x.delta)[0];
   return `<div class="cap" style="margin-top:10px">Score ${Math.round(a.score)} for ${w5[0]}–${w5[1]}, ${Math.round(b.score)} for ${w10[0]}–${w10[1]}. The second window contains the first, so the change comes from the model years ${w5[1] + 1}–${w10[1]}${mv ? `: ${mv.label.toLowerCase()} ${sign(mv.from)}% → ${sign(mv.to)}% vs 1995–2025` : ''}. A change under about ±15% in heavy-rain days is within year-to-year sampling noise for a window this short. These are planning signals, not forecasts.</div>`;
 }
+function coverageText(r) {
+  const missing = ['ground', 'crossing', 'wildfire', 'drought'].filter((k) =>
+    r.hazards?.[k]?.score == null && !String(r.hazardStatus?.[k] || '').startsWith('not applicable'));
+  return missing.length ? `Partial assessment · ${missing.map((k) => HAZ[k]).join(', ')} unavailable. Low applies only to assessed hazards.` : 'All applicable hazards assessed · priority index, not a safety certification.';
+}
 function chipHTML(t) { return `<span class="chip" style="color:${C[t]};background:${C[t]}1a"><span class="led"></span>${TIER_LABEL[t]}</span>`; }
 function gaugeHTML(r) {
   return `<div class="gauge">
     <div class="row1"><span class="big">${r.score ?? '–'}<small> / 100</small></span><span class="label">${r.agreement === 'observed' ? 'Observed conditions' : 'Model agreement: <b style="color:var(--ink)">' + (r.agreement ?? '–') + '</b>'}</span></div>
     <div class="track"><span style="background:${C.green}"></span><span style="background:${C.amber}"></span><span style="background:${C.red}"></span>${r.score != null ? `<i class="pin" style="left:calc(${r.score}% - 1.5px)"></i>` : ''}</div>
+    <div class="cap">${coverageText(r)}</div>
     <div class="ticks"><span style="left:0">0</span><span style="left:${cfg.tiers.amber}%">${cfg.tiers.amber}</span><span style="left:${cfg.tiers.red}%">${cfg.tiers.red}</span><span style="left:100%">100</span></div></div>`;
 }
 function explainHTML(s, r) {
@@ -1115,9 +1121,16 @@ const fmtDate = (d) => { try { return new Date(d + 'T00:00:00').toLocaleDateStri
 const DELIVERY = {
   local: 'Local demo: saved in this browser only. n8n is not connected, so nothing was recorded or sent anywhere.',
   sending: 'Sending to n8n…',
-  n8n: 'Approved and recorded in n8n (corridor_work_orders). Not emailed and no crew dispatched: the inspection coordinator takes it from the CSV on the Work orders page.',
+  snapshot: 'Previously recorded in n8n, as of this saved snapshot. Current status has not been checked while offline.',
+  n8n: 'Approved and recorded in n8n (corridor_work_orders). Check the email status on Work orders, or export CSV. No crew dispatched.',
   failed: 'Not recorded: n8n did not accept it. This copy exists in this browser only.',
 };
+function deliveryText(w) {
+  if (w.delivery === 'snapshot') return DELIVERY.snapshot;
+  if (w.delivery !== 'n8n') return DELIVERY[w.delivery] || DELIVERY.local;
+  const states = { queued: 'Approved in n8n · email queued', sending: 'Approved in n8n · email attempt in progress', provider_accepted: `Email accepted by mail provider${w.deliveryRecipient ? ' for ' + w.deliveryRecipient : ''}. Inbox receipt and crew dispatch are not confirmed.`, needs_review: 'Approved in n8n · email result needs review before retry', cancelled: 'Email cancelled' };
+  return states[w.deliveryState] || 'Approved in n8n · email not configured for this order. Export CSV for the coordinator.';
+}
 function woHTML(s) {
   const w = s.workOrder; if (!w) return '';
   const off = w.status === 'cancelled';
@@ -1126,14 +1139,14 @@ function woHTML(s) {
     <div class="meta">${esc(w.why)} · score ${w.score ?? '–'} · est. ${fmt$(w.estCost)}</div>
     ${off ? '' : `<ol>${w.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ol>`}
     <div class="row2">${w.mapUrl ? `<a href="${esc(w.mapUrl)}" target="_blank" rel="noopener">Open location ↗</a>` : ''}<button class="linkbtn" data-copy="${esc(s.id)}">Copy work order text</button></div>
-    <div class="cap" style="margin-top:8px">${DELIVERY[w.delivery] || ''}</div>
+    <div class="cap" style="margin-top:8px">${esc(deliveryText(w))}</div>
   </div>`;
 }
 function actionsHTML(s, compact) {
   return `<div class="actions">
     ${woHTML(s)}
     <div class="btnrow">
-      <button class="btn primary" data-act="approved" aria-pressed="${s.wo === 'approved'}">${s.wo === 'approved' ? (s.workOrder && s.workOrder.delivery === 'n8n' ? '✓ Approved · recorded in n8n' : s.workOrder && s.workOrder.delivery === 'sending' ? 'Sending to n8n…' : s.workOrder && s.workOrder.delivery === 'failed' ? 'Approved here · not recorded' : '✓ Approved · local demo') : 'Approve inspection'}</button>
+      <button class="btn primary" data-act="approved" aria-pressed="${s.wo === 'approved'}">${s.wo === 'approved' ? (s.workOrder && s.workOrder.delivery === 'n8n' ? '✓ Approved · recorded in n8n' : s.workOrder && s.workOrder.delivery === 'sending' ? 'Sending to n8n…' : s.workOrder && s.workOrder.delivery === 'failed' ? 'Retry inspection approval' : '✓ Approved · local demo') : 'Approve inspection'}</button>
       <button class="btn" data-act="rejected" aria-pressed="${s.wo === 'rejected'}">${s.wo === 'rejected' ? 'Rejected' : s.wo === 'approved' ? 'Cancel' : 'Reject'}</button>
     </div>
     <details class="ovr" style="margin-top:12px"><summary>Override the risk level (reason required)</summary>
@@ -1168,7 +1181,7 @@ function wireActions(root, s) {
 function decide(s, v) {
   const k = stop === 'y0' ? 'y10' : stop;
   if (v === 'approved') {
-    if (s.wo === 'approved' && s.workOrder && s.workOrder.status !== 'cancelled') return;
+    if (s.wo === 'approved' && s.workOrder && !['failed', 'local'].includes(s.workOrder.delivery) && s.workOrder.status !== 'cancelled') return;
     s.wo = 'approved';
     s.workOrder = { ...ENGINE.workOrder(s, k, cfg, { by: 'operator (demo)' }), delivery: API ? 'sending' : 'local' };
     const w = s.workOrder;
@@ -1185,6 +1198,7 @@ function decide(s, v) {
   saveLocal(); renderPage(); renderLog();
 }
 function statusOf(s) {
+  if (s.wo === 'approved' && s.workOrder && ['failed', 'sending'].includes(s.workOrder.delivery)) return '<span class="status no">Approval not confirmed</span>';
   if (s.wo === 'approved' && s.workOrder) return `<span class="status ok">${s.workOrder.priority} · due ${fmtDate(s.workOrder.dueBy).replace(/, \d{4}$/, '')}</span>`;
   return s.wo === 'rejected' ? '<span class="status no">Rejected</span>' : '';
 }
@@ -1202,7 +1216,7 @@ function saveLocal() {
   } catch (e) {}
 }
 function loadSaved() {
-  if (API) {
+  {
     for (const w of D.workOrders || []) {
       const s = byId(w.segment); if (!s) continue;
       if (w.status === 'rejected') s.wo = 'rejected';
@@ -1215,13 +1229,14 @@ function loadSaved() {
       const st = String(w.status || '');
       if (st === 'pending_approval') { delete s.workOrder; continue; }   // drafted, not approved yet: still shows Approve
       if (st === 'rejected' || st === 'cancelled') { s.wo = 'rejected'; delete s.workOrder; continue; }
-      const given = { id: w.id };   // n8n's priority is normal/high; the page keeps its own P1-P3 labels
-      s.workOrder = { ...ENGINE.workOrder(s, 'y10', cfg, {}), ...given, status: 'open', delivery: 'n8n' };
+      const given = Object.fromEntries(Object.entries(w).filter(([k, v]) => v != null && ['id', 'dueBy', 'why', 'checks', 'mapUrl', 'score', 'tier', 'hazard', 'deliveryState', 'deliveryRecipient', 'deliveryAcceptedAt'].includes(k)));
+      if (['P1', 'P2', 'P3'].includes(w.priority)) given.priority = w.priority;
+      s.workOrder = { ...ENGINE.workOrder(s, 'y10', cfg, {}), ...given, status: 'approved', delivery: API ? 'n8n' : 'snapshot' };
       s.wo = 'approved';
     }
-    for (const s of D.segments) if (s.override && !s.override.stop) s.override.stop = 'y10';
+    for (const s of D.segments) if (s.override && !s.override.stop) s.override.stop = s.override.horizon === 5 ? 'y5' : 'y10';
     audit = (D.audit || []).filter((a) => a.segment).map((a) => ({ ...a, note: 'stored in n8n' }));
-    return;
+    if (API) return;
   }
   try {
     const st = JSON.parse(localStorage.getItem('tc-state') || 'null'); if (!st) return;
@@ -1269,7 +1284,7 @@ function renderOverview() {
   const cell = (k) => ovLedger.querySelector(`[data-k="${k}"]`);
   const set = (k, e, v, s) => { const c = cell(k); c.querySelector('.e').innerHTML = esc(e) + ' <i aria-hidden="true">?</i>'; c.querySelector('.s').textContent = s; if (typeof v === 'function') v(c.querySelector('.v')); else c.querySelector('.v').innerHTML = v; };
 
-  set('risk', `High / medium risk km`, `${kmOf(hi)}<small>/</small>${kmOf(mod)}`, `out of ${D.live.km} km of pipeline${unv ? ' · ' + unv + ' km missing data' : ''}`);
+  set('risk', `High / medium risk km`, `${kmOf(hi)}<small>/</small>${kmOf(mod)}`, `out of ${D.live.km} km · ${segs.filter(s => coverageText(s.risk[stop]).startsWith('Partial')).length} segments partially assessed${unv ? ' · ' + unv + ' missing scores' : ''}`);
   cell('risk').querySelector('.stack').innerHTML = [['red', hi], ['amber', mod], ['green', t.green || 0], ['unverified', unv]]
     .map(([k, v]) => `<span style="flex-grow:${v};background:${C[k]}" title="${TIER_LABEL[k]}: ${v}"></span>`).join('');
 
@@ -1283,7 +1298,7 @@ function renderOverview() {
   for (const [k, hk, field, e, col] of [['fire', 'wildfire', 'fireWeatherDaysPerYr', 'Fire-weather days / yr', C.fire], ['drought', 'drought', 'drySoilDaysPerYr', 'Dry-soil days / yr', C.dry]]) {
     const c = corridorHazard(hk, field);
     if (!c) { set(k, e, '–', 'no humidity or soil data'); continue; }
-    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? 'average along the line, past 30 years' : `${sign(c.change)}% vs the past 30 years`);
+    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? `observed baseline · ${c.n}/${segs.length} segments` : `${sign(c.change)}% vs baseline · ${c.n}/${segs.length} segments`);
     cell(k).querySelector('.v').style.color = stop !== 'y0' && c.change > 5 ? col : '';
   }
 
@@ -1452,17 +1467,17 @@ function renderBuild() {
 
 function renderLog() {
   const wos = D.segments.filter((x) => x.workOrder).map((x) => x.workOrder).sort((a, b) => (a.status === 'cancelled') - (b.status === 'cancelled') || a.priority.localeCompare(b.priority) || a.dueBy.localeCompare(b.dueBy));
-  const open = wos.filter((w) => w.status !== 'cancelled').length;
+  const open = wos.filter((w) => w.status !== 'cancelled' && ['n8n', 'snapshot', 'local'].includes(w.delivery)).length;
   logCount.textContent = open; logCount.dataset.n = open;
   if (page !== 'log') return;
   logDoc.innerHTML = `<p class="kicker">Work orders</p><h1 class="ph">${open ? open + ' inspection' + (open === 1 ? '' : 's') + ' approved' : 'No inspections approved yet'}</h1>
-    <p class="dek">Approving a kilometre creates a work order: priority from its risk level (High = P1 within ${cfg.workOrderDueDays.P1} days, Medium = P2 within ${cfg.workOrderDueDays.P2}), and a checklist built from what drives its score. ${API ? 'Owner: the integrity manager approves. n8n stores each order in its corridor_work_orders table with status approved and logs the decision. Destination: the inspection coordinator downloads the CSV below and imports it into the maintenance system. Nothing is emailed and no crew is dispatched by this app.' : (OFFLINE ? 'n8n could not be reached, so this page is running on a saved snapshot. ' : 'n8n is not connected in this demo file. ') + 'Approvals here are a local demo: saved in this browser only, never sent.'}</p>
+    <p class="dek">Approving a kilometre creates a work order: priority from its risk level (High = P1 within ${cfg.workOrderDueDays.P1} days, Medium = P2 within ${cfg.workOrderDueDays.P2}), and a checklist built from what drives its score. ${API ? 'Owner: the integrity manager approves. n8n stores each order in its corridor_work_orders table with status approved and logs the decision. Destination: the inspection coordinator. Each order shows whether email is queued, accepted by the mail provider, or needs review. CSV is also available below. Scheduling and crew dispatch remain with the coordinator.' : (OFFLINE ? 'n8n could not be reached, so this page is running on a saved snapshot. ' : 'n8n is not connected in this demo file. ') + 'Approvals here are a local demo: saved in this browser only, never sent.'}</p>
     <div style="margin:24px 0 16px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="flex:none" id="bCsv" ${wos.length ? '' : 'disabled'}>Download work orders (CSV)</button><button class="btn" style="flex:none" id="bExport" ${audit.length ? '' : 'disabled'}>Download audit log (JSON)</button></div>
     ${wos.length ? `<table class="log"><thead><tr><th>Work order</th><th>Priority</th><th>Due</th><th>Main driver</th><th>Checks</th><th>Status</th></tr></thead><tbody>${wos.map((w) => `<tr style="${w.status === 'cancelled' ? 'opacity:.55' : ''}">
       <td class="m"><a href="#/segment/${w.segment}">${esc(w.id)}</a><div class="cap" style="margin-top:2px">km ${w.kmFrom}–${w.kmTo}${w.mapUrl ? ` · <a href="${esc(w.mapUrl)}" target="_blank" rel="noopener">map ↗</a>` : ''}</div></td>
       <td><span class="pri ${w.priority}">${w.priority}</span></td><td class="m">${fmtDate(w.dueBy)}</td>
       <td>${esc(w.why)}</td><td class="m">${w.checks.length}</td>
-      <td class="label" title="${esc(DELIVERY[w.delivery] || '')}">${w.status === 'cancelled' ? 'Cancelled' : w.delivery === 'n8n' ? 'Approved · recorded in n8n · awaiting CSV export' : w.delivery === 'sending' ? 'Sending to n8n…' : w.delivery === 'failed' ? 'Not recorded by n8n · this browser only' : 'Approved · local demo only'}</td></tr>`).join('')}</tbody></table>`
+      <td class="label" title="${esc(DELIVERY[w.delivery] || '')}">${esc(w.status === 'cancelled' ? 'Cancelled' : deliveryText(w))}</td></tr>`).join('')}</tbody></table>`
     : '<div class="empty">Open Triage, pick a kilometre and press Approve inspection.</div>'}
     <section class="s"><div class="shead"><h2>Audit log</h2><p>Every approval, rejection and override, with the score at the time.</p></div>
     ${audit.length ? `<table class="log"><thead><tr><th>Time</th><th>Segment</th><th>Action</th><th>Score</th><th>Status</th></tr></thead><tbody>${audit.map((a) => `<tr>
@@ -1470,13 +1485,13 @@ function renderLog() {
       <td>${esc(a.action.replace(/_/g, ' '))}${a.details && a.details.workOrderId ? `<div class="cap" style="margin-top:2px">${esc(a.details.workOrderId)} · ${esc(a.details.priority || '')}</div>` : ''}${a.details && a.details.reason ? `<div class="cap" style="margin-top:2px">${esc(TIER_LABEL[a.details.from] || a.details.from)} → ${esc(TIER_LABEL[a.details.to] || a.details.to)} · “${esc(a.details.reason)}”</div>` : ''}</td>
       <td class="m">${a.score ?? '–'}</td><td class="label">${esc(a.note || '')}</td></tr>`).join('')}</tbody></table>`
     : '<div class="empty">No decisions yet.</div>'}</section>`;
-  const dl = (name, type, text) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); };
+  const dl = (name, type, text) => { const a = document.createElement('a'); const url = URL.createObjectURL(new Blob([text], { type })); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
   const b = $('bExport'); if (b) b.onclick = () => dl('terracorridor-audit.json', 'application/json', JSON.stringify(audit, null, 2));
   const c = $('bCsv'); if (c) c.onclick = () => {
-    const cols = ['id', 'segment', 'kmFrom', 'kmTo', 'priority', 'dueBy', 'status', 'approval', 'recordedIn', 'nextStep', 'score', 'tier', 'hazard', 'why', 'lat', 'lon', 'mapUrl', 'checks'];
+    const cols = ['id', 'segment', 'kmFrom', 'kmTo', 'priority', 'dueBy', 'status', 'approval', 'recordedIn', 'nextStep', 'deliveryState', 'deliveryRecipient', 'deliveryAcceptedAt', 'score', 'tier', 'hazard', 'why', 'lat', 'lon', 'mapUrl', 'checks'];
     for (const w of wos) Object.assign(w, {
-      approval: w.status === 'cancelled' ? 'cancelled' : 'approved by ' + (w.by || 'integrity manager'),
-      recordedIn: w.delivery === 'n8n' ? 'n8n Data Table corridor_work_orders' : 'this browser only (local demo, not recorded in n8n)',
+      approval: w.status === 'cancelled' ? 'cancelled' : ['failed', 'sending'].includes(w.delivery) ? 'not confirmed by n8n' : 'approved by ' + (w.by || 'integrity manager'),
+      recordedIn: w.delivery === 'n8n' ? 'n8n Data Table corridor_work_orders' : w.delivery === 'snapshot' ? 'saved n8n snapshot (current status unverified)' : 'this browser only (local demo, not recorded in n8n)',
       nextStep: 'Inspection coordinator: import into the maintenance system and schedule. Not dispatched by TerraCorridor.' });
     const q = (v) => '"' + String(Array.isArray(v) ? v.join(' | ') : v ?? '').replace(/"/g, '""') + '"';
     dl('terracorridor-work-orders.csv', 'text/csv', [cols.join(','), ...wos.map((w) => cols.map((k) => q(w[k])).join(','))].join('\n'));
@@ -1492,12 +1507,12 @@ async function act(s, action, details) {
     try {
       const r = await fetch(API + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
       let body = null; try { body = await r.json(); } catch (e) {}
-      if (r.ok && body && body.ok !== false) {
+      if (r.ok && body && body.ok === true && (action !== 'approve_work_order' || (body.status === 'approved' && (body.work_order_id || body.workOrder?.id)))) {
         item.note = 'stored in n8n';
         if (body.workOrder) s.workOrder = { ...body.workOrder, delivery: 'n8n' };
-        else if (s.workOrder && action === 'approve_work_order') s.workOrder = { ...s.workOrder, id: body.work_order_id || s.workOrder.id, delivery: 'n8n' };
+        else if (s.workOrder && action === 'approve_work_order') s.workOrder = { ...s.workOrder, id: body.work_order_id || s.workOrder.id, delivery: 'n8n', deliveryState: body.external_delivery === 'queued' ? 'queued' : s.workOrder.deliveryState };
         // Only now, with n8n's confirmation, say it was recorded.
-        if (action === 'approve_work_order') toast(`Recorded in n8n: ${body.work_order_id || s.workOrder.id} · approved${body.duplicate ? ' (already on file, no duplicate created)' : ''}. Not dispatched: export the CSV for the coordinator.`);
+        if (action === 'approve_work_order') toast(`Recorded in n8n: ${body.work_order_id || s.workOrder.id} · approved${body.duplicate ? ' (already on file, no duplicate created)' : ''}. Not dispatched: check email status or export CSV for the coordinator.`);
         else if (action === 'reject_work_order') toast(`${s.id}: rejection recorded in n8n.`);
         else toast(`${s.id}: override recorded in n8n.`);
       } else {
@@ -1546,6 +1561,8 @@ function wire() {
   });
 }
 
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
 (async () => {
   if (window.TC_DATA) D = window.TC_DATA;
   else {
@@ -1564,7 +1581,7 @@ function wire() {
   segs = [...D.segments].sort((a, b) => a.kmFrom - b.kmFrom);
   synthBadge.hidden = !D.meta.synthetic; liveBadge.hidden = !!D.meta.synthetic || OFFLINE || !API;
   offBadge.hidden = !OFFLINE;
-  if (OFFLINE) offBadge.title = `n8n could not be reached. Showing the copy of the n8n run of ${String(D.meta.generatedAt || '').slice(0, 16).replace('T', ' ')} UTC that is built into this file (real cached data, not synthetic). Approvals are saved in this browser only.`;
+  if (OFFLINE) offBadge.title = `n8n could not be reached. Showing the saved assessment of ${String(D.meta.generatedAt || '').slice(0, 16).replace('T', ' ')} UTC that is built into this file. ${D.meta.snapshot?.note || 'Real cached data, not synthetic.'} Approvals are saved in this browser only.`;
   { const hk = document.getElementById('hintKm'); if (hk) { const km = D.segments.reduce((t, x) => t + (x.lengthM || 0), 0) / 1000; hk.textContent = (km >= 10 ? Math.round(km) : km.toFixed(1)) + ' km'; } }
   if (D.meta.synthetic) synthBadge.title = D.meta.note;
   genAt.textContent = 'Run ' + D.meta.generatedAt.slice(0, 16).replace('T', ' ') + ' UTC';

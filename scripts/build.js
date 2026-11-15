@@ -4,6 +4,7 @@
 //   dist/n8n/*.js              paste-ready bodies for n8n Code nodes
 // Usage: node scripts/build.js
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const root = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -35,6 +36,10 @@ if (wiring.apiBase) {
   if (!live.includes(needle)) throw new Error('API default not found in dashboard');
   write('deploy/index.html', live.replace(needle, () => `new URLSearchParams(location.search).get('api') || ${JSON.stringify(wiring.apiBase)};`));
 }
+
+const sw = read('web/sw.js').replace('__BUILD_HASH__', crypto.createHash('sha256').update(live).digest('hex').slice(0, 16));
+write('deploy/sw.js', sw);
+write('dist/sw.js', sw);
 
 // dist/dashboard-demo.html: the SYNTHETIC corridor inlined. No network needed at all.
 const demo = read('data/demo/corridor.json').replace(/<\//g, '<\\/');
