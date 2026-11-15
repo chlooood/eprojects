@@ -1911,6 +1911,9 @@ function renderOverview() {
 }
 
 function renderTriage() {
+  // The n8n feed has no per-hazard breakdown, so the hazard filters would all be empty. Show them only when the data has one.
+  const hasHaz = segs.some((x) => x.risk[stop].hazards && Object.keys(x.risk[stop].hazards).length);
+  if (!hasHaz) hazardFilter = 'all';
   const hs = (s) => hazardFilter === 'all' ? s.risk[stop].score : ((s.risk[stop].hazards || {})[hazardFilter] || {}).score;
   const all = segs.filter((s) => hs(s) != null).sort((a, b) => hs(b) - hs(a));
   const attn = (s) => tierOf(s) !== 'green';
@@ -1919,7 +1922,7 @@ function renderTriage() {
   const HF = { all: 'All hazards', ground: 'Ground', crossing: 'Crossings', wildfire: 'Wildfire', drought: 'Drought' };
   triageList.innerHTML = `<h2>Triage</h2><p class="lede">Ranked by ${hazardFilter === 'all' ? 'each kilometre\'s worst hazard' : HAZ[hazardFilter].toLowerCase() + ' score'} ${stop === 'y0' ? 'today' : 'for ' + STOP_LABEL[stop]}. Approving sends a work order through n8n, and every decision is logged.</p>
     <div style="margin-bottom:12px">${stopSeg()}</div>
-    <div class="chips" style="margin-bottom:8px">${Object.entries(HF).map(([k, l]) => `<button data-h="${k}" class="${k === hazardFilter ? 'on' : ''}">${l}</button>`).join('')}</div>
+    ${hasHaz ? `<div class="chips" style="margin-bottom:8px">${Object.entries(HF).map(([k, l]) => `<button data-h="${k}" class="${k === hazardFilter ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
     <div class="chips">${Object.entries(F).map(([k, [l, f]]) => `<button data-f="${k}" class="${k === filter ? 'on' : ''}">${l}<small>${all.filter(f).length}</small></button>`).join('')}</div>
     ${rows.length ? rows.slice(0, 80).map((s, i) => { const r = s.risk[stop], t = tierOf(s); return `<button class="qrow ${s.id === selected ? 'sel' : ''} ${s.id === hover ? 'hov' : ''}" data-id="${s.id}">
       <span class="rk">${String(i + 1).padStart(2, '0')}</span><span class="id">${s.id}</span><span class="why">${esc(hazardFilter === 'all' ? whyText(r) : ((r.hazards || {})[hazardFilter] || {}).why || '')} ${statusOf(s)}</span>
