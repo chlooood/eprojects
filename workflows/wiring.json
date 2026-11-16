@@ -13,10 +13,16 @@
     "corridor_reports": "T0PP8Zebw0vWU5KW",
     "corridor_watch": "sPlAgvMC7Q6sFHho",
     "corridor_work_orders": "fWeMlbL9wQ5I7m3N",
-    "corridor_audit": "usLWlVq3McK7sta2"
+    "corridor_audit": "usLWlVq3McK7sta2",
+    "corridor_class": null,
+    "corridor_class_baseline": null,
+    "corridor_obligations": null,
+    "corridor_findings": null,
+    "corridor_ledger": null
   },
   "workflows": {
     "W2: Long-Range Engine": "dBH4KH6tppTfvjLb",
     "TerraCorridor WF4 - Work orders and approvals": "kdpAJpsjSFlhtsTe"
-  }
+  },
+  "_platform": "corridor_class, corridor_class_baseline, corridor_obligations, corridor_findings and corridor_ledger are new (docs/PLATFORM.md). null until the tables are created in n8n."
 }

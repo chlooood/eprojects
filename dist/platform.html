@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TerraCorridor · Segment record</title>
+<style>
+  /* Same tokens as web/dashboard.html. Design rules: .claude/skills/frontend-design/SKILL.md */
+  :root { --bg:#0a0b0a; --s1:#101210; --s2:#161916; --s3:#1d211d; --line:#252925; --line-2:#323732; --ink:#eceee6; --ink-2:#a5aa9f; --ink-3:#7a7f75;
+    --green:#6fd08f; --amber:#f2a93b; --red:#ff5d4f; --grey:#5d625a; --sub:#82c8ff;
+    --sans:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; --serif:'Instrument Serif', Georgia, serif; --mono:'JetBrains Mono', ui-monospace, Consolas, monospace; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--sans); -webkit-font-smoothing:antialiased; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  a { color:inherit; }
+  header.top { display:flex; align-items:center; gap:18px; padding:12px 20px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:5; flex-wrap:wrap; }
+  .mark { font:500 17px var(--sans); text-decoration:none; } .mark em { font:italic 19px var(--serif); color:var(--amber); }
+  nav a { text-decoration:none; color:var(--ink-2); padding:6px 10px; border-radius:6px; font-size:14px; } nav a.on { color:var(--ink); background:var(--s2); } nav a:hover { color:var(--ink); }
+  .spacer { flex:1; }
+  .pill { font:12px var(--mono); padding:4px 9px; border:1px solid var(--line-2); border-radius:99px; color:var(--ink-2); white-space:nowrap; }
+  .pill.real { color:var(--green); border-color:#2c4a36; } .pill.fake { color:var(--amber); border-color:#5a4520; }
+  select, input, textarea { background:var(--s2); border:1px solid var(--line-2); border-radius:6px; padding:6px 8px; }
+  main { display:grid; grid-template-columns:minmax(420px, 1fr) minmax(460px, 1.15fr); gap:0; align-items:start; }
+  @media (max-width:980px) { main { grid-template-columns:1fr; } }
+  .col { padding:18px 20px 60px; } .col + .col { border-left:1px solid var(--line); min-height:100vh; }
+  h1 { font:400 30px/1.15 var(--serif); margin:0 0 6px; } h2 { font:600 13px var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin:26px 0 10px; }
+  p { margin:0 0 10px; } .cap { color:var(--ink-3); font-size:13px; } .mono { font-family:var(--mono); font-size:13px; }
+  .ledgerstrip { display:grid; grid-template-columns:repeat(4, 1fr); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0 4px; }
+  .ledgerstrip div { padding:10px 12px; border-right:1px solid var(--line); } .ledgerstrip div:last-child { border-right:0; }
+  .ledgerstrip b { display:block; font:400 26px var(--serif); } .ledgerstrip span { font-size:12px; color:var(--ink-3); }
+  table { width:100%; border-collapse:collapse; font-size:14px; } th { text-align:left; font:600 11px var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); padding:6px 8px; border-bottom:1px solid var(--line); }
+  td { padding:8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr.row { cursor:pointer; } tr.row:hover td { background:var(--s1); } tr.row.sel td { background:var(--s2); } tr.row:focus-visible { outline:2px solid var(--sub); outline-offset:-2px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font:12px var(--mono); padding:2px 8px; border-radius:99px; background:var(--s3); white-space:nowrap; }
+  .chip i { width:7px; height:7px; border-radius:50%; background:currentColor; display:inline-block; }
+  .c-red { color:var(--red); } .c-amber { color:var(--amber); } .c-green { color:var(--green); } .c-grey { color:var(--ink-3); }
+  .bar { position:relative; height:26px; background:var(--s2); border-radius:6px; margin:8px 0 26px; }
+  .bar span { position:absolute; top:0; bottom:0; } .bar .ex { background:#4f7d60; } .bar .co { background:var(--amber); } .bar .po { background:repeating-linear-gradient(45deg, #6a5320, #6a5320 4px, #3d3115 4px, #3d3115 8px); }
+  .bar .mk { width:1px; background:var(--ink); } .bar .mk::after { content:attr(data-l); position:absolute; top:30px; left:-4px; width:110px; font:11px var(--mono); color:var(--ink-3); }
+  .box { border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:10px 0; background:var(--s1); }
+  .warn { border-color:#5a4520; color:var(--amber); } .bad { border-color:#5c2a25; color:var(--red); }
+  ul { margin:6px 0; padding-left:18px; } li { margin:3px 0; }
+  .btn { background:var(--ink); color:var(--bg); border:0; border-radius:6px; padding:8px 14px; font-weight:600; cursor:pointer; } .btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--line-2); font-weight:500; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; } .btnrow { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; align-items:center; }
+  label.f { display:block; font-size:12px; color:var(--ink-3); margin:8px 0 3px; } .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  details summary { cursor:pointer; color:var(--ink-2); } .num { text-align:right; font-family:var(--mono); white-space:nowrap; }
+  .path-off td { color:var(--ink-3); } #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:8px; font-size:14px; display:none; z-index:9; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="index.html">Terra<em>Corridor</em></a>
+  <nav aria-label="Pages">
+    <a href="index.html?corridor=ab-strathcona-demo">Geohazard map</a>
+    <a class="on" href="platform.html" aria-current="page">Segment record</a>
+    <a href="index.html?corridor=ab-strathcona-demo#/log">Work orders</a>
+  </nav>
+  <label class="cap">Rules <select id="jur" aria-label="Jurisdiction"><option value="CA">Canada · CER</option><option value="US">United States · PHMSA</option></select></label>
+  <span class="spacer"></span>
+  <span id="labels"></span>
+</header>
+<main>
+  <section class="col" aria-label="Corridor">
+    <h1 id="title">One record per kilometre</h1>
+    <p class="cap" id="lede"></p>
+    <div class="ledgerstrip" id="strip"></div>
+    <h2>Kilometres, most urgent first</h2>
+    <table><thead><tr><th>km</th><th>Class location</th><th>Geohazard</th><th>Land</th><th>Open</th></tr></thead><tbody id="rows"></tbody></table>
+    <h2>Replay: would permits have warned us?</h2>
+    <div id="backtest"></div>
+    <h2>Exports</h2>
+    <div class="btnrow"><button class="btn ghost" id="xCsv">Work orders CSV</button><button class="btn ghost" id="xGeo">Segments GeoJSON (Esri)</button><button class="btn ghost" id="xLabels">Prediction vs field CSV</button></div>
+    <p class="cap">Files a coordinator imports into Maximo, SAP or ArcGIS. Nothing is written back to those systems.</p>
+    <details><summary>Cost assumptions (placeholders until an operator replaces them)</summary><div id="assume" class="grid2" style="margin-top:10px"></div><div class="btnrow"><button class="btn ghost" id="resetAssume">Reset to placeholders</button></div></details>
+  </section>
+  <section class="col" id="detail" aria-label="Segment record" aria-live="polite"></section>
+</main>
+<div id="toast" role="status"></div>
+<script>
+// TerraCorridor segment core. One record per kilometre is the platform: every module pins its facts to
+// a position along the line (chainage, in metres from the start) and reads them back per segment.
+// Pure functions, no imports, [lon, lat] order like src/engine.js.
+(function (root) {
+  const toRad = (d) => (d * Math.PI) / 180;
+
+  // Builds a lookup from the ordered segments: a flat list of line pieces with their chainage,
+  // and the chainage range each segment covers. Uses a local flat projection, good to well under
+  // a metre over a corridor of this size.
+  function buildIndex(segments) {
+    const segs = (segments || []).filter((s) => Array.isArray(s.centreline) && s.centreline.length >= 2);
+    if (!segs.length) throw new Error('no segments with a centreline');
+    const lats = segs.flatMap((s) => s.centreline.map((p) => p[1]));
+    const lat0 = lats.reduce((a, b) => a + b, 0) / lats.length;
+    const kx = 111320 * Math.cos(toRad(lat0)), ky = 110574;
+    const pieces = [], ranges = [];
+    let acc = 0;
+    for (const s of segs) {
+      const fromM = acc;
+      for (let i = 1; i < s.centreline.length; i++) {
+        const a = s.centreline[i - 1], b = s.centreline[i];
+        const ax = a[0] * kx, ay = a[1] * ky, bx = b[0] * kx, by = b[1] * ky;
+        const len = Math.hypot(bx - ax, by - ay);
+        if (len === 0) continue;
+        pieces.push({ ax, ay, bx, by, len, fromM: acc });
+        acc += len;
+      }
+      ranges.push({ id: s.id, kmFrom: s.kmFrom, kmTo: s.kmTo, fromM, toM: acc });
+    }
+    return { kx, ky, pieces, ranges, lengthM: acc };
+  }
+
+  // Nearest point on the line: how far off the centreline, and how far along it.
+  function locate(index, lonLat) {
+    const x = lonLat[0] * index.kx, y = lonLat[1] * index.ky;
+    let best = Infinity, chainageM = 0;
+    for (const p of index.pieces) {
+      const dx = p.bx - p.ax, dy = p.by - p.ay;
+      const t = Math.max(0, Math.min(1, ((x - p.ax) * dx + (y - p.ay) * dy) / (p.len * p.len)));
+      const d = Math.hypot(x - (p.ax + t * dx), y - (p.ay + t * dy));
+      if (d < best) { best = d; chainageM = p.fromM + t * p.len; }
+    }
+    return { offsetM: best, chainageM };
+  }
+
+  function segmentAt(index, chainageM) {
+    const r = index.ranges.find((q) => chainageM >= q.fromM && chainageM < q.toM) || (chainageM >= index.lengthM ? index.ranges[index.ranges.length - 1] : null);
+    return r ? r.id : null;
+  }
+
+  // Segments that a stretch of line touches. A point obligation (fromM === toM) touches one segment.
+  function overlapping(index, fromM, toM) {
+    const lo = Math.min(fromM, toM), hi = Math.max(fromM, toM);
+    if (lo === hi) { const id = segmentAt(index, lo); return id ? [id] : []; }
+    return index.ranges.filter((r) => r.fromM < hi && r.toM > lo).map((r) => r.id);
+  }
+
+  const rangeOf = (index, id) => index.ranges.find((r) => r.id === id) || null;
+
+  // Dates as ISO strings (YYYY-MM-DD). Month arithmetic is all the modules need.
+  function addMonths(iso, n) {
+    const d = new Date(iso + 'T00:00:00Z');
+    const day = d.getUTCDate();
+    d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + n);
+    const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    d.setUTCDate(Math.min(day, last));
+    return d.toISOString().slice(0, 10);
+  }
+  const addHours = (isoDateTime, h) => new Date(new Date(isoDateTime).getTime() + h * 3600000).toISOString();
+  const monthsBetween = (a, b) => Math.round(((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000 / 30.4375) * 10) / 10;
+  const day = (x) => (x instanceof Date ? x.toISOString() : String(x)).slice(0, 10);
+
+  const api = { buildIndex, locate, segmentAt, overlapping, rangeOf, addMonths, addHours, monthsBetween, day };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_SEGMENTS = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// TerraCorridor class location module (lead module).
+// Counts dwellings in a sliding 1.6 km window, 200 m each side of the line, and says which segments
+// are about to change class, when, and on what evidence. Building-count vendors see a house after it
+// is built. This reads permits, so it sees it one construction season earlier, and development
+// permits and plans earlier still.
+// Rules decide. Nothing here is a probability. Missing data means "unverified", never "Class 1".
+(function (root) {
+  const SEG = root.TC_SEGMENTS || require('./segments.js');
+
+  const DEFAULTS = {
+    bandM: 200,        // each side of the centreline. US 49 CFR 192.5 uses 220 yards. CSA Z662's assessment area is paywalled: UNVERIFIED, confirm with the domain advisor.
+    windowM: 1600,     // the sliding mile
+    stepM: 200,        // how finely the window slides; the same grid the permit cache is binned on
+    thresholds: { class2: 11, class3: 46 },   // dwelling units in the window: more than 10 is Class 2, 46 or more is Class 3 (49 CFR 192.5; CSA Z662 UNVERIFIED)
+    jurisdiction: 'CA',
+    clocks: {
+      CA: { months: 6, basis: 'CER Onshore Pipeline Regulations s.42 and Filing Manual Guide E: the proposed plan is filed within six months after the change.' },
+      US: { months: 24, floor: '2028-03-16', basis: '49 CFR 192.611: 24 months after the change. Under the 2026 rule the integrity management alternative must be complete by 16 March 2028 or 24 months after the change, whichever is later.' },
+    },
+    // Assumption: months from permit issue to an occupied dwelling, by City of Edmonton building type code.
+    lagMonths: { 110: 8, 210: 8, 215: 10, 330: 12, 335: 12, 315: 20, cluster: 18, backyard: 8, default: 9 },
+    devToOccupiedMonths: 18,   // assumption: a development permit with no building permit yet
+    roofsPerDwelling: 1,       // assumption: one roof of 60 m2 or more counts as one dwelling until a crew counts
+    evidenceTop: 6,
+  };
+
+  const quarterMid = (q) => { const y = q.slice(0, 4), n = +q.slice(5); return `${y}-${String(n * 3 - 1).padStart(2, '0')}-15`; };
+  const lagFor = (cfg, code) => cfg.lagMonths[code] != null ? cfg.lagMonths[code] : cfg.lagMonths.default;
+  const parseCells = (s) => (s ? String(s).split(/[;,](?=\d+[:,])|;/).filter(Boolean) : []);
+
+  // Turns a permit cache (data/cache/permits/*.json) into dated events along the line.
+  // Also accepts raw point permits: { id, issued, units, type, lon, lat } located with the segment index.
+  function normalize(data, index, cfg = DEFAULTS) {
+    const binM = (data && data.binM) || cfg.stepM;
+    const mid = (bin) => (bin + 0.5) * binM;
+    const events = [];
+    const add = (src, kind) => {
+      if (!src) return;
+      for (const r of src.large || []) {
+        const [id, issued, units, code, chainageM, note] = r;
+        const lag = kind === 'development_permit' ? cfg.devToOccupiedMonths : lagFor(cfg, code);
+        events.push({ id, kind, issued, units: +units, type: String(code), chainageM: +chainageM, occupied: SEG.addMonths(issued, lag), permits: 1, note: note || null, dataset: src.dataset });
+      }
+      for (const c of String(src.cells || '').split(';').filter(Boolean)) {
+        const [bin, q, n, units] = c.split(',');
+        const issued = quarterMid(q);
+        const lag = kind === 'development_permit' ? cfg.devToOccupiedMonths : cfg.lagMonths.default;
+        events.push({ id: `${src.dataset}:bin${bin}:${q}`, kind, issued, units: +units, type: 'grouped', chainageM: mid(+bin), occupied: SEG.addMonths(issued, lag), permits: +n, note: `${n} permits in ${q}`, dataset: src.dataset });
+      }
+      for (const p of src.points || []) {
+        const at = SEG.locate(index, [p.lon, p.lat]);
+        if (at.offsetM > cfg.bandM) continue;
+        const lag = kind === 'development_permit' ? cfg.devToOccupiedMonths : lagFor(cfg, p.type);
+        events.push({ id: p.id, kind, issued: SEG.day(p.issued), units: +p.units, type: String(p.type || ''), chainageM: at.chainageM, offsetM: Math.round(at.offsetM), occupied: SEG.addMonths(SEG.day(p.issued), lag), permits: 1, note: p.note || null, dataset: src.dataset });
+      }
+    };
+    add(data && data.buildingPermits, 'building_permit');
+    add(data && data.developmentPermits, 'development_permit');
+    const roofs = data && data.rooflines;
+    const bins = {}, tall = {};
+    if (roofs) {
+      for (const c of String(roofs.cells || '').split(',').filter(Boolean)) { const [k, v] = c.split(':'); bins[k] = +v; }
+      for (const c of String(roofs.tallCells || '').split(',').filter(Boolean)) { const [k, v] = c.split(':'); tall[k] = +v; }
+    }
+    return {
+      binM,
+      baseline: roofs ? { date: roofs.asOf, bins, tall, dataset: roofs.dataset, name: roofs.name } : null,
+      events: events.sort((a, b) => a.issued.localeCompare(b.issued)),
+      devSince: (data && data.developmentPermits && data.developmentPermits.since) || null,
+      plans: (data && data.plans && data.plans.rows) || [],
+      fetchedAt: (data && data.fetchedAt) || null,
+      municipality: (data && data.municipality) || null,
+    };
+  }
+
+  const classOf = (units, cfg = DEFAULTS) => (units >= cfg.thresholds.class3 ? 3 : units >= cfg.thresholds.class2 ? 2 : 1);
+  const nextThreshold = (units, cfg = DEFAULTS) => (units < cfg.thresholds.class2 ? cfg.thresholds.class2 : units < cfg.thresholds.class3 ? cfg.thresholds.class3 : null);
+
+  // Dwelling units in one window [fromM, fromM + windowM) as of a date.
+  //   existing:  roofs counted in the baseline survey, plus permitted units whose assumed occupancy date has passed
+  //   committed: building permits issued but not yet occupied
+  //   possible:  development permits not yet matched by building permits in the same window
+  function windowCount(state, fromM, asOf, cfg = DEFAULTS) {
+    const toM = fromM + cfg.windowM;
+    const inWin = (e) => e.chainageM >= fromM && e.chainageM < toM;
+    let roofs = 0, tall = 0;
+    if (state.baseline) for (const [k, v] of Object.entries(state.baseline.bins)) { const c = (+k + 0.5) * state.binM; if (c >= fromM && c < toM) { roofs += v; tall += state.baseline.tall[k] || 0; } }
+    const base = state.baseline ? state.baseline.date : '0000-00-00';
+    const bp = state.events.filter((e) => e.kind === 'building_permit' && inWin(e) && e.issued <= asOf && e.issued > base);
+    const built = bp.filter((e) => e.occupied <= asOf), pending = bp.filter((e) => e.occupied > asOf);
+    const sum = (xs) => xs.reduce((a, e) => a + e.units, 0);
+    const dev = state.events.filter((e) => e.kind === 'development_permit' && inWin(e) && e.issued <= asOf);
+    const bpSinceDev = state.devSince ? sum(bp.filter((e) => e.issued >= state.devSince)) : 0;
+    const possible = Math.max(0, sum(dev) - bpSinceDev);
+    return { fromM, toM, existing: Math.round(roofs * cfg.roofsPerDwelling) + sum(built), roofs, built: sum(built), committed: sum(pending), possible, tallRoofs: tall, pending, dev };
+  }
+
+  // The class location picture for one segment: the worst 1.6 km window that touches it.
+  function assessSegment(range, state, cfg = DEFAULTS, asOf) {
+    asOf = SEG.day(asOf || new Date());
+    let best = null;
+    const first = Math.max(0, Math.floor((range.fromM - cfg.windowM) / cfg.stepM) * cfg.stepM + cfg.stepM);
+    for (let s = first; s < range.toM; s += cfg.stepM) {
+      const w = windowCount(state, s, asOf, cfg);
+      const total = w.existing + w.committed + w.possible;
+      if (!best || total > best.total || (total === best.total && w.existing > best.w.existing)) best = { w, total };
+    }
+    const w = best.w;
+    const hasBaseline = !!state.baseline;
+    const now = classOf(w.existing, cfg), committed = classOf(w.existing + w.committed, cfg), possible = classOf(w.existing + w.committed + w.possible, cfg);
+    // When do the committed units push the count over each line? Walk them in occupancy order.
+    const crossings = [];
+    let run = w.existing;
+    for (const e of [...w.pending].sort((a, b) => a.occupied.localeCompare(b.occupied))) {
+      const before = classOf(run, cfg); run += e.units; const after = classOf(run, cfg);
+      if (after > before) crossings.push({ from: before, to: after, expected: e.occupied, tippingPermit: e.id });
+    }
+    // Did it already change inside the last year? Then the regulator's clock may be running now.
+    const yearAgo = windowCount(state, w.fromM, SEG.addMonths(asOf, -12), cfg);
+    const classYearAgo = classOf(yearAgo.existing, cfg);
+    let changedOn = null;
+    if (now > classYearAgo) {
+      let c = yearAgo.existing;
+      const base = state.baseline ? state.baseline.date : '0000-00-00';
+      const done = state.events.filter((e) => e.kind === 'building_permit' && e.chainageM >= w.fromM && e.chainageM < w.toM && e.issued > base && e.occupied > SEG.addMonths(asOf, -12) && e.occupied <= asOf)
+        .sort((a, b) => a.occupied.localeCompare(b.occupied));
+      for (const e of done) { c += e.units; if (classOf(c, cfg) > classYearAgo) { changedOn = e.occupied; break; } }
+    }
+    const status = !hasBaseline && now === 1 && committed === 1 && possible === 1 ? 'unverified'
+      : changedOn ? 'changed' : committed > now ? 'change_committed' : possible > now ? 'change_possible' : 'no_change';
+    const change = status === 'changed' ? { from: classYearAgo, to: now, date: changedOn, basis: 'estimated occupancy of permitted units' }
+      : status === 'change_committed' ? { from: now, to: committed, date: crossings[0].expected, basis: 'issued building permits', steps: crossings }
+      : status === 'change_possible' ? { from: now, to: possible, date: null, basis: 'development permits not yet matched by building permits' } : null;
+    const clockRule = cfg.clocks[cfg.jurisdiction] || cfg.clocks.CA;
+    let clock = null;
+    if (change && change.date) {
+      let due = SEG.addMonths(change.date, clockRule.months);
+      if (clockRule.floor && due < clockRule.floor) due = clockRule.floor;
+      clock = { jurisdiction: cfg.jurisdiction, changeDate: change.date, due, monthsLeft: SEG.monthsBetween(asOf, due), running: change.date <= asOf, basis: clockRule.basis };
+    }
+    const next = nextThreshold(w.existing, cfg);
+    const evidence = [...w.pending, ...(status === 'change_possible' || w.possible ? w.dev : [])]
+      .sort((a, b) => b.units - a.units || b.issued.localeCompare(a.issued)).slice(0, cfg.evidenceTop)
+      .map((e) => ({ id: e.id, kind: e.kind, issued: e.issued, units: e.units, expectedOccupied: e.occupied, km: Math.round(e.chainageM / 100) / 10, note: e.note, dataset: e.dataset }));
+    const plans = state.plans.filter((p) => p.kmFrom * 1000 < w.toM && p.kmTo * 1000 + 1 > w.fromM).map((p) => ({ name: p.name, type: p.type, bylaw: p.bylaw, pdf: p.pdf }));
+    return {
+      asOf, status, jurisdiction: cfg.jurisdiction,
+      window: { kmFrom: w.fromM / 1000, kmTo: w.toM / 1000 },
+      units: { existing: w.existing, roofsAtBaseline: w.roofs, builtSinceBaseline: w.built, committed: w.committed, possible: w.possible },
+      class: { now, committed, possible, yearAgo: classYearAgo, isLowerBound: !hasBaseline },
+      headroom: next == null ? null : next - w.existing,
+      change, clock, evidence, plans,
+      class4: { assessed: false, tallRoofs: w.tallRoofs, note: 'Class 4 depends on buildings of four or more storeys. Not assessed; tall roofs are listed as a prompt only.' },
+      basis: hasBaseline ? `${state.baseline.name}, plus building permits issued since` : 'building permits only: a lower bound, no baseline count loaded',
+    };
+  }
+
+  function forecast(segments, data, cfg = DEFAULTS, asOf) {
+    const index = SEG.buildIndex(segments), state = normalize(data, index, cfg);
+    const bySegment = {};
+    for (const r of index.ranges) bySegment[r.id] = assessSegment(r, state, cfg, asOf);
+    const all = Object.values(bySegment), n = (s) => all.filter((a) => a.status === s).length;
+    return { asOf: SEG.day(asOf || new Date()), jurisdiction: cfg.jurisdiction, municipality: state.municipality, fetchedAt: state.fetchedAt, bySegment,
+      summary: { segments: all.length, changed: n('changed'), changeCommitted: n('change_committed'), changePossible: n('change_possible'), noChange: n('no_change'), unverified: n('unverified'),
+        class3Now: all.filter((a) => a.class.now === 3).length, class2Now: all.filter((a) => a.class.now === 2).length } };
+  }
+
+  // Replay: walk forward a quarter at a time, using only what was on file by each date.
+  // "flagged" is the first date the issued permits already added up to a higher class.
+  // "changed" is the first date the estimated occupied count reached it.
+  // The gap between them rests on the construction-lag assumption until multi-date building counts replace it.
+  function backtest(segments, data, cfg = DEFAULTS, opts = {}) {
+    const index = SEG.buildIndex(segments), state = normalize(data, index, cfg);
+    const from = opts.from || (state.baseline ? SEG.addMonths(state.baseline.date, 3) : '2015-03-31'), to = SEG.day(opts.to || new Date());
+    const rows = [];
+    for (const r of index.ranges) {
+      const flagged = {}, changed = {};
+      let start = null;
+      for (let d = from; d <= to; d = SEG.addMonths(d, 3)) {
+        const a = assessSegment(r, state, cfg, d);
+        if (start == null) start = a.class.now;
+        for (let c = start + 1; c <= 3; c++) {
+          if (a.class.committed >= c && !flagged[c]) flagged[c] = d;
+          if (a.class.now >= c && !changed[c]) changed[c] = d;
+        }
+      }
+      for (let c = (start || 1) + 1; c <= 3; c++) {
+        if (!flagged[c]) continue;
+        rows.push({ segment: r.id, kmFrom: r.kmFrom, toClass: c, startClass: start, flagged: flagged[c], changed: changed[c] || null,
+          leadMonths: changed[c] ? Math.max(0, SEG.monthsBetween(flagged[c], changed[c])) : null });
+      }
+    }
+    const done = rows.filter((x) => x.changed), leads = done.map((x) => x.leadMonths).sort((a, b) => a - b);
+    return { from, to, rows, changes: done.length, flaggedAhead: done.filter((x) => x.leadMonths > 0).length, pending: rows.length - done.length,
+      medianLeadMonths: leads.length ? leads[Math.floor(leads.length / 2)] : null,
+      caveat: 'Change dates are estimated from an assumed construction lag after permit issue, not observed. Replace them with dated building counts before quoting the lead time.' };
+  }
+
+  const api = { DEFAULTS, normalize, classOf, nextThreshold, windowCount, assessSegment, forecast, backtest, quarterMid };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_CLASS = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// TerraCorridor decision module: what are the ways to deal with a class location change, what does
+// each cost, how long does each take, and which ones still fit before the regulator's deadline?
+// Every option is always listed, with the reason it is or is not available. No option is hidden
+// and no single "answer" is given without the assumption it hinges on.
+// COSTS ARE PLACEHOLDERS until interviews replace them (docs/CLASS_LOCATION.md). The output says so.
+(function (root) {
+  const SEG = root.TC_SEGMENTS || require('./segments.js');
+
+  const DEFAULTS = {
+    horizonYears: 10,
+    // placeholder: true means "a team guess so the comparison runs", not a sourced figure.
+    assumptions: {
+      replaceCostPerM:     { value: 3500,   unit: '$ per m of pipe replaced', placeholder: true },
+      replaceMonths:       { value: 12,     unit: 'months to permit and build', placeholder: true },
+      pipeLeadMonths:      { value: 8,      unit: 'months to receive line pipe', placeholder: true },
+      testFixedCost:       { value: 250000, unit: '$ per pressure test', placeholder: true },
+      testCostPerM:        { value: 60,     unit: '$ per m tested', placeholder: true },
+      testMonths:          { value: 5,      unit: 'months to plan and test', placeholder: true },
+      reductionCostYr:     { value: 400000, unit: '$ a year of capacity lost at lower pressure', placeholder: true },
+      reductionMonths:     { value: 1,      unit: 'months to lower pressure', placeholder: true },
+      imInitialPerKm:      { value: 120000, unit: '$ per km of first-time integrity work', placeholder: true },
+      imRecurringPerKmYr:  { value: 35000,  unit: '$ per km a year of added surveys and patrols', placeholder: true },
+      imMonths:            { value: 12,     unit: 'months to complete the initial requirements', placeholder: true },
+      assessCost:          { value: 150000, unit: '$ for an engineering assessment', placeholder: true },
+      assessRecurringYr:   { value: 20000,  unit: '$ a year of added monitoring', placeholder: true },
+      assessMonths:        { value: 5,      unit: 'months', placeholder: true },
+      geohazardAddPerKmYr: { value: 15000,  unit: '$ per km a year where a geohazard must also be managed', placeholder: true },
+    },
+  };
+
+  // The nine areas PHMSA lists for the integrity management alternative (2026 class change rule fact sheet).
+  const IM_AREAS = ['gas quality', 'close interval surveys', 'patrolling', 'leak surveys', 'line markers', 'class location studies', 'shorted casings', 'exposed pipe and weld examinations', 'reassessments'];
+
+  const val = (cfg, k) => { const a = cfg.assumptions[k]; return a && typeof a === 'object' ? a.value : a; };
+
+  // change: { from, to, jurisdiction, lengthM, changeDate, due, asOf,
+  //           pipe: { designClass } (optional), geohazard: { tier, hazard, why } (optional), obligations: [] (optional) }
+  function comparePaths(change, cfg = DEFAULTS) {
+    const km = (change.lengthM || 1000) / 1000, m = change.lengthM || 1000, H = cfg.horizonYears;
+    const asOf = SEG.day(change.asOf || new Date());
+    const start = change.changeDate && change.changeDate > asOf ? asOf : asOf;   // work can start now, before the change lands
+    const geo = change.geohazard && ['amber', 'red', 'red-uncertain'].includes(change.geohazard.tier) ? change.geohazard : null;
+    const digs = (change.obligations || []).filter((o) => (o.triggers || []).includes('ground_disturbance'));
+    const paths = [];
+    const add = (p) => {
+      p.total = p.eligible ? Math.round(p.capex + p.recurringYr * H) : null;
+      p.finishBy = p.eligible ? SEG.addMonths(start, Math.ceil(p.months)) : null;
+      p.meetsDeadline = p.eligible && change.due ? p.finishBy <= change.due : null;
+      paths.push(p);
+    };
+
+    const designKnown = change.pipe && change.pipe.designClass != null;
+    add({ key: 'already_compliant', label: 'Show the pipe already meets the new class',
+      eligible: designKnown ? change.pipe.designClass >= change.to : false,
+      why: designKnown ? (change.pipe.designClass >= change.to ? `Pipe was designed for Class ${change.pipe.designClass}.` : `Pipe was designed for Class ${change.pipe.designClass}, below Class ${change.to}.`)
+        : 'Not known: needs the design class from the operator\'s pipe records.',
+      needs: designKnown ? [] : ['pipe design records'],
+      capex: 0, recurringYr: 0, months: 1, groundDisturbance: false, conditions: ['File the primary assessment showing the existing design meets the new class.'] });
+
+    add({ key: 'pressure_reduction', label: 'Lower the operating pressure', eligible: true, why: 'Always available. Costs capacity every year.',
+      capex: 0, recurringYr: val(cfg, 'reductionCostYr'), months: val(cfg, 'reductionMonths'), groundDisturbance: false, needs: [], conditions: ['Confirm the reduced pressure meets the new class.'] });
+
+    add({ key: 'pressure_test', label: 'Pressure test to confirm the operating pressure', eligible: true, why: 'Available where the pipe can pass a test at the level the new class needs.',
+      capex: val(cfg, 'testFixedCost') + val(cfg, 'testCostPerM') * m, recurringYr: 0, months: val(cfg, 'testMonths'), groundDisturbance: true, needs: ['pipe grade, wall thickness and prior test records'],
+      conditions: ['Line out of service during the test.', 'Test heads and water handling need ground access.'] });
+
+    const lead = val(cfg, 'pipeLeadMonths'), build = val(cfg, 'replaceMonths');
+    const replace = { key: 'replace_pipe', label: 'Replace the pipe', eligible: true, why: 'Always available. The most expensive and slowest path.',
+      capex: val(cfg, 'replaceCostPerM') * m, recurringYr: 0, months: lead + build, groundDisturbance: true, needs: [],
+      conditions: ['Line pipe has to be ordered before construction can be scheduled.'],
+      materials: { leadMonths: lead, orderBy: change.due ? SEG.addMonths(change.due, -Math.ceil(lead + build)) : null } };
+    if (replace.materials.orderBy) replace.materials.note = replace.materials.orderBy < asOf
+      ? `To finish by ${change.due} the pipe had to be ordered by ${replace.materials.orderBy}. That date has passed, so this path needs an interim measure.`
+      : `Order pipe by ${replace.materials.orderBy} to finish by ${change.due}.`;
+    add(replace);
+
+    const imOk = change.jurisdiction === 'US' && change.to === 3 && (change.from === 1 || change.from === 2);
+    add({ key: 'im_alternative', label: 'Integrity management alternative, 49 CFR 192.611(a)(4)',
+      eligible: imOk,
+      why: change.jurisdiction !== 'US' ? 'United States rule. Not available under Canadian regulation.' : imOk ? 'Class 1 or 2 changing to Class 3, subject to the segment meeting the rule\'s eligibility criteria.' : 'Only for a change from Class 1 or 2 to Class 3.',
+      capex: val(cfg, 'imInitialPerKm') * km, recurringYr: (val(cfg, 'imRecurringPerKmYr') + (geo ? val(cfg, 'geohazardAddPerKmYr') : 0)) * km, months: val(cfg, 'imMonths'), groundDisturbance: false,
+      needs: ['confirmation that the segment is an "eligible Class 3 segment" under 49 CFR 192.3'],
+      conditions: [`Initial and recurring requirements cover: ${IM_AREAS.join(', ')}.`, ...(geo ? [`This kilometre is flagged for ${geo.hazard || 'a geohazard'} (${geo.why || geo.tier}). The integrity program has to address it, and the geohazard record becomes part of the evidence.`] : [])] });
+
+    add({ key: 'engineering_assessment', label: 'Engineering assessment in the proposed plan',
+      eligible: change.jurisdiction !== 'US',
+      why: change.jurisdiction === 'US' ? 'Canadian route. In the United States use the integrity management alternative or a special permit.' : 'The CER expects the plan to show the pipe is suitable for continued service at the new class. CSA Z662 sets what the assessment must cover (UNVERIFIED: standard is paywalled).',
+      capex: val(cfg, 'assessCost'), recurringYr: val(cfg, 'assessRecurringYr') + (geo ? val(cfg, 'geohazardAddPerKmYr') * km : 0), months: val(cfg, 'assessMonths'), groundDisturbance: false,
+      needs: ['pipe condition data: inspection results, coating, depth of cover'],
+      conditions: ['If the assessment cannot be finished inside the six months, the plan gives its timeline and the interim measures.', ...(geo ? [`This kilometre is flagged for ${geo.hazard || 'a geohazard'} (${geo.why || geo.tier}); the assessment has to cover it.`] : [])] });
+
+    // The join with land obligations: any path that breaks ground triggers them.
+    for (const p of paths) {
+      p.obligations = p.groundDisturbance ? digs.map((o) => ({ id: o.id, requirement: o.requirement, noticeHours: o.noticeHours || 0, verified: !!o.verified })) : [];
+      if (p.obligations.length) p.conditions = [...p.conditions, `${p.obligations.length} land obligation${p.obligations.length === 1 ? '' : 's'} on this kilometre apply before ground is broken.`];
+    }
+
+    const rank = (list) => [...list].sort((a, b) => a.total - b.total);
+    const open = paths.filter((p) => p.eligible);
+    const inTime = open.filter((p) => p.meetsDeadline !== false);
+    const pick = rank(inTime)[0] || rank(open)[0] || null;
+    return {
+      change: { from: change.from, to: change.to, jurisdiction: change.jurisdiction, due: change.due || null, km: Math.round(km * 100) / 100 },
+      horizonYears: H,
+      paths: paths.map((p) => ({ ...p, months: Math.ceil(p.months) })),
+      lowestCost: pick ? { key: pick.key, label: pick.label, total: pick.total, meetsDeadline: pick.meetsDeadline } : null,
+      needsInterim: pick ? pick.meetsDeadline === false : null,
+      unknowns: [...new Set(paths.flatMap((p) => p.needs || []))],
+      pricedWithPlaceholders: Object.values(cfg.assumptions).some((a) => a && a.placeholder),
+    };
+  }
+
+  // Which assumption does the lowest-cost answer hinge on? Halve and double each one and see if the pick changes.
+  function hingesOn(change, cfg = DEFAULTS) {
+    const base = comparePaths(change, cfg).lowestCost;
+    if (!base) return [];
+    const out = [];
+    for (const [k, a] of Object.entries(cfg.assumptions)) {
+      for (const f of [0.5, 2]) {
+        const c = JSON.parse(JSON.stringify(cfg)); c.assumptions[k].value = a.value * f;
+        const pick = comparePaths(change, c).lowestCost;
+        if (pick && pick.key !== base.key) { out.push({ assumption: k, unit: a.unit, at: a.value * f, flipsTo: pick.key, placeholder: !!a.placeholder }); break; }
+      }
+    }
+    return out;
+  }
+
+  function mergeAssumptions(over) {
+    const c = JSON.parse(JSON.stringify(DEFAULTS));
+    for (const [k, v] of Object.entries(over || {})) {
+      if (k === 'horizonYears') c.horizonYears = +v;
+      else if (c.assumptions[k]) c.assumptions[k] = typeof v === 'object' ? { ...c.assumptions[k], ...v } : { ...c.assumptions[k], value: +v, placeholder: false };
+    }
+    return c;
+  }
+
+  const api = { DEFAULTS, IM_AREAS, comparePaths, hingesOn, mergeAssumptions };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_DECISION = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// TerraCorridor land obligations module.
+// Agreements already live in a land system (Pandell and others). This does not replace it. It reads
+// obligations out, pins each one to the kilometres it covers, and checks them every time work is
+// planned there: "km 12 needs 48 hours' landowner notice and a crop damage assessment".
+// An AI may extract obligations from a document, but an extracted obligation is a draft until a
+// person verifies it, and it is thrown out unless its quote is found word for word in the source.
+(function (root) {
+  const SEG = root.TC_SEGMENTS || require('./segments.js');
+
+  const TYPES = ['landowner_notice', 'crop_damage_assessment', 'access_restriction', 'timing_window', 'indigenous_monitoring', 'payment', 'reclamation', 'regulatory_commitment', 'other'];
+  // What kind of work wakes an obligation up.
+  const TRIGGERS = ['any_entry', 'ground_disturbance', 'vegetation_clearing', 'scheduled_date'];
+  // Work order kinds and the triggers they set off. An inspection walks on; a dig breaks ground.
+  const WORK_TRIGGERS = { inspection: ['any_entry'], walkdown: ['any_entry'], pressure_test: ['any_entry', 'ground_disturbance'], dig: ['any_entry', 'ground_disturbance'], replace_pipe: ['any_entry', 'ground_disturbance', 'vegetation_clearing'], clearing: ['any_entry', 'vegetation_clearing'] };
+
+  const squash = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  function normalize(raw) {
+    const problems = [];
+    const o = {
+      id: String(raw.id || '').trim(),
+      type: TYPES.includes(raw.type) ? raw.type : 'other',
+      requirement: String(raw.requirement || '').trim(),
+      triggers: (Array.isArray(raw.triggers) ? raw.triggers : [raw.triggers || 'any_entry']).filter((t) => TRIGGERS.includes(t)),
+      noticeHours: raw.noticeHours == null || raw.noticeHours === '' ? 0 : +raw.noticeHours,
+      kmFrom: raw.kmFrom == null || raw.kmFrom === '' ? null : +raw.kmFrom,
+      kmTo: raw.kmTo == null || raw.kmTo === '' ? (raw.kmFrom == null || raw.kmFrom === '' ? null : +raw.kmFrom) : +raw.kmTo,
+      window: raw.window || null,            // { noWorkFrom: 'MM-DD', noWorkTo: 'MM-DD' } for timing windows
+      party: raw.party || null,
+      source: { doc: (raw.source && raw.source.doc) || raw.doc || null, ref: (raw.source && raw.source.ref) || raw.ref || null, quote: (raw.source && raw.source.quote) || raw.quote || null, system: (raw.source && raw.source.system) || raw.system || null },
+      extractedBy: raw.extractedBy || 'person',
+      verified: raw.verified === true || raw.verified === 'true',
+      verifiedBy: raw.verifiedBy || null,
+    };
+    if (!o.id) problems.push('no id');
+    if (!o.requirement) problems.push('no requirement text');
+    if (!o.triggers.length) problems.push('no valid trigger');
+    if (o.kmFrom == null || Number.isNaN(o.kmFrom) || Number.isNaN(o.kmTo)) problems.push('no location on the line');
+    if (Number.isNaN(o.noticeHours) || o.noticeHours < 0) problems.push('bad notice period');
+    if (!o.source.doc) problems.push('no source document');
+    return { obligation: o, problems };
+  }
+
+  // The guard on AI extraction. Keeps an item only if it is well formed AND its quote appears in the document.
+  // Everything kept is still unverified: a person has to confirm it before it counts as checked.
+  function validateExtraction(items, sourceText, doc) {
+    const hay = squash(sourceText), accepted = [], rejected = [];
+    for (const raw of items || []) {
+      const { obligation: o, problems } = normalize({ ...raw, doc: raw.doc || doc, extractedBy: 'ai', verified: false });
+      const quote = squash(o.source.quote);
+      if (!quote) problems.push('no quote from the source');
+      else if (quote.length < 12) problems.push('quote too short to check');
+      else if (!hay.includes(quote)) problems.push('quote not found in the source document');
+      if (problems.length) rejected.push({ id: o.id || null, problems }); else accepted.push(o);
+    }
+    return { accepted, rejected };
+  }
+
+  // The prompt for the extraction node. The model may only return what it can quote.
+  function extractionPrompt(text, doc) {
+    return `You extract land and commitment obligations from a pipeline document for a right-of-way team.
+Return a JSON array. Each item: {"id","type","requirement","triggers","noticeHours","kmFrom","kmTo","party","ref","quote"}.
+type is one of: ${TYPES.join(', ')}. triggers is a list from: ${TRIGGERS.join(', ')}.
+"quote" must be copied word for word from the document and must contain the obligation. If you cannot quote it, leave it out.
+Do not infer locations. If the document gives no kilometre post, set kmFrom and kmTo to null.
+Document: ${doc || 'untitled'}
+---
+${text}`;
+  }
+
+  // Minimal CSV reader (quoted fields, commas, CRLF) for exports from a land system.
+  function parseCsv(text) {
+    const rows = []; let row = [], cur = '', q = false;
+    const s = String(text || '').replace(/^﻿/, '');
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (q) { if (c === '"') { if (s[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && s[i + 1] === '\n') i++; row.push(cur); cur = ''; if (row.some((x) => x !== '')) rows.push(row); row = []; }
+      else cur += c;
+    }
+    row.push(cur); if (row.some((x) => x !== '')) rows.push(row);
+    const head = (rows.shift() || []).map((h) => h.trim());
+    return rows.map((r) => Object.fromEntries(head.map((h, i) => [h, (r[i] || '').trim()])));
+  }
+
+  // Reads obligations from a land-system export. The column names differ by system and by customer,
+  // so the mapping is passed in. The default is this project's own template (data/obligations/TEMPLATE.csv).
+  // UNVERIFIED: Pandell's real export layout has not been seen; map its columns here once a customer shares one.
+  const DEFAULT_MAPPING = { id: 'obligation_id', type: 'type', requirement: 'requirement', triggers: 'triggers', noticeHours: 'notice_hours', kmFrom: 'km_from', kmTo: 'km_to', party: 'party', doc: 'agreement', ref: 'clause', quote: 'quote', verified: 'verified' };
+  function fromCsv(text, mapping = DEFAULT_MAPPING, system = 'land system export') {
+    const ok = [], bad = [];
+    for (const r of parseCsv(text)) {
+      const raw = {}; for (const [k, col] of Object.entries(mapping)) raw[k] = r[col];
+      raw.triggers = String(raw.triggers || '').split(/[;|]/).map((t) => t.trim()).filter(Boolean);
+      raw.system = system; raw.extractedBy = 'import';
+      const { obligation, problems } = normalize(raw);
+      (problems.length ? bad : ok).push(problems.length ? { id: obligation.id || null, problems } : obligation);
+    }
+    return { obligations: ok, rejected: bad };
+  }
+
+  // Which obligations sit on which kilometre.
+  function pinToSegments(obligations, index) {
+    const out = {};
+    for (const r of index.ranges) out[r.id] = [];
+    for (const o of obligations || []) for (const id of SEG.overlapping(index, o.kmFrom * 1000, o.kmTo * 1000)) out[id].push(o);
+    return out;
+  }
+
+  const inWindow = (mmdd, w) => (w.noWorkFrom <= w.noWorkTo ? mmdd >= w.noWorkFrom && mmdd <= w.noWorkTo : mmdd >= w.noWorkFrom || mmdd <= w.noWorkTo);
+
+  // The check that runs on every work order. Says what applies, the earliest the crew can start,
+  // and refuses to call it clear while an obligation on that kilometre is unverified.
+  function checkWorkOrder(wo, segmentObligations, opts = {}) {
+    const now = opts.now ? new Date(opts.now) : new Date();
+    const fired = WORK_TRIGGERS[wo.kind] || WORK_TRIGGERS.inspection;
+    const applies = (segmentObligations || []).filter((o) => o.triggers.some((t) => fired.includes(t)));
+    const notice = applies.reduce((m, o) => Math.max(m, o.noticeHours || 0), 0);
+    const earliestStart = new Date(now.getTime() + notice * 3600000).toISOString();
+    const planned = wo.plannedStart ? new Date(wo.plannedStart) : null;
+    const problems = [];
+    if (planned && planned < new Date(earliestStart)) problems.push(`Planned start is before the ${notice}-hour notice period ends (${earliestStart.slice(0, 16).replace('T', ' ')} UTC).`);
+    for (const o of applies) if (o.window && planned && inWindow(planned.toISOString().slice(5, 10), o.window)) problems.push(`${o.id}: no work between ${o.window.noWorkFrom} and ${o.window.noWorkTo}.`);
+    const unverified = applies.filter((o) => !o.verified);
+    const steps = applies.map((o) => ({ id: o.id, type: o.type, do: o.requirement, noticeHours: o.noticeHours || 0, party: o.party, source: o.source, verified: o.verified }));
+    const km = wo.kmFrom != null ? `km ${wo.kmFrom}` : wo.segment;
+    const parts = applies.map((o) => (o.noticeHours ? `${o.noticeHours} hours' notice (${o.type.replace(/_/g, ' ')})` : o.type.replace(/_/g, ' ')));
+    return {
+      workOrder: wo.id || null, segment: wo.segment || null, kind: wo.kind || 'inspection',
+      status: !applies.length ? 'none_on_file' : problems.length ? 'blocked' : unverified.length ? 'needs_verification' : 'clear_to_schedule',
+      earliestStart, noticeHours: notice, steps, problems,
+      unverified: unverified.map((o) => o.id),
+      summary: applies.length ? `${km} needs ${[...new Set(parts)].join(', ')}.` : `${km}: no obligation on file for this kind of work. That is not the same as none existing.`,
+    };
+  }
+
+  const api = { TYPES, TRIGGERS, WORK_TRIGGERS, DEFAULT_MAPPING, normalize, validateExtraction, extractionPrompt, parseCsv, fromCsv, pinToSegments, checkWorkOrder };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_OBLIGATIONS = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// TerraCorridor field feedback (W7). Built first because every module depends on it.
+// A crew that walks a kilometre for one reason sees things that matter to the others. Each finding
+// is written back to the segment record, and each one is paired with what the system had said
+// beforehand. Those pairs are the dataset nobody else has.
+(function (root) {
+  const KINDS = {
+    dwelling_count:      { module: 'class_location',   needsValue: true,  label: 'Dwellings counted in the assessment window' },
+    new_structure:       { module: 'class_location',   needsValue: false, label: 'New building or foundation seen' },
+    ground_movement:     { module: 'geohazard',        needsValue: false, label: 'Ground movement, erosion or exposed pipe' },
+    no_hazard_found:     { module: 'geohazard',        needsValue: false, label: 'Walked and found nothing' },
+    obligation_met:      { module: 'land_obligations', needsValue: false, label: 'Obligation carried out' },
+    obligation_missed:   { module: 'land_obligations', needsValue: false, label: 'Obligation missed or disputed' },
+    unauthorized_work:   { module: 'encroachment',     needsValue: false, label: 'Digging or a structure inside the prescribed area' },
+  };
+  // A finding for one module also informs these.
+  const ALSO = { new_structure: ['encroachment'], unauthorized_work: ['class_location'], ground_movement: ['land_obligations'] };
+
+  function normalize(raw) {
+    const k = KINDS[raw.kind], problems = [];
+    if (!k) problems.push('unknown kind of finding');
+    if (!raw.segment) problems.push('no segment');
+    if (!raw.by) problems.push('no name');
+    if (k && k.needsValue && (raw.value == null || raw.value === '' || Number.isNaN(+raw.value) || +raw.value < 0)) problems.push('needs a number');
+    const at = raw.at || new Date().toISOString();
+    return { finding: { id: raw.id || `F-${raw.segment}-${at.replace(/\D/g, '').slice(0, 14)}`, segment: raw.segment, kind: raw.kind, module: k ? k.module : null, also: ALSO[raw.kind] || [],
+      value: raw.value == null || raw.value === '' ? null : +raw.value, note: raw.note || null, withinPrescribedArea: raw.withinPrescribedArea === true, workOrder: raw.workOrder || null, by: raw.by || null, at }, problems };
+  }
+
+  // What the system believed about this kilometre before the crew went, in the same terms as the finding.
+  function predictionFor(record, kind) {
+    const c = record.classLocation, g = record.geohazard;
+    if (kind === 'dwelling_count') return c ? { value: c.units.existing, text: `${c.units.existing} dwellings estimated` } : null;
+    if (kind === 'new_structure') return c ? { value: c.units.committed + c.units.possible > 0, text: `${c.units.committed + c.units.possible} units permitted but not yet counted` } : null;
+    if (kind === 'ground_movement' || kind === 'no_hazard_found') return g ? { value: ['amber', 'red', 'red-uncertain'].includes(g.tier), text: `${g.tier} for ${g.hazard || 'ground failure'}` } : null;
+    if (kind === 'unauthorized_work') return { value: (record.encroachment || []).length > 0, text: `${(record.encroachment || []).length} flags on file` };
+    return null;
+  }
+
+  // Writes findings into a copy of the record. A counted number replaces an estimate and says so.
+  function apply(record, findings, classCfg) {
+    const r = JSON.parse(JSON.stringify(record));
+    r.field = r.field || [];
+    const mine = (findings || []).filter((f) => f.segment === r.id).sort((a, b) => a.at.localeCompare(b.at));
+    for (const f of mine) {
+      r.field.push({ id: f.id, kind: f.kind, module: f.module, also: f.also, value: f.value, note: f.note, by: f.by, at: f.at });
+      if (f.kind === 'dwelling_count' && r.classLocation) {
+        const c = r.classLocation, t = (classCfg && classCfg.thresholds) || { class2: 11, class3: 46 };
+        const cls = (u) => (u >= t.class3 ? 3 : u >= t.class2 ? 2 : 1);
+        c.units.estimatedBeforeCount = c.units.existing; c.units.existing = f.value;
+        c.class.now = cls(f.value); c.class.committed = cls(f.value + c.units.committed); c.class.possible = cls(f.value + c.units.committed + c.units.possible);
+        c.class.isLowerBound = false;
+        c.basis = `counted on site by ${f.by} on ${f.at.slice(0, 10)}`;
+        c.fieldCounted = true;
+      }
+      if (f.kind === 'new_structure' && f.withinPrescribedArea) (r.encroachment = r.encroachment || []).push({ id: f.id, kind: 'structure', source: 'field finding', observedAt: f.at, note: f.note });
+      if (f.kind === 'unauthorized_work') (r.encroachment = r.encroachment || []).push({ id: f.id, kind: 'ground_disturbance', source: 'field finding', observedAt: f.at, note: f.note });
+      if ((f.kind === 'ground_movement' || f.kind === 'no_hazard_found') && r.geohazard) (r.geohazard.fieldEvidence = r.geohazard.fieldEvidence || []).push({ id: f.id, confirmed: f.kind === 'ground_movement', note: f.note, by: f.by, at: f.at });
+    }
+    return r;
+  }
+
+  // One row per finding: what was predicted, what was seen. This table only exists because someone used the tool.
+  function outcomeLabels(recordsBefore, findings) {
+    const byId = Object.fromEntries((recordsBefore || []).map((r) => [r.id, r]));
+    return (findings || []).map((f) => {
+      const rec = byId[f.segment], p = rec ? predictionFor(rec, f.kind) : null;
+      let agreed = null, error = null;
+      if (p && f.kind === 'dwelling_count') { error = f.value - p.value; agreed = Math.abs(error) <= Math.max(2, 0.1 * f.value); }
+      else if (p && f.kind === 'ground_movement') agreed = p.value === true;
+      else if (p && f.kind === 'no_hazard_found') agreed = p.value === false;
+      else if (p && (f.kind === 'new_structure' || f.kind === 'unauthorized_work')) agreed = p.value === true;
+      return { finding: f.id, segment: f.segment, module: f.module, kind: f.kind, predicted: p ? p.text : null, observed: f.value != null ? f.value : (KINDS[f.kind] || {}).label, agreed, error, at: f.at, by: f.by };
+    });
+  }
+
+  // Plain counts per module. No probabilities: there are too few rows to claim one.
+  function scoreboard(labels) {
+    const out = {};
+    for (const l of labels || []) {
+      const m = out[l.module] || (out[l.module] = { findings: 0, comparable: 0, agreed: 0 });
+      m.findings++; if (l.agreed != null) { m.comparable++; if (l.agreed) m.agreed++; }
+    }
+    return out;
+  }
+
+  const api = { KINDS, ALSO, normalize, predictionFor, apply, outcomeLabels, scoreboard };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_FEEDBACK = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// TerraCorridor ledger: the one approval gate every module goes through, and the evidence pack.
+// A module only ever drafts. A named person approves, rejects or overrides. Each decision is
+// chained to the one before it with SHA-256, so a record that was edited afterwards shows.
+// This is the part a competitor cannot scrape: what changed, what the operator chose, what it
+// cost, what the crew found, one history per kilometre.
+(function (root) {
+  // Synchronous SHA-256 in plain JS so the same code runs in Node, a browser and an n8n Code node.
+  const K = [];
+  (function () { let n = 2, i = 0; const frac = (x) => ((x - Math.floor(x)) * 4294967296) | 0; while (i < 64) { let p = true; for (let d = 2; d * d <= n; d++) if (n % d === 0) { p = false; break; } if (p) K[i++] = frac(Math.cbrt(n)); n++; } })();
+  function utf8(s) { const o = []; for (const ch of String(s)) { let c = ch.codePointAt(0); if (c < 0x80) o.push(c); else if (c < 0x800) o.push(0xc0 | (c >> 6), 0x80 | (c & 63)); else if (c < 0x10000) o.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63)); else o.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63)); } return o; }
+  function sha256(text) {
+    const b = utf8(text), bits = b.length * 8;
+    b.push(0x80); while (b.length % 64 !== 56) b.push(0);
+    const hi = Math.floor(bits / 4294967296), lo = bits >>> 0;
+    b.push((hi >>> 24) & 255, (hi >>> 16) & 255, (hi >>> 8) & 255, hi & 255, (lo >>> 24) & 255, (lo >>> 16) & 255, (lo >>> 8) & 255, lo & 255);
+    const H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    const w = new Array(64), r = (x, n) => (x >>> n) | (x << (32 - n));
+    for (let o = 0; o < b.length; o += 64) {
+      for (let i = 0; i < 16; i++) w[i] = (b[o + i * 4] << 24) | (b[o + i * 4 + 1] << 16) | (b[o + i * 4 + 2] << 8) | b[o + i * 4 + 3];
+      for (let i = 16; i < 64; i++) { const s0 = r(w[i - 15], 7) ^ r(w[i - 15], 18) ^ (w[i - 15] >>> 3), s1 = r(w[i - 2], 17) ^ r(w[i - 2], 19) ^ (w[i - 2] >>> 10); w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0; }
+      let [a, bb, c, d, e, f, g, h] = H;
+      for (let i = 0; i < 64; i++) {
+        const t1 = (h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+        const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & bb) ^ (a & c) ^ (bb & c))) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = bb; bb = a; a = (t1 + t2) | 0;
+      }
+      H[0] = (H[0] + a) | 0; H[1] = (H[1] + bb) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0; H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+    }
+    return H.map((x) => (x >>> 0).toString(16).padStart(8, '0')).join('');
+  }
+
+  // Same object, same text, whatever order its keys were written in.
+  function canonical(v) {
+    if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v);
+    if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+    return '{' + Object.keys(v).sort().filter((k) => v[k] !== undefined).map((k) => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+  }
+  const hashOf = (v) => sha256(typeof v === 'string' ? v : canonical(v));
+
+  const MODULES = ['class_location', 'geohazard', 'land_obligations', 'encroachment'];
+  const GENESIS = '0'.repeat(64);
+
+  // A module proposes something. It is a draft until a person decides.
+  function draft(module, segmentId, kind, payload, opts = {}) {
+    if (!MODULES.includes(module)) throw new Error('unknown module: ' + module);
+    if (!segmentId) throw new Error('a draft needs a segment');
+    const at = opts.at || new Date().toISOString();
+    const inputsHash = hashOf(payload);
+    return { id: `${module}:${segmentId}:${kind}:${inputsHash.slice(0, 10)}`, module, segment: segmentId, kind, payload, inputsHash, status: 'draft', draftedAt: at, draftedBy: opts.by || 'system' };
+  }
+
+  // Appends one entry and returns the new ledger. Rejecting or overriding needs a reason; nobody approves anonymously.
+  function append(ledger, entry) {
+    const prev = ledger.length ? ledger[ledger.length - 1].hash : GENESIS;
+    const body = { ...entry, seq: ledger.length + 1, prev };
+    return [...ledger, { ...body, hash: hashOf(body) }];
+  }
+  function decide(ledger, action, d) {
+    const decision = d && d.decision;
+    if (!['approve', 'reject', 'override'].includes(decision)) throw new Error('decision must be approve, reject or override');
+    if (!d.by || !String(d.by).trim()) throw new Error('a decision needs the name of the person making it');
+    if (decision !== 'approve' && !(d.reason && String(d.reason).trim())) throw new Error(decision + ' needs a reason');
+    if (ledger.some((e) => e.type === 'decision' && e.action === action.id)) throw new Error('already decided: ' + action.id);
+    return append(ledger, { type: 'decision', action: action.id, module: action.module, segment: action.segment, kind: action.kind, inputsHash: action.inputsHash,
+      decision, by: String(d.by).trim(), reason: d.reason || null, chosen: d.chosen || null, estimate: d.estimate == null ? null : d.estimate, at: d.at || new Date().toISOString() });
+  }
+  // What happened afterwards: a crew finding, or what the work really cost. Same chain.
+  function recordOutcome(ledger, o) {
+    if (!o || !o.segment) throw new Error('an outcome needs a segment');
+    if (!o.by) throw new Error('an outcome needs the name of the person reporting it');
+    return append(ledger, { type: o.type === 'actual_cost' ? 'actual_cost' : 'finding', action: o.action || null, module: o.module || null, segment: o.segment, finding: o.finding || null, value: o.value == null ? null : o.value, note: o.note || null, by: o.by, at: o.at || new Date().toISOString() });
+  }
+
+  function verify(ledger) {
+    let prev = GENESIS;
+    for (let i = 0; i < ledger.length; i++) {
+      const { hash, ...body } = ledger[i];
+      if (body.prev !== prev || body.seq !== i + 1 || hashOf(body) !== hash) return { ok: false, brokenAt: i + 1 };
+      prev = hash;
+    }
+    return { ok: true, entries: ledger.length, head: prev };
+  }
+
+  const statusOf = (ledger, action) => { const e = ledger.find((x) => x.type === 'decision' && x.action === action.id); return e ? (e.decision === 'approve' ? 'approved' : e.decision === 'reject' ? 'rejected' : 'overridden') : 'draft'; };
+
+  // One kilometre's history, oldest first: the decision record.
+  function decisionRecord(ledger, segmentId) {
+    return ledger.filter((e) => e.segment === segmentId).map((e) => ({ seq: e.seq, at: e.at, type: e.type, module: e.module, what: e.type === 'decision' ? `${e.decision} ${e.kind}${e.chosen ? ': ' + e.chosen : ''}` : e.type === 'actual_cost' ? 'actual cost reported' : (e.finding || 'finding'),
+      by: e.by, reason: e.reason || e.note || null, estimate: e.estimate == null ? null : e.estimate, value: e.value == null ? null : e.value, hash: e.hash }));
+  }
+
+  // Everything an auditor needs for one kilometre: the inputs with their hashes, every decision, and whether the chain is intact.
+  function evidencePack(record, ledger, sources = [], opts = {}) {
+    const check = verify(ledger);
+    return {
+      segment: record.id, km: [record.kmFrom, record.kmTo], generatedAt: opts.at || new Date().toISOString(),
+      recordHash: hashOf(record),
+      sources: sources.map((s) => ({ name: s.name, dataset: s.dataset || null, url: s.url || null, fetchedAt: s.fetchedAt || null, sha256: s.sha256 || (s.content != null ? hashOf(s.content) : null) })),
+      decisions: decisionRecord(ledger, record.id),
+      chain: { ok: check.ok, entries: ledger.length, head: check.head || null, brokenAt: check.brokenAt || null },
+    };
+  }
+
+  const api = { sha256, canonical, hashOf, MODULES, GENESIS, draft, append, decide, recordOutcome, verify, statusOf, decisionRecord, evidencePack };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_LEDGER = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// TerraCorridor exports. The platform hands work to the systems operators already run; it does not
+// replace them. CSV for a maintenance system (Maximo, SAP), GeoJSON for Esri, PDF for a person.
+// No write-back integrations: a file a coordinator imports is the whole interface.
+(function (root) {
+  const cell = (v) => { const s = v == null ? '' : Array.isArray(v) ? v.join('; ') : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const csv = (rows, cols) => [cols.join(','), ...rows.map((r) => cols.map((c) => cell(r[c])).join(','))].join('\r\n') + '\r\n';
+
+  const WO_COLUMNS = ['work_order_id', 'segment', 'km_from', 'km_to', 'module', 'kind', 'priority', 'due_by', 'reason', 'status', 'approved_by', 'approved_at', 'earliest_start', 'obligation_status', 'obligation_steps', 'lat', 'lon'];
+  function workOrdersCsv(orders) {
+    return csv((orders || []).map((w) => ({ work_order_id: w.id, segment: w.segment, km_from: w.kmFrom, km_to: w.kmTo, module: w.module, kind: w.kind, priority: w.priority, due_by: w.dueBy, reason: w.reason,
+      status: w.status, approved_by: w.approvedBy, approved_at: w.approvedAt, earliest_start: w.check && w.check.earliestStart, obligation_status: w.check && w.check.status,
+      obligation_steps: w.check ? w.check.steps.map((s) => `${s.id}: ${s.do}`) : [], lat: w.lat, lon: w.lon })), WO_COLUMNS);
+  }
+
+  // One line feature per kilometre with the joined record flattened into properties, for ArcGIS or QGIS.
+  function segmentsGeoJSON(records, segments) {
+    const line = Object.fromEntries((segments || []).map((s) => [s.id, s.centreline]));
+    return { type: 'FeatureCollection', features: (records || []).filter((r) => line[r.id]).map((r) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates: line[r.id] },
+      properties: { segment: r.id, km_from: r.kmFrom, km_to: r.kmTo,
+        class_now: r.classLocation ? r.classLocation.class.now : null, class_committed: r.classLocation ? r.classLocation.class.committed : null, class_status: r.classLocation ? r.classLocation.status : 'unverified',
+        class_change_date: r.classLocation && r.classLocation.change ? r.classLocation.change.date : null, plan_due: r.classLocation && r.classLocation.clock ? r.classLocation.clock.due : null,
+        dwellings_existing: r.classLocation ? r.classLocation.units.existing : null, dwellings_committed: r.classLocation ? r.classLocation.units.committed : null,
+        geohazard_tier: r.geohazard ? r.geohazard.tier : 'unverified', geohazard_score: r.geohazard ? r.geohazard.score : null, geohazard: r.geohazard ? r.geohazard.hazard : null,
+        obligations: (r.obligations || []).length, encroachment_flags: (r.encroachment || []).length, open_items: (r.openItems || []).length } })) };
+  }
+
+  // A small PDF writer: text only, Helvetica, letter pages. Enough for a work order, a draft filing or an evidence pack.
+  const clean = (s) => String(s == null ? '' : s).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/→/g, '->').replace(/[^\x20-\x7e]/g, '?');
+  function wrap(text, width) {
+    const out = [];
+    for (const para of String(text == null ? '' : text).split('\n')) {
+      let line = '';
+      for (const word of para.split(' ')) {
+        if ((line + ' ' + word).trim().length > width) { if (line) out.push(line); line = word; while (line.length > width) { out.push(line.slice(0, width)); line = line.slice(width); } }
+        else line = (line + ' ' + word).trim();
+      }
+      out.push(line);
+    }
+    return out;
+  }
+  function pdf(title, lines) {
+    const body = lines.flatMap((l) => (typeof l === 'string' ? wrap(clean(l), 92).map((t) => ({ t })) : wrap(clean(l.text), l.h ? 70 : 92).map((t) => ({ t, h: l.h }))));
+    const pages = []; for (let i = 0; i < body.length; i += 54) pages.push(body.slice(i, i + 54));
+    if (!pages.length) pages.push([]);
+    const esc = (s) => s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    const objs = [];
+    const add = (s) => { objs.push(s); return objs.length; };
+    add('<< /Type /Catalog /Pages 2 0 R >>'); add('');   // pages placeholder
+    const font = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'), bold = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    const kids = [];
+    pages.forEach((pg, n) => {
+      let s = `BT /F2 15 Tf 54 750 Td (${esc(clean(title))}) Tj ET\nBT /F1 8 Tf 54 734 Td (Page ${n + 1} of ${pages.length}) Tj ET\n`;
+      let y = 712;
+      for (const l of pg) { s += `BT /${l.h ? 'F2' : 'F1'} ${l.h ? 11 : 9.5} Tf 54 ${y} Td (${esc(l.t)}) Tj ET\n`; y -= 12.6; }
+      const content = add(`<< /Length ${s.length} >>\nstream\n${s}endstream`);
+      kids.push(add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${font} 0 R /F2 ${bold} 0 R >> >> /Contents ${content} 0 R >>`));
+    });
+    objs[1] = `<< /Type /Pages /Kids [${kids.map((k) => k + ' 0 R').join(' ')}] /Count ${kids.length} >>`;
+    let out = '%PDF-1.4\n'; const offsets = [];
+    objs.forEach((o, i) => { offsets.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const xref = out.length;
+    out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + offsets.map((o) => String(o).padStart(10, '0') + ' 00000 n \n').join('');
+    return out + `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  }
+
+  const money = (n) => (n == null ? 'not priced' : '$' + Math.round(n).toLocaleString('en-US'));
+
+  // A draft of the plan an operator files when a class changes. A draft only: it lists what the record
+  // supports and leaves a marked blank for everything it does not know.
+  function draftFilingLines(record, comparison, chosenKey) {
+    const c = record.classLocation, ca = c.jurisdiction !== 'US', chosen = comparison && comparison.paths.find((p) => p.key === chosenKey);
+    const L = [];
+    L.push({ text: 'DRAFT - NOT A FILING. For review and completion by a qualified engineer.', h: true });
+    L.push(ca ? 'Prepared in the shape of a proposed plan under section 42 of the Onshore Pipeline Regulations (CER Filing Manual, Guide E).' : 'Prepared for a class location change under 49 CFR 192.611.');
+    L.push('', { text: '1. Segment', h: true }, `Segment ${record.id}, km ${record.kmFrom} to ${record.kmTo}. Assessment window km ${c.window.kmFrom} to ${c.window.kmTo}.`, 'Pipeline, licence and operator: [operator to complete]');
+    L.push('', { text: '2. Change in class location', h: true });
+    L.push(c.change ? `From Class ${c.change.from} to Class ${c.change.to}. ${c.change.date ? 'Date of change: ' + c.change.date + ' (' + c.change.basis + ').' : 'Date not yet established (' + c.change.basis + ').'}` : 'No change identified.');
+    if (c.clock) L.push(`Deadline: ${c.clock.due}. ${c.clock.basis}`);
+    L.push('', { text: '3. Evidence', h: true }, `Dwelling units in the window: ${c.units.existing} existing, ${c.units.committed} with building permits issued, ${c.units.possible} with development permits only.`, `Basis: ${c.basis}.`);
+    for (const e of c.evidence) L.push(`- ${e.kind.replace(/_/g, ' ')} ${e.id}, ${e.issued}, ${e.units} units, near km ${e.km}${e.note ? ' (' + e.note + ')' : ''}`);
+    for (const p of c.plans) L.push(`- Plan in effect: ${p.name} (${p.type}, bylaw ${p.bylaw})`);
+    if (c.fieldCounted) L.push('The existing count was made on site and replaces the estimate.'); else L.push('The existing count is an estimate and has not been confirmed on site.');
+    L.push('', { text: '4. Options considered', h: true });
+    for (const p of (comparison ? comparison.paths : [])) L.push(`- ${p.label}: ${p.eligible ? money(p.total) + ' over ' + comparison.horizonYears + ' years, about ' + p.months + ' months' + (p.meetsDeadline === false ? ', MISSES the deadline' : '') : 'not available. ' + p.why}`);
+    if (comparison && comparison.pricedWithPlaceholders) L.push('Costs above use placeholder assumptions, not operator figures. [operator to replace]');
+    L.push('', { text: '5. Proposed path', h: true }, chosen ? `${chosen.label}. Expected completion ${chosen.finishBy}.` : '[engineer to select]');
+    if (chosen) for (const x of chosen.conditions) L.push('- ' + x);
+    if (chosen && chosen.materials && chosen.materials.note) L.push('- ' + chosen.materials.note);
+    L.push('', { text: '6. Interim measures', h: true }, '[operator to complete]');
+    if (record.geohazard && ['amber', 'red', 'red-uncertain'].includes(record.geohazard.tier)) L.push('', { text: '7. Other conditions on this kilometre', h: true }, `Geohazard: ${record.geohazard.tier}, ${record.geohazard.hazard || 'ground failure'}. ${record.geohazard.why || ''}`);
+    if ((record.obligations || []).length) L.push(`Land obligations on file: ${record.obligations.map((o) => o.id).join(', ')}.`);
+    L.push('', { text: 'Still needed from the operator', h: true });
+    for (const u of (comparison ? comparison.unknowns : [])) L.push('- ' + u);
+    return L;
+  }
+
+  function evidenceLines(pack) {
+    const L = [{ text: `Segment ${pack.segment}, km ${pack.km[0]} to ${pack.km[1]}`, h: true }, `Generated ${pack.generatedAt}`, `Record SHA-256: ${pack.recordHash}`, `Decision chain: ${pack.chain.ok ? 'intact' : 'BROKEN at entry ' + pack.chain.brokenAt}, ${pack.chain.entries} entries, head ${pack.chain.head || '-'}`, '', { text: 'Sources', h: true }];
+    for (const s of pack.sources) L.push(`- ${s.name}${s.dataset ? ' (' + s.dataset + ')' : ''}${s.fetchedAt ? ', fetched ' + s.fetchedAt : ''}`, `  ${s.url || ''}`, `  sha256 ${s.sha256 || 'not hashed'}`);
+    L.push('', { text: 'Decisions and findings', h: true });
+    if (!pack.decisions.length) L.push('None recorded for this kilometre.');
+    for (const d of pack.decisions) L.push(`${d.seq}. ${d.at.slice(0, 16).replace('T', ' ')}  ${d.what}  by ${d.by}${d.estimate != null ? '  estimate ' + money(d.estimate) : ''}${d.value != null ? '  value ' + d.value : ''}`, ...(d.reason ? [`   ${d.reason}`] : []), `   ${d.hash}`);
+    return L;
+  }
+
+  const api = { csv, WO_COLUMNS, workOrdersCsv, segmentsGeoJSON, pdf, wrap, draftFilingLines, evidenceLines, money };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_EXPORT = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+// TerraCorridor platform: the join. One record per kilometre that carries class location, geohazard,
+// land obligations and encroachment together, with one approval trail. Each incumbent owns one of
+// these. The product is that they sit on the same kilometre and inform each other:
+//   - a geohazard flag becomes a condition on the integrity path of a class decision
+//   - a class fix that needs a dig is checked against the land obligations on that kilometre
+//   - a crew walking for one module writes findings the others read
+(function (root) {
+  const SEG = root.TC_SEGMENTS || require('./segments.js');
+  const CLASS = root.TC_CLASS || require('./classlocation.js');
+  const DECISION = root.TC_DECISION || require('./decision.js');
+  const OBL = root.TC_OBLIGATIONS || require('./obligations.js');
+  const FEEDBACK = root.TC_FEEDBACK || require('./feedback.js');
+  const LEDGER = root.TC_LEDGER || require('./ledger.js');
+
+  const DEFAULTS = { prescribedM: 30, horizon: 'y10', dueDays: { P1: 14, P2: 60, P3: 180 } };
+  const HAZ = { ground: 'ground failure', crossing: 'river crossing', wildfire: 'wildfire weather', drought: 'drought' };
+  const FLAGGED = ['amber', 'red', 'red-uncertain'];
+
+  // Geohazard part of the record, read from the existing long-range engine output (src/engine.js, W2).
+  function geohazardOf(seg, horizon) {
+    const r = seg.risk && seg.risk[horizon];
+    if (!r || r.score == null) return { tier: 'unverified', score: null, hazard: null, why: 'No geohazard score on file.' };
+    const h = r.hazards && r.hazard && r.hazards[r.hazard];
+    return { tier: (seg.override && seg.override.tier) || r.tier, score: r.score, hazard: HAZ[r.hazard] || r.hazard || 'ground failure', why: h ? h.why : (r.drivers && r.drivers[0] ? r.drivers[0].label : null), agreement: r.agreement == null ? null : r.agreement };
+  }
+
+  // New digging or structures reported near the line. Inside the prescribed area it is a flag for the
+  // right-of-way team; outside it but inside the class band it is evidence for class location.
+  function screenEncroachment(events, index, cfg = DEFAULTS, bandM = 200) {
+    const flags = {}, classEvidence = {};
+    for (const e of events || []) {
+      if (e.lon == null || e.lat == null) continue;
+      const at = SEG.locate(index, [e.lon, e.lat]), id = SEG.segmentAt(index, at.chainageM);
+      if (!id) continue;
+      const row = { id: e.id, kind: e.kind || 'ground_disturbance', offsetM: Math.round(at.offsetM), km: Math.round(at.chainageM / 100) / 10, observedAt: e.observedAt || null, source: e.source || null, note: e.note || null };
+      if (at.offsetM <= cfg.prescribedM) (flags[id] = flags[id] || []).push(row);
+      else if (at.offsetM <= bandM && row.kind === 'structure') (classEvidence[id] = classEvidence[id] || []).push(row);
+    }
+    return { flags, classEvidence };
+  }
+
+  function decisionFor(rec, classCfg, decisionCfg, asOf) {
+    const c = rec.classLocation;
+    if (!c || !c.change) return null;
+    const change = { from: c.change.from, to: c.change.to, jurisdiction: c.jurisdiction, lengthM: classCfg.windowM, changeDate: c.change.date, due: c.clock ? c.clock.due : null, asOf,
+      pipe: rec.pipe || null, geohazard: rec.geohazard, obligations: rec.obligations };
+    return { ...DECISION.comparePaths(change, decisionCfg), hingesOn: DECISION.hingesOn(change, decisionCfg) };
+  }
+
+  // What each module is proposing for this kilometre. All drafts: nothing happens until a person decides.
+  function draftsFor(rec, asOf) {
+    const out = [], c = rec.classLocation, at = asOf + 'T00:00:00.000Z';
+    if (c && c.change) out.push(LEDGER.draft('class_location', rec.id, c.status === 'change_possible' ? 'watch' : 'compliance_plan', { from: c.change.from, to: c.change.to, date: c.change.date, due: c.clock ? c.clock.due : null, units: c.units, evidence: c.evidence.map((e) => e.id) }, { at }));
+    if (FLAGGED.includes(rec.geohazard.tier)) out.push(LEDGER.draft('geohazard', rec.id, 'inspection', { tier: rec.geohazard.tier, score: rec.geohazard.score, hazard: rec.geohazard.hazard }, { at }));
+    const unv = (rec.obligations || []).filter((o) => !o.verified);
+    if (unv.length) out.push(LEDGER.draft('land_obligations', rec.id, 'verify_obligations', { ids: unv.map((o) => o.id) }, { at }));
+    for (const f of rec.encroachment || []) out.push(LEDGER.draft('encroachment', rec.id, 'row_review', { flag: f.id, kind: f.kind, offsetM: f.offsetM == null ? null : f.offsetM }, { at }));
+    return out;
+  }
+
+  function openItems(rec) {
+    const items = [], c = rec.classLocation;
+    if (c && c.status === 'changed') items.push({ module: 'class_location', level: 1, text: `Class ${c.change.from} to ${c.change.to} on about ${c.change.date}. Plan due ${c.clock ? c.clock.due : 'date unknown'}.` });
+    if (c && c.status === 'change_committed') items.push({ module: 'class_location', level: 1, text: `Permits already issued take this to Class ${c.change.to} around ${c.change.date}.` });
+    if (c && c.status === 'change_possible') items.push({ module: 'class_location', level: 2, text: `Development permits could take this to Class ${c.change.to}. ${c.headroom} more dwelling${c.headroom === 1 ? '' : 's'} would reach the next class.` });
+    if (c && c.status === 'unverified') items.push({ module: 'class_location', level: 3, text: 'No dwelling data for this kilometre.' });
+    if (FLAGGED.includes(rec.geohazard.tier)) items.push({ module: 'geohazard', level: rec.geohazard.tier === 'amber' ? 2 : 1, text: `${rec.geohazard.hazard}: ${rec.geohazard.why || rec.geohazard.tier}` });
+    const unv = (rec.obligations || []).filter((o) => !o.verified).length;
+    if (unv) items.push({ module: 'land_obligations', level: 2, text: `${unv} obligation${unv === 1 ? '' : 's'} not yet verified by a person.` });
+    for (const f of rec.encroachment || []) items.push({ module: 'encroachment', level: 1, text: `${f.kind.replace(/_/g, ' ')} ${f.offsetM == null ? 'inside' : f.offsetM + ' m from the line, inside'} the prescribed area.` });
+    return items.sort((a, b) => a.level - b.level);
+  }
+
+  // After a crew counts dwellings, restate the class picture from the counted number.
+  function restate(c) {
+    if (!c || !c.fieldCounted) return;
+    if (c.class.committed > c.class.now) { c.status = 'change_committed'; c.change = { ...(c.change || {}), from: c.class.now, to: c.class.committed, basis: 'issued building permits, on a count made on site' }; }
+    else if (c.class.possible > c.class.now) { c.status = 'change_possible'; c.change = { from: c.class.now, to: c.class.possible, date: null, basis: 'development permits, on a count made on site' }; c.clock = null; }
+    else { c.status = 'no_change'; c.change = null; c.clock = null; }
+  }
+
+  // data: { permits, obligations: [], encroachmentEvents: [], findings: [], pipe: { [segmentId]: { designClass } } }
+  function buildRecords(segments, data = {}, cfg = {}, asOf) {
+    asOf = SEG.day(asOf || new Date());
+    const P = { ...DEFAULTS, ...(cfg.platform || {}) }, classCfg = { ...CLASS.DEFAULTS, ...(cfg.classLocation || {}) }, decisionCfg = cfg.decision || DECISION.DEFAULTS;
+    const index = SEG.buildIndex(segments);
+    const cls = data.permits ? CLASS.forecast(segments, data.permits, classCfg, asOf) : null;
+    const pinned = OBL.pinToSegments(data.obligations || [], index);
+    const enc = screenEncroachment(data.encroachmentEvents, index, P, classCfg.bandM);
+    const before = segments.filter((s) => SEG.rangeOf(index, s.id)).map((s) => ({
+      id: s.id, kmFrom: s.kmFrom, kmTo: s.kmTo, mid: s.centreline[Math.floor(s.centreline.length / 2)],
+      geohazard: geohazardOf(s, P.horizon),
+      classLocation: cls ? cls.bySegment[s.id] : null,
+      obligations: pinned[s.id] || [],
+      encroachment: enc.flags[s.id] || [],
+      nearbyStructures: enc.classEvidence[s.id] || [],
+      pipe: (data.pipe && data.pipe[s.id]) || null,
+      field: [],
+    }));
+    const records = before.map((r) => {
+      const rec = FEEDBACK.apply(r, data.findings || [], classCfg);
+      restate(rec.classLocation);
+      rec.decision = decisionFor(rec, classCfg, decisionCfg, asOf);
+      rec.drafts = draftsFor(rec, asOf);
+      rec.openItems = openItems(rec);
+      return rec;
+    });
+    const labels = FEEDBACK.outcomeLabels(before, data.findings || []);
+    return { asOf, jurisdiction: classCfg.jurisdiction, records, classSummary: cls ? cls.summary : null, labels, scoreboard: FEEDBACK.scoreboard(labels),
+      coverage: { classLocation: !!data.permits, obligations: (data.obligations || []).length, encroachmentFeed: Array.isArray(data.encroachmentEvents), findings: (data.findings || []).length } };
+  }
+
+  // A work order for an approved draft, already checked against the land obligations on that kilometre.
+  function workOrderFor(rec, draft, decision, opts = {}) {
+    const now = opts.now || new Date().toISOString();
+    const kind = draft.module === 'class_location' ? (decision.chosen && ['replace_pipe', 'pressure_test'].includes(decision.chosen) ? decision.chosen : 'walkdown') : draft.module === 'encroachment' ? 'inspection' : 'inspection';
+    const priority = draft.module === 'encroachment' || (rec.classLocation && rec.classLocation.status === 'changed' && draft.module === 'class_location') || rec.geohazard.tier.startsWith('red') ? 'P1' : 'P2';
+    const due = new Date(new Date(now).getTime() + DEFAULTS.dueDays[priority] * 86400000).toISOString().slice(0, 10);
+    const reason = draft.module === 'class_location' ? `Class location: confirm the dwelling count for km ${rec.classLocation.window.kmFrom} to ${rec.classLocation.window.kmTo}` + (decision.chosen ? `; path chosen: ${decision.chosen.replace(/_/g, ' ')}` : '')
+      : draft.module === 'geohazard' ? `Geohazard: ${rec.geohazard.hazard}. ${rec.geohazard.why || ''}` : draft.module === 'encroachment' ? 'Activity inside the prescribed area' : 'Verify land obligations with the land team';
+    const wo = { id: `WO-${rec.id}-${draft.module}-${now.slice(0, 10).replace(/-/g, '')}`, segment: rec.id, kmFrom: rec.kmFrom, kmTo: rec.kmTo, module: draft.module, kind, priority, dueBy: due, reason, status: 'approved', approvedBy: decision.by, approvedAt: decision.at || now, plannedStart: opts.plannedStart || null, lon: rec.mid ? rec.mid[0] : null, lat: rec.mid ? rec.mid[1] : null };
+    wo.check = OBL.checkWorkOrder(wo, rec.obligations, { now });
+    return wo;
+  }
+
+  const api = { DEFAULTS, geohazardOf, screenEncroachment, decisionFor, draftsFor, openItems, buildRecords, workOrderFor };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_PLATFORM = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+window.TC_PLATFORM_DATA = {"meta":{"corridorId":"ab-strathcona-demo","name":"Edmonton reference corridor","builtAt":"2026-11-16","route":"A public OpenStreetMap pipeline way near Edmonton. No operator is involved, and nothing here says this line has a class location obligation.","labels":{"classLocation":"REAL open data (City of Edmonton), fetched 2026-11-16","geohazard":"REAL cached run of the existing engine (2026-11-15)","obligations":"INVENTED example rows","encroachment":"No feed connected","costs":"PLACEHOLDER assumptions"}},"segments":[{"id":"seg_6d571cf3a55233b2","kmFrom":0,"kmTo":1,"centreline":[[-113.480958,53.3381665],[-113.4808216,53.3395512],[-113.478842,53.3447764],[-113.4780588,53.3469762]],"risk":{"y10":{"score":40.6,"tier":"amber","hazard":"crossing","agreement":"medium","hazards":{"crossing":{"why":"Crosses a stream, heavy rain +21%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_51da2a98f4cc6bf0","kmFrom":1,"kmTo":2,"centreline":[[-113.4780588,53.3469762],[-113.4766364,53.3509713],[-113.4756963,53.352312],[-113.474536,53.3556974]],"risk":{"y10":{"score":35.3,"tier":"green","hazard":"crossing","agreement":"high","hazards":{"crossing":{"why":"Crosses a stream, heavy rain +15%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_59c95053d75fc7c4","kmFrom":2,"kmTo":3,"centreline":[[-113.474536,53.3556974],[-113.4732746,53.3593779],[-113.4734443,53.3600121],[-113.4716855,53.3644848]],"risk":{"y10":{"score":24.9,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +42%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_df19fceaf79e73fc","kmFrom":3,"kmTo":4,"centreline":[[-113.4716855,53.3644848],[-113.4706463,53.3671276],[-113.4680567,53.3732132]],"risk":{"y10":{"score":25,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +42%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_4e670052ff543951","kmFrom":4,"kmTo":5,"centreline":[[-113.4680567,53.3732132],[-113.4679023,53.3735761],[-113.4662056,53.3753979],[-113.4639157,53.3815869],[-113.4637701,53.3817634]],"risk":{"y10":{"score":35.3,"tier":"green","hazard":"crossing","agreement":"high","hazards":{"crossing":{"why":"Crosses Irvine Creek, heavy rain +15%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_845aa328f339f748","kmFrom":5,"kmTo":6,"centreline":[[-113.4637701,53.3817634],[-113.4578603,53.3889277],[-113.4571232,53.3898357]],"risk":{"y10":{"score":24.5,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +42%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_312ff0223dd91553","kmFrom":6,"kmTo":7,"centreline":[[-113.4571232,53.3898357],[-113.4521124,53.3960086],[-113.4505985,53.3979436]],"risk":{"y10":{"score":24.5,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +42%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_4cf3c2ccdc852418","kmFrom":7,"kmTo":8,"centreline":[[-113.4505985,53.3979436],[-113.4442217,53.4060937]],"risk":{"y10":{"score":23.4,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +40%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_c6329a1d128b3b13","kmFrom":8,"kmTo":9,"centreline":[[-113.4442217,53.4060937],[-113.4432958,53.4072771],[-113.4382968,53.4099742],[-113.4337341,53.4124357]],"risk":{"y10":{"score":38,"tier":"green","hazard":"ground","agreement":"medium","hazards":{"ground":{"why":"Plant cover -0.067 NDVI in 5 years"}},"drivers":[{"label":"Vegetation change (NDVI, 5 yr)"}]}},"override":null},{"id":"seg_b8c9a6ba853a2ede","kmFrom":9,"kmTo":10,"centreline":[[-113.4337341,53.4124357],[-113.430782,53.4140283],[-113.4302551,53.4143142],[-113.422598,53.418504]],"risk":{"y10":{"score":23.4,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +40%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_31e17a2ec605926e","kmFrom":10,"kmTo":11,"centreline":[[-113.422598,53.418504],[-113.4188948,53.4205303],[-113.4169055,53.4205559],[-113.4151991,53.4252585]],"risk":{"y10":{"score":33.6,"tier":"green","hazard":"ground","agreement":"medium","hazards":{"ground":{"why":"Wet-soil days +40%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_b912011359d1ca1e","kmFrom":11,"kmTo":12,"centreline":[[-113.4151991,53.4252585],[-113.4151028,53.425524],[-113.407003,53.4291605],[-113.4071007,53.4318386]],"risk":{"y10":{"score":24.1,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +40%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_256569ab8a09736e","kmFrom":12,"kmTo":13,"centreline":[[-113.4071007,53.4318386],[-113.4071797,53.4340028],[-113.4071884,53.4355583],[-113.4071109,53.4375358],[-113.4071024,53.4401342],[-113.4071001,53.4408308]],"risk":{"y10":{"score":35.3,"tier":"green","hazard":"crossing","agreement":"high","hazards":{"crossing":{"why":"Crosses a stream, heavy rain +15%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_d2ee6bc89f017ed2","kmFrom":13,"kmTo":14,"centreline":[[-113.4071001,53.4408308],[-113.4070709,53.449824]],"risk":{"y10":{"score":23.8,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +40%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_77fb173e94fdf499","kmFrom":14,"kmTo":15,"centreline":[[-113.4070709,53.449824],[-113.4070638,53.4520069],[-113.4070497,53.4548815],[-113.4036237,53.456736],[-113.4021482,53.4575219]],"risk":{"y10":{"score":24.1,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +43%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_5cf71be59789f5f4","kmFrom":15,"kmTo":16,"centreline":[[-113.4021482,53.4575219],[-113.394477,53.4616075],[-113.3931898,53.4616218],[-113.3910726,53.4632998]],"risk":{"y10":{"score":24.6,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +43%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_704bc3cea3492f8f","kmFrom":16,"kmTo":17,"centreline":[[-113.3910726,53.4632998],[-113.3890281,53.4649201],[-113.381256,53.4684512],[-113.3812206,53.4695975]],"risk":{"y10":{"score":35.3,"tier":"green","hazard":"crossing","agreement":"high","hazards":{"crossing":{"why":"Crosses Mill Creek, heavy rain +15%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_280090cdc09bd806","kmFrom":17,"kmTo":18,"centreline":[[-113.3812206,53.4695975],[-113.3809426,53.4785892]],"risk":{"y10":{"score":24.5,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +43%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_3c6cddf80e4d0321","kmFrom":18,"kmTo":19,"centreline":[[-113.3809426,53.4785892],[-113.3808258,53.4823656],[-113.3804387,53.4830478],[-113.380887,53.4835519],[-113.3804542,53.4840588],[-113.3802026,53.4839734],[-113.3796199,53.4846989],[-113.379905,53.4847895],[-113.378321,53.4867646]],"risk":{"y10":{"score":24.7,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +43%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_0716777699fe8121","kmFrom":19,"kmTo":20,"centreline":[[-113.378321,53.4867646],[-113.3782811,53.4868143],[-113.3752225,53.4868342],[-113.3751188,53.4916305],[-113.3758269,53.4919509],[-113.374589,53.4935847]],"risk":{"y10":{"score":35.3,"tier":"green","hazard":"crossing","agreement":"high","hazards":{"crossing":{"why":"Crosses Fulton Creek, heavy rain +15%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_afc19907173cd40e","kmFrom":20,"kmTo":21,"centreline":[[-113.374589,53.4935847],[-113.3727425,53.4960217],[-113.3694215,53.4976909],[-113.3694348,53.5014247]],"risk":{"y10":{"score":24.3,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +43%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_b629ccc517af6147","kmFrom":21,"kmTo":22,"centreline":[[-113.3694348,53.5014247],[-113.369467,53.5104179]],"risk":{"y10":{"score":24.6,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +43%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null},{"id":"seg_cb5ad322b2cc12de","kmFrom":22,"kmTo":22.02,"centreline":[[-113.369467,53.5104179],[-113.3694676,53.5105943]],"risk":{"y10":{"score":24.1,"tier":"green","hazard":"ground","agreement":"high","hazards":{"ground":{"why":"Wet-soil days +43%"}},"drivers":[{"label":"Wet-soil days"}]}},"override":null}],"permits":{"corridor":"ab-strathcona-demo","municipality":"City of Edmonton","fetchedAt":"2026-11-16","licence":"City of Edmonton Open Data Terms of Use (free, open). Contains information licensed under the Open Government Licence - City of Edmonton.","method":"Queried data.edmonton.ca (Socrata) from a laptop browser on 2026-11-16, kept records within 200 m of the mapped centreline, and binned them by 200 m of chainage. Permits adding 5 or more units are kept one by one; smaller permits are counted per 200 m bin per quarter. scripts/fetch-permits.js repeats the same queries and also saves the raw rows.","binM":200,"bandM":200,"limits":["A permit is permission to build, not a finished dwelling. Occupancy dates are estimated from an assumed construction lag.","The 2019 roofline count is roofs of 60 m2 or more, not dwelling units. A duplex is one roof and two units; a large garage is one roof and no units.","Development permits and building permits for the same project are netted per 1.6 km window, not matched one to one.","The route is a public OpenStreetMap pipeline way. Nothing here says the operator has a class location obligation on it."],"buildingPermits":{"dataset":"24uj-dj8v","name":"General Building Permits","url":"https://data.edmonton.ca/resource/24uj-dj8v.json","where":"units_added > 0, inside the route bounding box","rowsInBox":16114,"matched":1202,"unitsAdded":1895,"firstYear":2009,"large":[["5-163096504","2015-07-27",115,"315",8651],["10-255107482","2018-11-02",9,"315",9247],["31-255107482","2019-04-25",12,"335",9247],["17-255107482","2019-05-02",12,"330",9247],["49-255107482","2019-05-31",9,"335",9247],["44-255107482","2019-06-05",9,"335",9247],["22-255107482","2019-06-10",9,"330",9247],["36-255107482","2019-08-20",12,"335",9247],["43-255107482","2019-08-20",9,"335",9247],["228-40527201","2010-11-16",5,"330",16366],["11-302819508","2019-06-11",6,"335",9001],["65-302819508","2019-10-29",6,"335",9001],["88-302819508","2020-02-03",6,"335",9001],["87-302819508","2020-02-06",7,"215",9001],["105-302819508","2020-10-27",8,"330",9001],["3-326659277","2020-11-10",6,"330",9001],["116-302819508","2021-03-17",6,"330",9001],["125-302819508","2021-05-20",6,"330",9001],["127-302819508","2021-06-08",6,"330",9001],["136-302819508","2021-07-09",8,"330",9001],["145-302819508","2021-08-12",8,"330",9001],["156-302819508","2021-09-16",5,"330",9001],["158-302819508","2021-09-16",6,"330",9001],["169-302819508","2021-10-22",6,"330",9001],["2-517736334","2025-08-05",8,"330",12755]],"largeColumns":["row_id","issue_date","units_added","building_type_code","chainage_m"],"cellColumns":["bin","quarter","permits","units_added"],"cells":"37,2024Q2,14,16;37,2024Q3,24,37;37,2024Q4,17,24;37,2025Q1,6,7;37,2025Q2,1,1;38,2023Q1,10,13;38,2023Q2,5,20;38,2023Q3,7,9;38,2023Q4,4,13;38,2024Q1,8,11;38,2024Q2,10,18;38,2024Q3,11,11;38,2024Q4,11,19;38,2025Q1,6,6;39,2021Q4,1,1;39,2022Q1,8,8;39,2022Q2,10,10;39,2022Q3,12,14;39,2022Q4,15,15;39,2023Q1,7,7;39,2023Q2,2,2;39,2023Q3,3,3;39,2023Q4,11,13;39,2024Q1,6,7;39,2024Q2,6,6;39,2024Q3,6,7;40,2021Q4,2,2;40,2022Q1,5,5;40,2022Q2,9,12;40,2022Q3,5,7;40,2023Q1,1,2;40,2023Q2,2,4;40,2023Q4,2,8;40,2024Q1,5,20;40,2024Q2,7,28;40,2024Q3,1,2;40,2024Q4,6,24;41,2024Q1,1,1;41,2024Q2,1,2;41,2024Q3,1,1;41,2025Q1,1,1;42,2014Q2,1,2;42,2014Q3,8,14;42,2014Q4,2,3;42,2015Q1,1,1;42,2015Q2,1,1;42,2015Q3,2,3;42,2016Q1,1,1;42,2016Q3,2,4;42,2016Q4,1,2;42,2023Q4,1,1;42,2024Q1,10,10;42,2024Q2,15,22;42,2024Q3,16,24;42,2024Q4,15,15;42,2025Q1,1,1;42,2025Q2,1,1;42,2025Q3,1,1;42,2026Q2,1,1;43,2014Q3,3,6;43,2014Q4,3,4;43,2015Q2,1,2;43,2015Q3,1,2;43,2016Q2,3,6;43,2016Q3,3,6;43,2016Q4,1,2;43,2017Q1,4,8;43,2019Q3,1,2;43,2019Q4,1,2;43,2024Q4,14,53;44,2016Q2,7,8;44,2016Q3,3,5;44,2016Q4,2,2;44,2017Q1,4,5;44,2017Q2,3,3;44,2017Q3,5,7;44,2017Q4,7,8;44,2018Q1,9,12;44,2018Q2,2,2;44,2018Q3,4,7;44,2018Q4,4,5;44,2019Q1,2,2;44,2019Q2,1,1;44,2019Q3,2,4;44,2019Q4,2,3;44,2020Q1,2,3;45,2016Q4,3,3;45,2017Q1,2,4;45,2017Q2,4,5;45,2017Q3,4,7;45,2017Q4,6,7;45,2018Q1,9,9;45,2018Q2,6,9;45,2018Q3,10,12;45,2018Q4,5,6;45,2019Q1,8,9;45,2019Q2,12,17;45,2019Q3,6,9;45,2019Q4,10,16;45,2020Q1,2,4;45,2020Q2,2,2;45,2020Q4,1,1;45,2021Q1,1,4;45,2021Q2,1,2;46,2014Q1,2,4;46,2014Q2,3,6;46,2014Q3,1,2;46,2014Q4,2,4;46,2015Q1,1,1;46,2015Q2,4,4;46,2015Q3,9,9;46,2015Q4,7,7;46,2016Q1,5,5;46,2016Q2,7,9;46,2016Q3,4,4;46,2016Q4,7,7;46,2017Q1,2,2;46,2017Q2,3,4;46,2017Q3,2,2;46,2017Q4,2,2;46,2018Q1,1,1;46,2018Q2,1,1;46,2018Q3,2,2;46,2019Q1,2,2;46,2019Q2,2,3;46,2019Q3,3,4;46,2020Q1,2,3;47,2012Q1,1,2;47,2012Q4,5,5;47,2013Q1,13,14;47,2013Q2,7,13;47,2013Q3,10,18;47,2013Q4,12,13;47,2014Q1,13,17;47,2014Q3,1,1;47,2014Q4,1,1;47,2015Q1,3,3;47,2015Q2,5,5;47,2015Q3,4,5;47,2015Q4,2,2;47,2016Q1,1,1;47,2016Q2,1,1;47,2016Q3,1,1;47,2017Q1,1,1;47,2022Q3,1,1;48,2012Q2,5,5;48,2012Q3,8,8;48,2012Q4,5,5;48,2013Q1,6,6;48,2013Q2,10,10;48,2013Q3,11,11;48,2013Q4,11,11;48,2014Q1,17,20;48,2014Q2,6,6;48,2014Q3,4,5;48,2014Q4,7,10;48,2015Q1,1,1;48,2015Q2,3,3;48,2015Q3,2,2;48,2015Q4,1,1;48,2016Q3,1,1;48,2016Q4,1,1;48,2017Q1,1,1;48,2017Q2,1,1;48,2018Q3,1,1;49,2012Q2,5,5;49,2012Q3,5,5;49,2012Q4,7,7;49,2013Q1,3,3;49,2013Q2,9,9;49,2013Q3,4,4;49,2013Q4,2,2;49,2014Q1,7,8;49,2014Q2,16,24;49,2014Q3,6,9;49,2014Q4,10,12;49,2015Q1,13,17;49,2015Q2,3,5;49,2015Q3,5,7;49,2015Q4,3,5;49,2016Q1,5,7;49,2016Q2,2,2;49,2016Q3,5,9;49,2016Q4,2,2;49,2017Q1,1,1;49,2017Q2,3,4;49,2017Q4,2,4;49,2018Q2,1,2;49,2018Q4,1,2;50,2014Q1,4,4;50,2014Q2,17,24;50,2014Q3,18,27;50,2014Q4,17,23;50,2015Q1,15,17;50,2015Q2,14,14;50,2015Q3,10,10;50,2015Q4,4,4;50,2016Q1,8,8;50,2016Q2,3,3;50,2016Q3,3,3;50,2016Q4,1,1;50,2017Q1,1,1;51,2014Q2,1,1;51,2014Q3,4,4;51,2014Q4,1,1;51,2015Q1,1,1;51,2015Q2,1,1;51,2017Q1,1,1;51,2017Q2,1,1;51,2017Q4,1,2;58,2017Q4,2,2;58,2018Q1,1,1;58,2018Q2,1,2;58,2018Q3,1,1;58,2018Q4,5,8;58,2019Q1,3,6;58,2019Q2,3,4;58,2019Q3,2,3;58,2019Q4,1,4;58,2020Q1,1,2;58,2020Q2,1,1;58,2020Q3,2,3;58,2020Q4,1,1;58,2021Q3,1,1;58,2021Q4,2,2;58,2022Q1,34,37;58,2022Q2,5,5;58,2022Q3,3,4;59,2022Q1,2,3;59,2022Q2,7,9;59,2022Q3,1,2;59,2022Q4,2,2;59,2023Q2,1,1;59,2024Q3,1,1;66,2018Q1,1,1;66,2018Q2,1,1;67,2012Q4,1,1;68,2015Q2,1,1;69,2009Q3,1,1;69,2016Q2,1,1;70,2022Q2,1,1;71,2011Q4,1,1;71,2012Q3,1,1;71,2012Q4,1,1;72,2018Q3,1,2;73,2012Q1,1,1;73,2014Q4,1,1;73,2015Q2,1,1;73,2021Q3,1,1;73,2023Q4,1,1;76,2015Q3,1,1;77,2024Q1,1,1;78,2009Q2,1,1;78,2014Q4,1,1;78,2022Q2,1,2;79,2016Q2,1,1;80,2015Q1,1,1;81,2011Q2,1,4;81,2012Q3,2,6;82,2009Q2,1,1;82,2010Q1,1,1;82,2013Q3,1,1;82,2015Q4,1,1;82,2022Q4,1,1;83,2009Q1,1,1;83,2009Q2,5,5;83,2009Q3,4,4;83,2010Q1,2,2;83,2010Q4,1,1;83,2018Q1,1,1;84,2009Q3,1,1;84,2009Q4,1,1;84,2010Q2,1,1;84,2011Q2,1,1;84,2022Q2,1,2;86,2016Q2,1,1;86,2017Q4,1,1;88,2014Q3,1,1;91,2019Q3,1,1"},"developmentPermits":{"dataset":"2ccn-pwtu","name":"Development Permits","url":"https://data.edmonton.ca/resource/2ccn-pwtu.json","where":"permit_date >= 2024-01-01, inside the route bounding box, description says a house or dwellings are to be constructed","since":"2024-01-01","rowsInBox":3778,"matched":331,"statusCounts":{"Approved":331},"large":[["503378996-002","2024-07-05",57,"cluster",8591,"Cluster Housing: 15 row housing buildings with a total of 57 dwellings"],["495042212-002","2024-01-29",1,"backyard",7847,"Backyard House"]],"largeColumns":["city_file_number","permit_date","dwellings","kind","chainage_m","description"],"cells":"36,2025Q1,2,2;36,2025Q2,9,9;36,2025Q3,6,6;36,2025Q4,1,1;36,2026Q1,4,4;36,2026Q2,1,1;37,2024Q2,22,24;37,2024Q3,19,23;37,2024Q4,17,19;37,2025Q1,8,8;37,2025Q3,5,5;37,2025Q4,2,2;37,2026Q1,1,1;38,2024Q1,7,8;38,2024Q2,22,53;38,2024Q3,8,8;38,2024Q4,16,17;38,2025Q1,6,8;38,2025Q2,2,2;39,2024Q1,3,4;39,2024Q2,8,8;39,2024Q3,4,4;39,2024Q4,11,16;39,2025Q1,6,11;40,2024Q2,1,2;40,2026Q1,1,1;41,2024Q1,1,1;41,2024Q2,2,2;41,2024Q4,3,3;41,2025Q1,15,21;41,2025Q2,6,8;41,2025Q3,3,3;41,2025Q4,5,5;41,2026Q2,8,8;41,2026Q3,16,16;41,2026Q4,3,3;42,2024Q1,10,10;42,2024Q2,15,18;42,2024Q3,22,26;42,2024Q4,9,9;42,2025Q1,2,2;42,2025Q2,1,1;42,2026Q2,1,1;42,2026Q4,1,1;51,2025Q4,2,2;51,2026Q2,1,1;52,2025Q4,3,3;52,2026Q1,2,2;52,2026Q2,1,1;59,2024Q3,1,1;63,2025Q1,1,4;63,2026Q3,1,1"},"rooflines":{"dataset":"jpxi-a9a5","name":"City of Edmonton - Rooflines (as of 2019)","url":"https://data.edmonton.ca/resource/jpxi-a9a5.json","asOf":"2019-12-31","minAreaM2":60,"fetched":13402,"matched":3022,"cells":"25:1,29:5,30:1,42:19,43:28,44:54,45:61,46:76,47:99,48:99,49:134,50:124,51:15,52:3,53:1,56:2,57:1,58:15,63:85,64:74,65:51,66:77,67:38,68:18,69:96,70:73,71:87,72:49,73:74,74:91,75:73,76:57,77:85,78:51,79:53,80:30,81:82,82:104,83:65,84:106,85:50,86:86,87:100,88:111,89:96,90:55,91:65,92:36,96:2,97:3,98:1,99:6,100:2,101:2,102:31,103:19,104:5,105:30,106:20,107:8,108:9,109:28","tallCells":"43:1,47:1,48:3,50:1,51:2,66:1,67:2,73:3,78:1,90:2,96:1,97:1,100:1,105:1,106:1","tallMeans":"roofs 12 m or higher (a prompt to check for buildings of four or more storeys, not a Class 4 finding)"},"plans":{"dataset":"jdmr-bidz","name":"Plans in Effect","url":"https://data.edmonton.ca/resource/jdmr-bidz.json","rows":[{"name":"Ellerslie ASP","type":"Area Structure Plan","bylaw":"20948","kmFrom":8,"kmTo":8,"pdf":"https://webdocs.edmonton.ca/infraplan/plans_in_effect/Ellerslie_ASP_Consolidaton.pdf"},{"name":"The Orchards at Ellerslie NSP","type":"Neighbourhood Structure Plan","bylaw":"21376","kmFrom":8,"kmTo":8,"pdf":"https://webdocs.edmonton.ca/infraplan/plans_in_effect/The_Orchards_at_Ellerslie_NSP_Consolidation.pdf"},{"name":"Southeast ASP","type":"Area Structure Plan","bylaw":"21190","kmFrom":9.2,"kmTo":11.9,"pdf":"https://webdocs.edmonton.ca/infraplan/plans_in_effect/Southeast_ASP_Consolidation.pdf"},{"name":"Walker NSP","type":"Neighbourhood Structure Plan","bylaw":"19638","kmFrom":9.2,"kmTo":10.4,"pdf":"https://webdocs.edmonton.ca/infraplan/plans_in_effect/Walker_NSP_Consolidation.pdf"},{"name":"Charlesworth NSP","type":"Neighbourhood Structure Plan","bylaw":"17609","kmFrom":11.9,"kmTo":11.9,"pdf":"https://webdocs.edmonton.ca/infraplan/plans_in_effect/Charlesworth_NSP_Consolidation.pdf"},{"name":"Maple Ridge Industrial ASP","type":"Area Structure Plan","bylaw":"20561","kmFrom":18.7,"kmTo":20.5,"pdf":"https://webdocs.edmonton.ca/infraplan/plans_in_effect/Maple_Ridge_Industrial_ASP_Consolidation.pdf"}],"note":"Sampled at every fourth route vertex, so a plan that touches the line only between samples can be missing. The km range is where samples fell inside the plan."}},"obligations":[{"id":"EXAMPLE-001","type":"landowner_notice","requirement":"Give the landowner written notice before entering the right-of-way","triggers":["any_entry"],"noticeHours":48,"kmFrom":5.2,"kmTo":6.4,"window":null,"party":"EXAMPLE landowner A","source":{"doc":"EXAMPLE easement agreement 1","ref":"s. 4.2","quote":"The Company shall give the Owner not less than 48 hours written notice before entering the Lands","system":"invented example rows"},"extractedBy":"import","verified":false,"verifiedBy":null},{"id":"EXAMPLE-002","type":"crop_damage_assessment","requirement":"Assess and record crop damage with the landowner before and after any ground disturbance","triggers":["ground_disturbance"],"noticeHours":0,"kmFrom":5.2,"kmTo":6.4,"window":null,"party":"EXAMPLE landowner A","source":{"doc":"EXAMPLE easement agreement 1","ref":"s. 7.1","quote":"The Company shall compensate the Owner for crop damage assessed jointly before and after the work","system":"invented example rows"},"extractedBy":"import","verified":false,"verifiedBy":null},{"id":"EXAMPLE-003","type":"timing_window","requirement":"No ground disturbance during spring road bans","triggers":["ground_disturbance"],"noticeHours":72,"kmFrom":7.4,"kmTo":8.8,"window":null,"party":"EXAMPLE county","source":{"doc":"EXAMPLE road use agreement","ref":"s. 2","quote":"Ground disturbance is not permitted while seasonal road restrictions are in effect","system":"invented example rows"},"extractedBy":"import","verified":true,"verifiedBy":null}],"encroachmentEvents":null,"sources":[{"name":"Geohazard assessment (existing engine, saved n8n run)","file":"data/snapshot/live-snapshot.json","sha256":"7403c876820b3cf1d09e61f52114b53e5055c559f4a2534133703a521cd0db08","fetchedAt":"2026-11-15"},{"name":"City of Edmonton open data: building permits, development permits, rooflines 2019, plans in effect","file":"data/cache/permits/edmonton-ab-strathcona-demo.json","sha256":"bcd52ad8d6b4856848a456ab62eba020b7ce0b031abb772e80072870b90e675d","fetchedAt":"2026-11-16","dataset":"24uj-dj8v, 2ccn-pwtu, jpxi-a9a5, jdmr-bidz","url":"https://data.edmonton.ca"},{"name":"Land obligations (invented example rows)","file":"data/obligations/TEMPLATE.csv","sha256":"481bd59d7ef4975004b87da76547871831b4f323a224e5f2e71700362ca599c5"}]};
+window.TC_BACKTEST = {"corridor":"ab-strathcona-demo","builtFrom":"data/cache/permits/edmonton-ab-strathcona-demo.json","from":"2020-03-31","to":"2026-11-16","rows":[{"segment":"seg_312ff0223dd91553","kmFrom":6,"toClass":2,"startClass":1,"flagged":"2022-03-30","changed":"2022-12-30","leadMonths":9},{"segment":"seg_312ff0223dd91553","kmFrom":6,"toClass":3,"startClass":1,"flagged":"2022-09-30","changed":"2023-06-30","leadMonths":9}],"changes":2,"flaggedAhead":2,"pending":0,"medianLeadMonths":9,"caveat":"Change dates are estimated from an assumed construction lag after permit issue, not observed. Replace them with dated building counts before quoting the lead time."};
+</script>
+<script>
+// Segment record page. Everything is recomputed in the browser from the inlined data with the same
+// modules the tests and the n8n Code nodes run. Decisions and findings are kept in this browser
+// (and sent to n8n W7/W9 when the page is opened with ?api=...).
+const DATA = window.TC_PLATFORM_DATA, BT = window.TC_BACKTEST;
+const { TC_CLASS: CLASS, TC_DECISION: DECISION, TC_LEDGER: LEDGER, TC_FEEDBACK: FEEDBACK, TC_EXPORT: EXPORT, TC_PLATFORM: PLATFORM } = globalThis;
+const API = new URLSearchParams(location.search).get('api') || '';
+const KEY = 'tc-platform:' + DATA.meta.corridorId;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = EXPORT.money;
+let store = { ledger: [], findings: [], orders: [], assumptions: {}, jurisdiction: 'CA' };
+try { store = { ...store, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { /* storage unavailable: keep state in memory */ }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* in-memory only */ } };
+let built = null, selected = null, chosen = {};
+const today = () => new Date().toISOString().slice(0, 10);
+
+function compute() {
+  const cfg = { classLocation: { jurisdiction: store.jurisdiction }, decision: DECISION.mergeAssumptions(store.assumptions) };
+  built = PLATFORM.buildRecords(DATA.segments, { permits: DATA.permits, obligations: DATA.obligations, encroachmentEvents: DATA.encroachmentEvents || undefined, findings: store.findings }, cfg, today());
+  built.records.sort((a, b) => (a.openItems[0] ? a.openItems[0].level : 9) - (b.openItems[0] ? b.openItems[0].level : 9) || b.openItems.length - a.openItems.length || a.kmFrom - b.kmFrom);
+  if (!selected || !built.records.some((r) => r.id === selected)) selected = built.records[0].id;
+}
+const rec = () => built.records.find((r) => r.id === selected);
+const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => (t.style.display = 'none'), 4200); };
+const chip = (cls, text) => `<span class="chip c-${cls}"><i></i>${esc(text)}</span>`;
+const STATUS = { changed: ['red', 'Changed · clock running'], change_committed: ['red', 'Change on the way'], change_possible: ['amber', 'Change possible'], no_change: ['green', 'No change'], unverified: ['grey', 'No data'] };
+const TIER = { red: ['red', 'High'], 'red-uncertain': ['red', 'High'], amber: ['amber', 'Medium'], green: ['green', 'Low'], unverified: ['grey', 'No data'] };
+const classText = (c) => !c ? 'not loaded' : `Class ${c.class.now}${c.class.isLowerBound ? '+' : ''}${c.change ? ' → ' + c.change.to : ''}`;
+
+function renderList() {
+  const s = built.classSummary || {}, open = built.records.reduce((a, r) => a + r.openItems.length, 0), chain = LEDGER.verify(store.ledger);
+  $('strip').innerHTML = [[(s.changed || 0) + (s.changeCommitted || 0), 'class changes dated'], [s.changePossible || 0, 'possible, not dated'], [open, 'open items'], [store.ledger.length, chain.ok ? 'decisions, chain intact' : 'CHAIN BROKEN']]
+    .map(([n, l]) => `<div><b>${esc(n)}</b><span>${esc(l)}</span></div>`).join('');
+  $('rows').innerHTML = built.records.map((r) => {
+    const c = r.classLocation, st = STATUS[c ? c.status : 'unverified'], g = TIER[r.geohazard.tier] || TIER.unverified;
+    return `<tr class="row${r.id === selected ? ' sel' : ''}" data-id="${esc(r.id)}" tabindex="0"><td class="mono">${r.kmFrom}–${r.kmTo}</td>
+      <td>${chip(st[0], st[1])}<div class="cap">${esc(classText(c))}${c ? ` · ${c.units.existing} now, ${c.units.committed + c.units.possible} coming` : ''}</div></td>
+      <td>${chip(g[0], g[1])}<div class="cap">${esc(r.geohazard.hazard || '')}</div></td><td class="mono">${r.obligations.length || '–'}</td><td class="mono">${r.openItems.length || '–'}</td></tr>`;
+  }).join('');
+  for (const tr of $('rows').querySelectorAll('tr')) { tr.onclick = () => { selected = tr.dataset.id; render(); }; tr.onkeydown = (e) => { if (e.key === 'Enter') tr.onclick(); }; }
+  $('lede').textContent = `${DATA.meta.name}. ${DATA.segments.length} km. Class location, ground, land terms and nearby digging on the same kilometre, with one approval trail. ${DATA.meta.route}`;
+  const L = DATA.meta.labels;
+  $('labels').innerHTML = [['real', 'Permits: real open data'], ['real', 'Geohazard: real cached run'], ['fake', 'Obligations: invented examples'], ['fake', 'Costs: placeholders']].map(([k, t]) => `<span class="pill ${k}" title="${esc(Object.values(L).join(' | '))}">${esc(t)}</span>`).join(' ');
+  $('backtest').innerHTML = BT ? `<div class="box"><p><b>${BT.changes}</b> class change${BT.changes === 1 ? '' : 's'} on this line since ${esc(BT.from.slice(0, 4))}. Issued permits added up to the higher class <b>${esc(BT.medianLeadMonths)} months</b> before the dwellings were estimated to be occupied, in ${BT.flaggedAhead} of ${BT.changes}.</p>
+    <table><thead><tr><th>km</th><th>Change</th><th>Permits said so</th><th>Estimated change</th></tr></thead><tbody>${BT.rows.map((r) => `<tr><td class="mono">${r.kmFrom}</td><td>Class ${r.startClass} → ${r.toClass}</td><td class="mono">${esc(r.flagged)}</td><td class="mono">${esc(r.changed || 'not yet')}</td></tr>`).join('')}</tbody></table>
+    <p class="cap" style="margin-top:8px">${esc(BT.caveat)}</p></div>` : '<p class="cap">No replay built.</p>';
+}
+
+function classBlock(c) {
+  if (!c) return '<div class="box">No dwelling or permit data loaded for this corridor. Class location is not assessed here.</div>';
+  const t = CLASS.DEFAULTS.thresholds, total = c.units.existing + c.units.committed + c.units.possible, max = Math.max(60, total * 1.15), pct = (n) => (100 * n / max).toFixed(2) + '%';
+  const st = STATUS[c.status];
+  const say = c.status === 'changed' ? `This window moved from Class ${c.change.from} to Class ${c.change.to} around ${c.change.date}.`
+    : c.status === 'change_committed' ? `Building permits already issued take this window from Class ${c.change.from} to Class ${c.change.to} around ${c.change.date}.`
+    : c.status === 'change_possible' ? `Approved development permits could take this window from Class ${c.change.from} to Class ${c.change.to}. No building permits yet, so no date.`
+    : c.status === 'unverified' ? 'No dwelling data for this window.' : `No change in sight. ${c.headroom == null ? 'Already Class 3.' : c.headroom + ' more dwellings would reach the next class.'}`;
+  return `<p>${chip(st[0], st[1])} <span class="cap">window km ${c.window.kmFrom}–${c.window.kmTo}, 200 m each side</span></p><p>${esc(say)}</p>
+    <div class="bar" role="img" aria-label="${c.units.existing} existing, ${c.units.committed} permitted, ${c.units.possible} possible dwellings">
+      <span class="ex" style="left:0;width:${pct(c.units.existing)}"></span><span class="co" style="left:${pct(c.units.existing)};width:${pct(c.units.committed)}"></span><span class="po" style="left:${pct(c.units.existing + c.units.committed)};width:${pct(c.units.possible)}"></span>
+      <span class="mk" data-l="Class 2 · ${t.class2}" style="left:${pct(t.class2)}"></span><span class="mk" data-l="Class 3 · ${t.class3}" style="left:${pct(t.class3)}"></span></div>
+    <p class="cap"><b style="color:#7fb893">${c.units.existing}</b> existing${c.fieldCounted ? ' (counted on site; estimate was ' + c.units.estimatedBeforeCount + ')' : ' (estimate)'} · <b class="c-amber">${c.units.committed}</b> with building permits · <b style="color:#b89545">${c.units.possible}</b> with development permits only. Basis: ${esc(c.basis)}.</p>
+    ${c.clock ? `<div class="box ${c.clock.running ? 'bad' : 'warn'}"><b>${c.clock.running ? 'Deadline' : 'Deadline if it changes on that date'}: ${esc(c.clock.due)}</b> (${c.clock.monthsLeft} months). <span class="cap">${esc(c.clock.basis)}</span></div>` : ''}
+    ${c.evidence.length ? `<details open><summary>Evidence (${c.evidence.length})</summary><ul>${c.evidence.map((e) => `<li><b>${e.units}</b> unit${e.units === 1 ? '' : 's'} near km ${e.km} · ${esc(e.kind.replace(/_/g, ' '))}${e.note ? ', ' + esc(e.note.replace(/^1 permits/, '1 permit')) : ' issued ' + esc(e.issued)} <span class="mono cap">${esc(e.id)}</span></li>`).join('')}</ul></details>` : ''}
+    ${c.plans.length ? `<p class="cap">Plans in effect here: ${c.plans.map((p) => `<a href="${esc(p.pdf)}" target="_blank" rel="noopener">${esc(p.name)}</a>`).join(', ')}</p>` : ''}
+    <p class="cap">${esc(c.class4.note)}${c.class4.tallRoofs ? ' Tall roofs in this window: ' + c.class4.tallRoofs + '.' : ''}</p>`;
+}
+
+function decisionBlock(r) {
+  const d = r.decision; if (!d) return '';
+  const pick = chosen[r.id] || (d.lowestCost && d.lowestCost.key);
+  return `<h2>Ways to deal with it</h2>${d.pricedWithPlaceholders ? '<div class="box warn">Costs are placeholder assumptions, not operator figures. The ranking is only as good as they are. Edit them under “Cost assumptions”.</div>' : ''}
+    <table><thead><tr><th></th><th>Path</th><th class="num">${d.horizonYears}-yr cost</th><th class="num">Months</th><th>In time?</th></tr></thead><tbody>${d.paths.map((p) => `<tr class="${p.eligible ? '' : 'path-off'}"><td>${p.eligible ? `<input type="radio" name="path" value="${p.key}" ${p.key === pick ? 'checked' : ''} aria-label="${esc(p.label)}">` : ''}</td>
+      <td><b>${esc(p.label)}</b><div class="cap">${esc(p.why)}${p.materials && p.materials.note ? ' ' + esc(p.materials.note) : ''}${p.obligations.length ? ` Breaks ground: ${p.obligations.length} land obligation${p.obligations.length === 1 ? ' applies' : 's apply'}.` : ''}</div></td>
+      <td class="num">${p.eligible ? money(p.total) : '–'}</td><td class="num">${p.eligible ? p.months : '–'}</td><td>${!p.eligible ? '–' : p.meetsDeadline == null ? '<span class="cap">no date yet</span>' : p.meetsDeadline ? chip('green', 'yes') : chip('red', 'no')}</td></tr>`).join('')}</tbody></table>
+    ${d.hingesOn.length ? `<p class="cap">The lowest-cost answer flips if: ${d.hingesOn.map((h) => `${esc(h.unit)} were ${esc(Math.round(h.at).toLocaleString('en-US'))} (then ${esc(h.flipsTo.replace(/_/g, ' '))})`).join('; ')}.</p>` : ''}
+    ${d.unknowns.length ? `<p class="cap">Still needed from the operator: ${esc(d.unknowns.join('; '))}.</p>` : ''}`;
+}
+
+function render() {
+  compute(); renderList();
+  const r = rec(), g = TIER[r.geohazard.tier] || TIER.unverified, record = LEDGER.decisionRecord(store.ledger, r.id), orders = store.orders.filter((o) => o.segment === r.id);
+  $('detail').innerHTML = `<h1>km ${r.kmFrom}–${r.kmTo}</h1><p class="cap mono">${esc(r.id)}</p>
+    ${r.openItems.length ? `<div class="box"><b>Open on this kilometre</b><ul>${r.openItems.map((i) => `<li>${esc(i.text)}</li>`).join('')}</ul></div>` : '<div class="box">Nothing open on this kilometre.</div>'}
+    <h2>Class location</h2>${classBlock(r.classLocation)}${decisionBlock(r)}
+    <h2>Geohazard</h2><p>${chip(g[0], g[1])} ${r.geohazard.score == null ? '' : `<span class="mono">score ${esc(r.geohazard.score)}</span>`} ${esc(r.geohazard.hazard || '')}. <span class="cap">${esc(r.geohazard.why || '')}</span></p>
+    <h2>Land obligations on this kilometre</h2>${r.obligations.length ? `<ul>${r.obligations.map((o) => `<li><b>${esc(o.id)}</b> ${esc(o.requirement)}${o.noticeHours ? ` (${o.noticeHours} h notice)` : ''} <span class="cap">${esc(o.source.doc)} ${esc(o.source.ref || '')} · ${o.verified ? 'verified' : 'not verified by a person'}</span></li>`).join('')}</ul>` : '<p class="cap">None on file. That is not the same as none existing.</p>'}
+    <h2>Encroachment</h2>${r.encroachment.length ? `<ul>${r.encroachment.map((f) => `<li>${esc(f.kind.replace(/_/g, ' '))} · ${esc(f.source || '')} · ${esc((f.observedAt || '').slice(0, 10))} ${esc(f.note || '')}</li>`).join('')}</ul>` : `<p class="cap">${built.coverage.encroachmentFeed ? 'No flags.' : 'No feed connected. Crew findings below are the only source.'}</p>`}
+    <h2>Decide</h2>${r.drafts.length ? `<p class="cap">Each module only drafts. A named person decides, and the decision is chained into the record.</p>
+      <label class="f" for="who">Your name</label><input id="who" autocomplete="name" style="width:100%">
+      <label class="f" for="why">Reason (required to reject)</label><input id="why" style="width:100%">
+      ${r.drafts.map((d, i) => { const s = LEDGER.statusOf(store.ledger, d); return `<div class="btnrow"><span style="flex:1"><b>${esc(d.module.replace(/_/g, ' '))}</b> · ${esc(d.kind.replace(/_/g, ' '))}</span>${s === 'draft' ? `<button class="btn" data-act="approve" data-i="${i}">Approve</button><button class="btn ghost" data-act="reject" data-i="${i}">Reject</button>` : chip(s === 'approved' ? 'green' : 'grey', s)}</div>`; }).join('')}` : '<p class="cap">Nothing drafted for this kilometre.</p>'}
+    ${orders.map((o) => `<div class="box"><b class="mono">${esc(o.id)}</b> · ${esc(o.priority)} · due ${esc(o.dueBy)}<br>${esc(o.reason)}<br><span class="cap">Land check: ${esc(o.check.summary)} Status: ${esc(o.check.status.replace(/_/g, ' '))}. Earliest start ${esc(o.check.earliestStart.slice(0, 16).replace('T', ' '))} UTC. Not dispatched: export the CSV.</span></div>`).join('')}
+    <h2>Report from the field</h2><p class="cap">A crew walking for one reason reports what it sees. The finding updates every module it touches and is paired with what the system had predicted.</p>
+    <div class="grid2"><div><label class="f" for="fk">What was found</label><select id="fk" style="width:100%">${Object.entries(FEEDBACK.KINDS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join('')}</select></div><div><label class="f" for="fv">Number (for a count)</label><input id="fv" type="number" min="0" style="width:100%"></div></div>
+    <label class="f" for="fn">Note</label><input id="fn" style="width:100%"><label class="f"><input type="checkbox" id="fp"> Inside the 30 m prescribed area</label>
+    <div class="btnrow"><button class="btn ghost" id="addFinding">Record finding</button></div>
+    <h2>Decision record</h2>${record.length ? `<table><tbody>${record.map((e) => `<tr><td class="mono">${e.seq}</td><td>${esc(e.at.slice(0, 16).replace('T', ' '))}</td><td>${esc(e.what)}${e.value != null ? ': ' + esc(e.value) : ''}${e.estimate != null ? ' · est. ' + money(e.estimate) : ''}<div class="cap">${esc(e.by)}${e.reason ? ' · ' + esc(e.reason) : ''}</div></td><td class="mono cap" title="${esc(e.hash)}">${esc(e.hash.slice(0, 10))}…</td></tr>`).join('')}</tbody></table>` : '<p class="cap">Nothing decided or found here yet.</p>'}
+    <div class="btnrow"><button class="btn ghost" id="xPack">Evidence pack PDF</button>${r.classLocation && r.classLocation.change ? '<button class="btn ghost" id="xFiling">Draft plan PDF</button>' : ''}</div>`;
+  for (const el of $('detail').querySelectorAll('input[name=path]')) el.onchange = () => { chosen[r.id] = el.value; };
+  for (const b of $('detail').querySelectorAll('button[data-act]')) b.onclick = () => decide(r, r.drafts[+b.dataset.i], b.dataset.act);
+  $('addFinding').onclick = () => addFinding(r);
+  $('xPack').onclick = () => download(`evidence-${r.id}.pdf`, EXPORT.pdf('TerraCorridor evidence pack', EXPORT.evidenceLines(LEDGER.evidencePack(r, store.ledger, DATA.sources))), 'application/pdf');
+  if ($('xFiling')) $('xFiling').onclick = () => download(`draft-plan-${r.id}.pdf`, EXPORT.pdf('Draft class location plan', EXPORT.draftFilingLines(r, r.decision, chosen[r.id] || (r.decision.lowestCost && r.decision.lowestCost.key))), 'application/pdf');
+}
+
+async function send(path, body) {
+  if (!API) return 'kept in this browser';
+  try { const res = await fetch(API.replace(/\/$/, '') + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return res.ok ? 'recorded in n8n' : 'n8n refused it (' + res.status + '), kept in this browser'; }
+  catch (e) { return 'n8n not reachable, kept in this browser'; }
+}
+async function decide(r, draft, decision) {
+  const by = $('who').value, reason = $('why').value, path = draft.module === 'class_location' && r.decision ? (chosen[r.id] || (r.decision.lowestCost && r.decision.lowestCost.key)) : null;
+  const est = path && r.decision ? (r.decision.paths.find((p) => p.key === path) || {}).total : null;
+  try { store.ledger = LEDGER.decide(store.ledger, draft, { decision, by, reason, chosen: path, estimate: est }); }
+  catch (e) { return toast(e.message.charAt(0).toUpperCase() + e.message.slice(1) + '.'); }
+  if (decision === 'approve') store.orders.push(PLATFORM.workOrderFor(r, draft, { by, chosen: path }));
+  save(); render();
+  toast((decision === 'approve' ? 'Approved' : 'Rejected') + ': ' + await send('/decide', { action: { id: draft.id, module: draft.module, segment: draft.segment, kind: draft.kind, inputsHash: draft.inputsHash }, decision, by, reason, chosen: path, estimate: est }) + '.');
+}
+async function addFinding(r) {
+  const raw = { kind: $('fk').value, segment: r.id, value: $('fv').value, note: $('fn').value, withinPrescribedArea: $('fp').checked, by: $('who') ? $('who').value : '' };
+  if (!raw.by) raw.by = prompt('Your name') || '';
+  const { finding, problems } = FEEDBACK.normalize(raw);
+  if (problems.length) return toast('Not recorded: ' + problems.join(', ') + '.');
+  store.findings.push(finding);
+  store.ledger = LEDGER.recordOutcome(store.ledger, { segment: r.id, module: finding.module, finding: finding.kind, value: finding.value, note: finding.note, by: finding.by, at: finding.at });
+  save(); render(); toast('Finding recorded: ' + await send('/finding', raw) + '.');
+}
+function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+
+function renderAssumptions() {
+  const base = DECISION.DEFAULTS.assumptions;
+  $('assume').innerHTML = Object.entries(base).map(([k, a]) => `<div><label class="f" for="a-${k}">${esc(a.unit)}</label><input id="a-${k}" type="number" min="0" value="${esc(store.assumptions[k] != null ? store.assumptions[k] : a.value)}" style="width:100%"></div>`).join('');
+  for (const k of Object.keys(base)) $('a-' + k).onchange = (e) => { const v = +e.target.value; if (v >= 0) { store.assumptions[k] = v; save(); render(); } };
+}
+$('jur').value = store.jurisdiction;
+$('jur').onchange = () => { store.jurisdiction = $('jur').value; save(); render(); };
+$('resetAssume').onclick = () => { store.assumptions = {}; save(); renderAssumptions(); render(); };
+$('xCsv').onclick = () => (store.orders.length ? download('terracorridor-work-orders.csv', EXPORT.workOrdersCsv(store.orders), 'text/csv') : toast('No approved work orders yet.'));
+$('xGeo').onclick = () => download('terracorridor-segments.geojson', JSON.stringify(EXPORT.segmentsGeoJSON(built.records, DATA.segments)), 'application/geo+json');
+$('xLabels').onclick = () => (built.labels.length ? download('prediction-vs-field.csv', EXPORT.csv(built.labels, ['finding', 'segment', 'module', 'kind', 'predicted', 'observed', 'agreed', 'error', 'at', 'by']), 'text/csv') : toast('No field findings yet.'));
+renderAssumptions(); render();
+
+</script>
+</body>
+</html>
