@@ -56,6 +56,12 @@ Refresh the Edmonton data from a laptop: `npm run fetch-permits -- data/snapshot
 
 The route is a public OpenStreetMap pipeline way. No operator is involved. Nothing here says this line carries gas or has a class location obligation.
 
+## Looking ahead to 2035
+
+`CLASS.outlook` adds four layers per 200 m of line, each on top of the last: building permits issued, development permits approved, then two scenarios. **Recent pace** carries the last three years of building permits forward. **Plans filled in** brings land inside residential neighbourhood plans (Plans in Effect, `jdmr-bidz`, tested per 200 m against the plan polygons) to full density by 2035. Full density is measured, not assumed: the 90th percentile of homes per 200 m among the built stretches inside the line's own plans (124). Industrial and river valley plans add nothing.
+
+On the Edmonton line: 203 homes with a permit or approval, about 1,660 more if Walker, Charlesworth, The Orchards at Ellerslie and Mattson fill in. Only km 5 to 6 changes class: Class 2 from approvals, Class 3 if The Orchards fills in. Edmonton publishes planned unit counts only as PDF reports, so plan capacity is the measured density, not the plans' own figures.
+
 ## What is a guess
 
 - **CSA Z662 counting rules.** The standard is paywalled. Thresholds (11 and 46 dwelling units) and the 200 m by 1.6 km window follow 49 CFR 192.5. Confirm with a pipeline engineer.

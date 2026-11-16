@@ -22,6 +22,11 @@
     devToOccupiedMonths: 18,   // assumption: a development permit with no building permit yet
     roofsPerDwelling: 1,       // assumption: one roof of 60 m2 or more counts as one dwelling until a crew counts
     evidenceTop: 6,
+    // Looking ahead past the permits on file (outlook). Both are scenarios, labelled as such wherever they appear.
+    paceYears: 3,              // "recent pace": building-permit units per 200 m over the last 3 years, carried forward
+    paceLagMonths: 12,         // assumption: first projected homes are lived in a year after the data date
+    fullDensityPercentile: 0.9,// "full" = the 90th percentile of homes per 200 m among the built bins inside the line's own residential plans
+    planHorizon: '2035-12-31', // "plans filled in": residential plan land reaches full density by this date, linearly from today
   };
 
   const quarterMid = (q) => { const y = q.slice(0, 4), n = +q.slice(5); return `${y}-${String(n * 3 - 1).padStart(2, '0')}-15`; };
@@ -67,7 +72,7 @@
       baseline: roofs ? { date: roofs.asOf, bins, tall, dataset: roofs.dataset, name: roofs.name } : null,
       events: events.sort((a, b) => a.issued.localeCompare(b.issued)),
       devSince: (data && data.developmentPermits && data.developmentPermits.since) || null,
-      plans: (data && data.plans && data.plans.rows) || [],
+      plans: ((data && data.plans && data.plans.rows) || []).map((p) => ({ ...p, bins: Array.isArray(p.bins) ? p.bins : null })),
       fetchedAt: (data && data.fetchedAt) || null,
       municipality: (data && data.municipality) || null,
     };
@@ -142,7 +147,8 @@
     const evidence = [...w.pending, ...(status === 'change_possible' || w.possible ? w.dev : [])]
       .sort((a, b) => b.units - a.units || b.issued.localeCompare(a.issued)).slice(0, cfg.evidenceTop)
       .map((e) => ({ id: e.id, kind: e.kind, issued: e.issued, units: e.units, expectedOccupied: e.occupied, km: Math.round(e.chainageM / 100) / 10, note: e.note, dataset: e.dataset }));
-    const plans = state.plans.filter((p) => p.kmFrom * 1000 < w.toM && p.kmTo * 1000 + 1 > w.fromM).map((p) => ({ name: p.name, type: p.type, bylaw: p.bylaw, pdf: p.pdf }));
+    const binsIn = (p) => p.bins ? p.bins.some((b) => (b + 0.5) * state.binM >= w.fromM && (b + 0.5) * state.binM < w.toM) : p.kmFrom * 1000 < w.toM && p.kmTo * 1000 + 1 > w.fromM;
+    const plans = state.plans.filter(binsIn).map((p) => ({ name: p.name, type: p.type, bylaw: p.bylaw, pdf: p.pdf, residential: p.residential !== false }));
     return {
       asOf, status, jurisdiction: cfg.jurisdiction,
       window: { kmFrom: w.fromM / 1000, kmTo: w.toM / 1000 },
@@ -196,6 +202,67 @@
       caveat: 'Change dates are estimated from an assumed construction lag after permit issue, not observed. Replace them with dated building counts before quoting the lead time.' };
   }
 
-  const api = { DEFAULTS, normalize, classOf, nextThreshold, windowCount, assessSegment, forecast, backtest, quarterMid };
+  // Looking ahead to a year, in four layers, each on top of the one before:
+  //   permits:  homes with a building permit, lived in after the usual lag
+  //   approved: homes with a development permit and no building permit yet, assumed built by then
+  //   pace:     SCENARIO. Inside residential plans, the last few years' permit rate carries on, up to full density
+  //   plan:     SCENARIO. Residential plan land fills to full density by planHorizon
+  // Returns the class each segment reaches under each layer. Nothing here is a probability.
+  function outlook(segments, data, cfg = DEFAULTS, year, asOf) {
+    const index = SEG.buildIndex(segments), state = normalize(data, index, cfg), B = state.binM;
+    asOf = SEG.day(asOf || state.fetchedAt || new Date());
+    const end = /^\d{4}$/.test(String(year)) ? year + '-12-31' : SEG.day(year);
+    const nb = Math.ceil(index.lengthM / B), base = state.baseline ? state.baseline.date : '0000-00-00', z = () => new Array(nb).fill(0);
+    const roofs = z(), permits = z(), builtNow = z(), dp = z(), recent = z(), bpSinceDev = z(), res = new Array(nb).fill(false);
+    if (state.baseline) for (const [k, v] of Object.entries(state.baseline.bins)) if (+k < nb) roofs[+k] = v;
+    for (const p of state.plans) if (p.residential && p.bins) for (const b of p.bins) if (b < nb) res[b] = true;
+    const paceFrom = SEG.addMonths(asOf, -12 * cfg.paceYears);
+    for (const e of state.events) {
+      const k = Math.min(nb - 1, Math.max(0, Math.floor(e.chainageM / B)));
+      if (e.kind === 'building_permit') {
+        if (e.issued <= base) continue;
+        if (e.issued <= asOf && e.occupied <= end) permits[k] += e.units;
+        if (e.issued <= asOf && e.occupied <= asOf) builtNow[k] += e.units;
+        if (e.issued > paceFrom && e.issued <= asOf) recent[k] += e.units;
+        if (state.devSince && e.issued >= state.devSince && e.issued <= asOf) bpSinceDev[k] += e.units;
+      } else if (e.kind === 'development_permit' && e.issued <= asOf) dp[k] += e.units;
+    }
+    const sorted = res.map((r, k) => (r ? roofs[k] + builtNow[k] : 0)).filter((v) => v > 0).sort((a, b) => a - b);
+    const full = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * cfg.fullDensityPercentile))] : 0;
+    const yrs = (a, b) => Math.max(0, (new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 3.15576e10);
+    const paceYrs = yrs(SEG.addMonths(asOf, cfg.paceLagMonths), end), f = Math.min(1, yrs(asOf, end) / Math.max(1e-9, yrs(asOf, cfg.planHorizon)));
+    const pace = z(), plan = z(), approvedBin = z();
+    for (let k = 0; k < nb; k++) {
+      approvedBin[k] = Math.max(0, dp[k] - bpSinceDev[k]);
+      const have = roofs[k] + permits[k] + approvedBin[k];
+      if (!res[k]) continue;
+      pace[k] = Math.min(Math.round((recent[k] / cfg.paceYears) * paceYrs), Math.max(0, full - have));
+      const now = roofs[k] + builtNow[k], target = now + Math.max(0, full - now) * f;
+      plan[k] = Math.max(0, Math.round(target - (have + pace[k])));
+    }
+    const W = Math.round(cfg.windowM / B), sum = (a, s) => { let t = 0; for (let k = s; k < s + W && k < nb; k++) t += a[k]; return t; };
+    const bySegment = {};
+    for (const r of index.ranges) {
+      let best = null;
+      const first = Math.max(0, Math.floor((r.fromM - cfg.windowM) / cfg.stepM) * cfg.stepM + cfg.stepM);
+      for (let sM = first; sM < r.toM; sM += cfg.stepM) {
+        const s0 = Math.round(sM / B);
+        const t = { start: sM, today: sum(roofs, s0) + sum(builtNow, s0), permits: sum(roofs, s0) + sum(permits, s0) };
+        t.approved = t.permits + sum(approvedBin, s0); t.pace = t.approved + sum(pace, s0); t.plan = t.pace + sum(plan, s0);
+        const c = { today: classOf(t.today, cfg), permits: classOf(t.permits, cfg), approved: classOf(t.approved, cfg), pace: classOf(t.pace, cfg), plan: classOf(t.plan, cfg) };
+        if (!best) best = { t, c, max: { ...c } };
+        else { for (const k of Object.keys(c)) best.max[k] = Math.max(best.max[k], c[k]); if (t.plan > best.t.plan) { best.t = t; best.c = c; } }
+      }
+      const m = best.max, layer = m.permits > m.today ? 'permits' : m.approved > m.today ? 'approved' : m.pace > m.today ? 'pace' : m.plan > m.today ? 'plan' : null;
+      const s0 = Math.round(best.t.start / B), plansHere = state.plans.filter((p) => p.residential && p.bins && p.bins.some((b) => b >= s0 && b < s0 + W)).map((p) => p.name);
+      bySegment[r.id] = { year: end.slice(0, 4), class: m, changesBy: layer, window: { kmFrom: best.t.start / 1000, kmTo: (best.t.start + cfg.windowM) / 1000 },
+        units: { today: best.t.today, permits: best.t.permits - best.t.today, approved: best.t.approved - best.t.permits, pace: best.t.pace - best.t.approved, plan: best.t.plan - best.t.pace }, plans: plansHere };
+    }
+    const bins = Array.from({ length: nb }, (_, k) => ({ bin: k, today: roofs[k] + builtNow[k], permits: permits[k] - builtNow[k], approved: approvedBin[k], pace: pace[k], plan: plan[k], residential: res[k] }));
+    return { year: end.slice(0, 4), asOf, fullDensity: full, bySegment, bins,
+      scenario: `Past permits on file, "recent pace" carries the last ${cfg.paceYears} years of building permits forward and "plans filled in" brings residential plan land to ${full} homes per 200 m by ${cfg.planHorizon.slice(0, 4)}. Both are scenarios.` };
+  }
+
+  const api = { DEFAULTS, normalize, classOf, nextThreshold, windowCount, assessSegment, forecast, backtest, outlook, quarterMid };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_CLASS = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

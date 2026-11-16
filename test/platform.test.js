@@ -302,3 +302,31 @@ test('W8 keeps only quoted obligations and checks a work order against them', as
   const check = (await run(W8, 'Check work order', { nodes: { 'POST /terracorridor/obligation-check': [{ body: { id: 'W1', segment: 'S1', kmFrom: 1, kind: 'inspection' } }], 'Get obligations': obligationRows, 'Get segments for check': segRows } }))[0].json;
   assert.equal(check.ok, true); assert.equal(check.status, 'clear_to_schedule'); assert.equal(check.noticeHours, 48);
 });
+
+test('outlook to 2035: four layers that only ever add, scenarios only on residential plan land', () => {
+  const plans = { rows: [{ name: 'Test NSP', type: 'Neighbourhood Structure Plan', bins: [5, 6, 7], residential: true }, { name: 'Test Industrial ASP', bins: [8, 9], residential: false }] };
+  const data = { binM: 200, fetchedAt: AS_OF, rooflines: { dataset: 'r', name: 'roofs', asOf: '2019-12-31', cells: cells({ 6: 40, 7: 30 }) },
+    buildingPermits: { dataset: 'bp', large: [['BP-1', '2025-03-01', 30, '110', 1300], ['BP-2', '2026-09-01', 6, '110', 1500]] },
+    developmentPermits: { dataset: 'dp', since: '2024-01-01', large: [['DP-1', '2026-05-01', 9, 'cluster', 1100, 'x']] }, plans };
+  const o28 = CLASS.outlook(line(4), data, CLASS.DEFAULTS, 2028, AS_OF), o35 = CLASS.outlook(line(4), data, CLASS.DEFAULTS, 2035, AS_OF);
+  assert.equal(o35.fullDensity, 70);                                  // built residential bins: 6 has 40 roofs + 30 homes since, 7 has 30; the 90th percentile is 70
+  for (const o of [o28, o35]) for (const a of Object.values(o.bySegment)) {
+    const k = a.class; assert.ok(k.today <= k.permits && k.permits <= k.approved && k.approved <= k.pace && k.pace <= k.plan);
+  }
+  for (const b of o35.bins) if (!b.residential) assert.equal(b.pace + b.plan, 0);
+  assert.equal(o35.bins[8].plan, 0);                                  // industrial plan land adds no homes
+  assert.ok(o35.bins[5].plan > o28.bins[5].plan);                     // the plan scenario fills in over time
+  assert.ok(o35.bins.every((b) => b.today + b.permits + b.approved + b.pace + b.plan <= Math.max(o35.fullDensity, b.today + b.permits + b.approved)));
+  assert.match(o35.scenario, /scenarios/);
+});
+
+test('outlook on the real Edmonton line: today matches the forecast, km 5-6 reaches Class 3 only if the plan fills in', () => {
+  const f = CLASS.forecast(snap.segments, permits, CLASS.DEFAULTS, AS_OF), o = CLASS.outlook(snap.segments, permits, CLASS.DEFAULTS, 2035, AS_OF);
+  for (const s of snap.segments) assert.equal(o.bySegment[s.id].class.today, f.bySegment[s.id].class.now);
+  const km5 = o.bySegment[snap.segments.find((s) => s.kmFrom === 5).id];
+  assert.deepEqual([km5.class.today, km5.class.permits, km5.class.approved, km5.class.plan], [1, 1, 2, 3]);
+  assert.equal(km5.changesBy, 'approved');
+  assert.ok(km5.plans.includes('The Orchards at Ellerslie NSP'));
+  assert.equal(Object.values(o.bySegment).filter((a) => a.changesBy).length, 1);
+  assert.ok(o.bins.slice(0, 30).every((b) => b.pace + b.plan === 0));   // km 0 to 6: no residential plan, nothing projected
+});

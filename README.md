@@ -8,7 +8,7 @@ TerraCorridor reads free public records (building permits, development permits, 
 
 ## What it does
 
-- **Forecasts class location changes** per kilometre, with the permits behind each one and the deadline that follows.
+- **Forecasts class location changes out to 2035**, per kilometre: from permits already issued, from approved developments, and, as a labelled scenario, from the City's neighbourhood plans filling in.
 - **Compares the ways to comply**: lower pressure, test, replace pipe, or an integrity program. Cost, months, and whether it fits before the deadline.
 - **Joins what nobody joins.** Class location, ground hazards, land terms and nearby digging sit on the same kilometre and change each other's answers.
 - **Keeps the decision record.** What changed, what was chosen, what the crew found, hash-chained per kilometre. That history cannot be scraped.
@@ -23,7 +23,8 @@ On a public pipeline route near Edmonton, using City of Edmonton open data:
 
 - 1,895 dwelling units permitted within 200 m of the line since 2009.
 - One stretch went from empty field to Class 3 between 2019 and 2023. The permits showed it first.
-- One more kilometre is next: 6 homes today, 23 approved.
+- One more kilometre is next: 6 homes today, 23 approved. If the neighbourhood plan there fills in, it reaches Class 3 by 2035.
+- About 1,860 homes are yet to be built along the line by 2035: 203 with a permit or approval, the rest if four neighbourhood plans fill in.
 
 ## Run it
 

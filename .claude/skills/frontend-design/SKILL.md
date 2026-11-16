@@ -100,8 +100,10 @@ The project grew from a geohazard dashboard into a compliance platform. This pag
 Concept: **the imagery is the page.** Satellite imagery runs edge to edge. Chrome sits at the edges. One panel tells
 one kilometre's story. One strip is the whole line.
 
-- **One signature move:** the compare line. Older imagery on the left, today on the right, draggable anywhere along
-  its height. Nothing else on the page competes with it.
+- **One signature move:** the compare line. Older imagery on the left; on the right, today or the outlook to 2028,
+  2030 or 2035 (default 2035). Draggable anywhere along its height. Nothing else on the page competes with it.
+- **The outlook is drawn only right of the line:** amber for homes with a permit or approval, dashed sand for the
+  scenarios. Zoomed out, one label per neighbourhood plan; zoomed in, one per 400 m. Scenario numbers carry a `~`.
 - **One panel, one step at a time:** What changed, Options, Decide, Record. Never show all four at once. The first
   screen is a kilometre name, one sentence, three numbers and one bar.
 - **One strip:** a single row of cells, one per kilometre, coloured by class location status. No stacked lanes.

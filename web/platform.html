@@ -39,7 +39,7 @@
   #grip { position:absolute; top:46%; left:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:var(--ink); color:var(--bg); display:grid; place-items:center; font:15px var(--mono); box-shadow:0 4px 18px rgba(0,0,0,.45); }
   .side { position:absolute; top:74px; z-index:455; font:11px var(--mono); letter-spacing:.06em; padding:5px 10px; border-radius:99px; white-space:nowrap; pointer-events:none; }
   .yr { position:absolute; top:70px; z-index:470; display:flex; gap:2px; padding:3px; border-radius:99px; } .yr button { background:none; border:0; border-radius:99px; padding:4px 11px; font:11.5px var(--mono); color:var(--ink-2); cursor:pointer; white-space:nowrap; } .yr button[aria-pressed=true] { background:var(--ink); color:var(--bg); } #ahead button.fut[aria-pressed=true] { background:var(--amber); }
-  .plus { font:500 11.5px/20px var(--mono); color:var(--bg); background:var(--amber); border-radius:99px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .plus { font:500 11.5px/20px var(--mono); color:var(--bg); background:var(--amber); border-radius:99px; padding:0 9px; white-space:nowrap; width:auto !important; transform-origin:left; box-shadow:0 2px 8px rgba(0,0,0,.4); } .plus.maybe { background:#d9c48c; }
   /* the line, as a strip */
   #strip { position:absolute; left:22px; right:474px; bottom:20px; z-index:600; border-radius:14px; padding:12px 14px 8px; }
   #strip .head { display:flex; align-items:baseline; gap:14px; margin-bottom:9px; font-size:13px; color:var(--ink-2); } #strip .head b { color:var(--ink); font-weight:500; }
@@ -85,7 +85,7 @@
     <div id="drag" aria-hidden="true"><span id="grip">↔</span></div>
     <div class="glass yr" id="ahead" role="group" aria-label="Right of the line: today, or a forecast year"></div>
     <div class="glass yr" id="years" role="group" aria-label="Older imagery to compare with today"></div>
-    <input class="sr" id="swipe" type="range" min="2" max="98" value="38" aria-label="Move the compare line. Older imagery is on the left, today on the right.">
+    <input class="sr" id="swipe" type="range" min="2" max="98" value="26" aria-label="Move the compare line. Older imagery is on the left, today on the right.">
   </div>
   <header class="top">
     <a class="mark" href="index.html">Terra<em>Corridor</em></a>
