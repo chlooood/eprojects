@@ -1812,6 +1812,8 @@ function bandOf(fromM, toM, halfM) {
   for (let ch = Math.max(0, fromM); ch <= Math.min(index.lengthM, toM); ch += 50) { const p = pointAt(ch); left.push(ll(p.x + p.nx * halfM, p.y + p.ny * halfM)); right.push(ll(p.x - p.nx * halfM, p.y - p.ny * halfM)); }
   return [...left, ...right.reverse()];
 }
+// Leave room for the panel and the strip on a wide screen; on a narrow one they sit below the map.
+const pad = () => (window.innerWidth > 900 ? { paddingTopLeft: [40, 110], paddingBottomRight: [480, 160] } : { padding: [24, 24] });
 function initMap() {
   map = L.map('map', { zoomControl: false, zoomSnap: 0.25, zoomDelta: 0.5 });
   map.createPane('after').style.zIndex = 210;
@@ -1825,7 +1827,7 @@ function initMap() {
     lines[s.id] = L.polyline(s.centreline.map((p) => [p[1], p[0]]), { color: C.grey, weight: 5, lineCap: 'butt' }).addTo(map).on('click', () => select(s.id))
       .bindTooltip(() => { const r = built.records.find((x) => x.id === s.id); return `<b>km ${r.kmFrom}–${r.kmTo}</b> · ${esc(statusOf(r)[1])}`; }, { sticky: true, className: 'tc', direction: 'top', offset: [0, -8] });
   }
-  const fitAll = () => map.fitBounds(L.latLngBounds(all), { paddingTopLeft: [40, 110], paddingBottomRight: [480, 160] });
+  const fitAll = () => map.fitBounds(L.latLngBounds(all), pad());
   fitAll(); requestAnimationFrame(() => { map.invalidateSize(); fitAll(); clip(); });
   map.on('move zoom resize', clip);
   new ResizeObserver(() => { map.invalidateSize(); clip(); }).observe($('mapBox'));
@@ -1877,7 +1879,7 @@ function select(id, fly = true) {
   selected = id; if (step === 'corridor') step = 'changed'; render();
   if (!fly) return;
   const r = rec(), c = r.classLocation, range = SEG.rangeOf(index, id);
-  map.flyToBounds(L.latLngBounds(bandOf(c ? c.window.kmFrom * 1000 : range.fromM, c ? c.window.kmTo * 1000 : range.toM, 320)), { paddingTopLeft: [40, 110], paddingBottomRight: [480, 160], duration: 0.9 });
+  map.flyToBounds(L.latLngBounds(bandOf(c ? c.window.kmFrom * 1000 : range.fromM, c ? c.window.kmTo * 1000 : range.toM, 320)), { ...pad(), duration: 0.9 });
 }
 
 /* ---------- strip and queue ---------- */
