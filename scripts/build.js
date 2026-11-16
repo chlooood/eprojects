@@ -48,7 +48,7 @@ write('dist/sw.js', sw);
 // the same code as the tests and the n8n Code nodes. Data: data/platform/*.json (scripts/make-platform-data.js).
 const platformModules = ['segments', 'classlocation', 'decision', 'obligations', 'feedback', 'ledger', 'export', 'platform'].map((m) => read(`src/${m}.js`)).join('\n').replace(/<\/(script|style)/gi, '<\\/$1');
 const platformData = `window.TC_PLATFORM_DATA = ${safeJson(JSON.parse(read('data/platform/ab-strathcona-demo.json')))};\nwindow.TC_BACKTEST = ${safeJson(JSON.parse(read('data/platform/ab-strathcona-demo-backtest.json')))};`;
-const platformPage = read('web/platform.html').replace('/*__MODULES__*/', () => platformModules + '\n' + platformData).replace('/*__APP__*/', () => read('web/platform-app.js').replace(/<\/(script|style)/gi, '<\\/$1'));
+const platformPage = read('web/platform.html').replace('/*__LEAFLET_CSS__*/', () => read('web/vendor/leaflet.css').replace(/<\/(script|style)/gi, '<\\/$1')).replace('/*__LEAFLET_JS__*/', () => read('web/vendor/leaflet.js').replace(/<\/(script|style)/gi, '<\\/$1')).replace('/*__MODULES__*/', () => platformModules + '\n' + platformData).replace('/*__APP__*/', () => read('web/platform-app.js').replace(/<\/(script|style)/gi, '<\\/$1'));
 write('dist/platform.html', platformPage);
 write('deploy/platform.html', platformPage);
 
