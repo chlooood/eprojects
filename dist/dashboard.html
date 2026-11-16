@@ -1036,8 +1036,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <nav class="pages" id="nav" aria-label="Pages">
     <a href="#/" data-p="overview">Overview</a>
     <a href="#/triage" data-p="triage">Triage</a>
-    <a href="#/money" data-p="money">Money</a>
-    <a href="#/build" data-p="build">Build</a>
+    <a href="platform.html" data-p="platform">Segment record</a>
     <a href="#/log" data-p="log">Work orders <span class="count" id="logCount" data-n="0">0</span></a>
   </nav>
   <label style="font-size:12px;display:flex;align-items:center;gap:6px">Corridor <select id="corridorSelect" aria-label="Study corridor" style="max-width:220px;background:var(--s2);color:var(--ink);border:1px solid var(--line-2);padding:6px;border-radius:6px"></select></label>
@@ -1994,7 +1993,8 @@ function renderPage() {
 /* ---------- router ---------- */
 function parse() {
   const [p, id] = location.hash.replace(/^#\/?/, '').split('/');
-  return { p: PAGES.includes(p) ? p : 'overview', id: id || null };
+  // The Money and Build (solar) pages were cut on 2026-11-16: score-to-probability money was not defensible and solar does not fit the right-of-way. Old links land on the overview.
+  return { p: PAGES.includes(p) && p !== 'money' && p !== 'build' ? p : 'overview', id: id || null };
 }
 const go = (p, id) => { location.hash = '#/' + (p === 'overview' ? '' : p) + (id ? '/' + id : ''); };
 
@@ -2699,8 +2699,6 @@ function renderSegment() {
     <div>
       <div class="blk" style="margin-top:0"><h3>Extreme rain across three climate models</h3>${rainBars(s)}</div>
       <div class="blk"><h3>Vegetation over time</h3>${ndviSpark(s)}</div>
-      <div class="blk"><h3>Money over ${years()} years</h3>${moneyHTML(s, r)}</div>
-      <div class="blk"><h3>If this stretch carried solar</h3>${buildHTML(s)}</div>
     </div></div>`;
   wireActions(segBody, s);
 }

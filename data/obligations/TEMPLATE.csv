@@ -1,0 +1,4 @@
+obligation_id,type,requirement,triggers,notice_hours,km_from,km_to,party,agreement,clause,quote,verified
+EXAMPLE-001,landowner_notice,Give the landowner written notice before entering the right-of-way,any_entry,48,5.2,6.4,EXAMPLE landowner A,EXAMPLE easement agreement 1,s. 4.2,The Company shall give the Owner not less than 48 hours written notice before entering the Lands,false
+EXAMPLE-002,crop_damage_assessment,Assess and record crop damage with the landowner before and after any ground disturbance,ground_disturbance,0,5.2,6.4,EXAMPLE landowner A,EXAMPLE easement agreement 1,s. 7.1,The Company shall compensate the Owner for crop damage assessed jointly before and after the work,false
+EXAMPLE-003,timing_window,No ground disturbance during spring road bans,ground_disturbance,72,7.4,8.8,EXAMPLE county,EXAMPLE road use agreement,s. 2,Ground disturbance is not permitted while seasonal road restrictions are in effect,true

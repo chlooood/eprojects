@@ -1,0 +1,31 @@
+{
+  "corridor": "ab-strathcona-demo",
+  "builtFrom": "data/cache/permits/edmonton-ab-strathcona-demo.json",
+  "from": "2020-03-31",
+  "to": "2026-11-16",
+  "rows": [
+    {
+      "segment": "seg_312ff0223dd91553",
+      "kmFrom": 6,
+      "toClass": 2,
+      "startClass": 1,
+      "flagged": "2022-03-30",
+      "changed": "2022-12-30",
+      "leadMonths": 9
+    },
+    {
+      "segment": "seg_312ff0223dd91553",
+      "kmFrom": 6,
+      "toClass": 3,
+      "startClass": 1,
+      "flagged": "2022-09-30",
+      "changed": "2023-06-30",
+      "leadMonths": 9
+    }
+  ],
+  "changes": 2,
+  "flaggedAhead": 2,
+  "pending": 0,
+  "medianLeadMonths": 9,
+  "caveat": "Change dates are estimated from an assumed construction lag after permit issue, not observed. Replace them with dated building counts before quoting the lead time."
+}

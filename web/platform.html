@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TerraCorridor · Segment record</title>
+<style>
+  /* Same tokens as web/dashboard.html. Design rules: .claude/skills/frontend-design/SKILL.md */
+  :root { --bg:#0a0b0a; --s1:#101210; --s2:#161916; --s3:#1d211d; --line:#252925; --line-2:#323732; --ink:#eceee6; --ink-2:#a5aa9f; --ink-3:#7a7f75;
+    --green:#6fd08f; --amber:#f2a93b; --red:#ff5d4f; --grey:#5d625a; --sub:#82c8ff;
+    --sans:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; --serif:'Instrument Serif', Georgia, serif; --mono:'JetBrains Mono', ui-monospace, Consolas, monospace; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--sans); -webkit-font-smoothing:antialiased; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  a { color:inherit; }
+  header.top { display:flex; align-items:center; gap:18px; padding:12px 20px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:5; flex-wrap:wrap; }
+  .mark { font:500 17px var(--sans); text-decoration:none; } .mark em { font:italic 19px var(--serif); color:var(--amber); }
+  nav a { text-decoration:none; color:var(--ink-2); padding:6px 10px; border-radius:6px; font-size:14px; } nav a.on { color:var(--ink); background:var(--s2); } nav a:hover { color:var(--ink); }
+  .spacer { flex:1; }
+  .pill { font:12px var(--mono); padding:4px 9px; border:1px solid var(--line-2); border-radius:99px; color:var(--ink-2); white-space:nowrap; }
+  .pill.real { color:var(--green); border-color:#2c4a36; } .pill.fake { color:var(--amber); border-color:#5a4520; }
+  select, input, textarea { background:var(--s2); border:1px solid var(--line-2); border-radius:6px; padding:6px 8px; }
+  main { display:grid; grid-template-columns:minmax(420px, 1fr) minmax(460px, 1.15fr); gap:0; align-items:start; }
+  @media (max-width:980px) { main { grid-template-columns:1fr; } }
+  .col { padding:18px 20px 60px; } .col + .col { border-left:1px solid var(--line); min-height:100vh; }
+  h1 { font:400 30px/1.15 var(--serif); margin:0 0 6px; } h2 { font:600 13px var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); margin:26px 0 10px; }
+  p { margin:0 0 10px; } .cap { color:var(--ink-3); font-size:13px; } .mono { font-family:var(--mono); font-size:13px; }
+  .ledgerstrip { display:grid; grid-template-columns:repeat(4, 1fr); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0 4px; }
+  .ledgerstrip div { padding:10px 12px; border-right:1px solid var(--line); } .ledgerstrip div:last-child { border-right:0; }
+  .ledgerstrip b { display:block; font:400 26px var(--serif); } .ledgerstrip span { font-size:12px; color:var(--ink-3); }
+  table { width:100%; border-collapse:collapse; font-size:14px; } th { text-align:left; font:600 11px var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); padding:6px 8px; border-bottom:1px solid var(--line); }
+  td { padding:8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr.row { cursor:pointer; } tr.row:hover td { background:var(--s1); } tr.row.sel td { background:var(--s2); } tr.row:focus-visible { outline:2px solid var(--sub); outline-offset:-2px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font:12px var(--mono); padding:2px 8px; border-radius:99px; background:var(--s3); white-space:nowrap; }
+  .chip i { width:7px; height:7px; border-radius:50%; background:currentColor; display:inline-block; }
+  .c-red { color:var(--red); } .c-amber { color:var(--amber); } .c-green { color:var(--green); } .c-grey { color:var(--ink-3); }
+  .bar { position:relative; height:26px; background:var(--s2); border-radius:6px; margin:8px 0 26px; }
+  .bar span { position:absolute; top:0; bottom:0; } .bar .ex { background:#4f7d60; } .bar .co { background:var(--amber); } .bar .po { background:repeating-linear-gradient(45deg, #6a5320, #6a5320 4px, #3d3115 4px, #3d3115 8px); }
+  .bar .mk { width:1px; background:var(--ink); } .bar .mk::after { content:attr(data-l); position:absolute; top:30px; left:-4px; width:110px; font:11px var(--mono); color:var(--ink-3); }
+  .box { border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:10px 0; background:var(--s1); }
+  .warn { border-color:#5a4520; color:var(--amber); } .bad { border-color:#5c2a25; color:var(--red); }
+  ul { margin:6px 0; padding-left:18px; } li { margin:3px 0; }
+  .btn { background:var(--ink); color:var(--bg); border:0; border-radius:6px; padding:8px 14px; font-weight:600; cursor:pointer; } .btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--line-2); font-weight:500; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; } .btnrow { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; align-items:center; }
+  label.f { display:block; font-size:12px; color:var(--ink-3); margin:8px 0 3px; } .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  details summary { cursor:pointer; color:var(--ink-2); } .num { text-align:right; font-family:var(--mono); white-space:nowrap; }
+  .path-off td { color:var(--ink-3); } #toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:8px; font-size:14px; display:none; z-index:9; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="index.html">Terra<em>Corridor</em></a>
+  <nav aria-label="Pages">
+    <a href="index.html?corridor=ab-strathcona-demo">Geohazard map</a>
+    <a class="on" href="platform.html" aria-current="page">Segment record</a>
+    <a href="index.html?corridor=ab-strathcona-demo#/log">Work orders</a>
+  </nav>
+  <label class="cap">Rules <select id="jur" aria-label="Jurisdiction"><option value="CA">Canada · CER</option><option value="US">United States · PHMSA</option></select></label>
+  <span class="spacer"></span>
+  <span id="labels"></span>
+</header>
+<main>
+  <section class="col" aria-label="Corridor">
+    <h1 id="title">One record per kilometre</h1>
+    <p class="cap" id="lede"></p>
+    <div class="ledgerstrip" id="strip"></div>
+    <h2>Kilometres, most urgent first</h2>
+    <table><thead><tr><th>km</th><th>Class location</th><th>Geohazard</th><th>Land</th><th>Open</th></tr></thead><tbody id="rows"></tbody></table>
+    <h2>Replay: would permits have warned us?</h2>
+    <div id="backtest"></div>
+    <h2>Exports</h2>
+    <div class="btnrow"><button class="btn ghost" id="xCsv">Work orders CSV</button><button class="btn ghost" id="xGeo">Segments GeoJSON (Esri)</button><button class="btn ghost" id="xLabels">Prediction vs field CSV</button></div>
+    <p class="cap">Files a coordinator imports into Maximo, SAP or ArcGIS. Nothing is written back to those systems.</p>
+    <details><summary>Cost assumptions (placeholders until an operator replaces them)</summary><div id="assume" class="grid2" style="margin-top:10px"></div><div class="btnrow"><button class="btn ghost" id="resetAssume">Reset to placeholders</button></div></details>
+  </section>
+  <section class="col" id="detail" aria-label="Segment record" aria-live="polite"></section>
+</main>
+<div id="toast" role="status"></div>
+<script>
+/*__MODULES__*/
+</script>
+<script>
+/*__APP__*/
+</script>
+</body>
+</html>

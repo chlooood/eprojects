@@ -7,3 +7,4 @@ ml/cache/
 ml/raw/
 
 work/
+data/cache/permits/*-raw.json

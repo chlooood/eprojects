@@ -1,0 +1,477 @@
+{
+  "name": "TerraCorridor W6 - Class location watch",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ff0a2299-bcb9-4bc4-8955-b4d3c9413ab6",
+      "name": "Run class watch now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "2cb91a14-5300-421b-8049-22e8e88460fc",
+      "name": "Every Monday 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One municipality to start: City of Edmonton open data (free, no key). Change the corridor and jurisdiction here.\nreturn [{ json: { corridor_id: 'ab-strathcona-demo', jurisdiction: 'CA', municipality: 'City of Edmonton',\n  buildingPermits: 'https://data.edmonton.ca/resource/24uj-dj8v.json', developmentPermits: 'https://data.edmonton.ca/resource/2ccn-pwtu.json', devSince: '2024-01-01', baselineDate: '2019-12-31' } }];"
+      },
+      "id": "b095eb18-9f31-49e1-88e4-aa8d76681e93",
+      "name": "Class config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "euUFpWZEDrrDJOkc",
+          "cachedResultName": "corridor_segments"
+        },
+        "returnAll": true
+      },
+      "id": "9736fdae-a3e9-4144-8760-e178e768daa0",
+      "name": "Get segments",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = (name) => { try { return $(name).all().map((i) => i.json).filter((j) => j && !j.error && Object.keys(j).length); } catch (e) { return []; } };\nconst centrelineOf = (s) => { try { const f = (JSON.parse(s.polygon_geometry_json || '{}').features || []).find((x) => x.properties && x.properties.zone === 'centreline'); if (f && f.geometry.coordinates.length >= 2) return f.geometry.coordinates; } catch (e) {} return s.lon_start != null && s.lon_end != null ? [[+s.lon_start, +s.lat_start], [+s.lon_end, +s.lat_end]] : []; };\nconst segmentsOf = (name, corridor) => rows(name).filter((s) => !corridor || s.corridor_id === corridor).sort((a, b) => +a.segment_index - +b.segment_index).map((s, i) => ({ id: s.segment_id, kmFrom: i, kmTo: i + 1, centreline: centrelineOf(s) })).filter((s) => s.centreline.length >= 2);\nconst cfg = $('Class config').first().json;\nconst pts = segmentsOf('Get segments', cfg.corridor_id).flatMap((s) => s.centreline);\nif (!pts.length) throw new Error('No segments with a centreline for ' + cfg.corridor_id + '. Run W1 first.');\nconst pad = 0.004, lo = (i) => Math.min(...pts.map((p) => p[i])) - pad, hi = (i) => Math.max(...pts.map((p) => p[i])) + pad;\nconst box = \"latitude > '\" + lo(1).toFixed(4) + \"' AND latitude < '\" + hi(1).toFixed(4) + \"' AND longitude > '\" + lo(0).toFixed(4) + \"' AND longitude < '\" + hi(0).toFixed(4) + \"'\";\nreturn [{ json: { ...cfg, bpWhere: \"units_added > 0 AND issue_date > '\" + cfg.baselineDate + \"' AND \" + box, devWhere: \"permit_date >= '\" + cfg.devSince + \"' AND \" + box } }];"
+      },
+      "id": "78b9e96a-7f59-4a83-88cd-369bd198bf0b",
+      "name": "Plan permit queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.buildingPermits }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "$select",
+              "value": "row_id,issue_date,units_added,building_type,latitude,longitude"
+            },
+            {
+              "name": "$where",
+              "value": "={{ $json.bpWhere }}"
+            },
+            {
+              "name": "$limit",
+              "value": "50000"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "0e5cf8db-eed9-4cc9-8f78-e397941e08e4",
+      "name": "Building permits (open data)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Plan permit queries').first().json.developmentPermits }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "$select",
+              "value": "city_file_number,permit_date,status,description_of_development,latitude,longitude"
+            },
+            {
+              "name": "$where",
+              "value": "={{ $('Plan permit queries').first().json.devWhere }}"
+            },
+            {
+              "name": "$limit",
+              "value": "50000"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "b7a0d36d-5da4-4acf-8180-2a4aeac08795",
+      "name": "Development permits (open data)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SET_ID_corridor_class_baseline",
+          "cachedResultName": "corridor_class_baseline"
+        },
+        "returnAll": true
+      },
+      "id": "a345d62d-aa8e-4421-8569-09777c93b40e",
+      "name": "Get class baseline",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// GENERATED by scripts/make-platform-workflows.js from src/. Edit the source, not this node.\nconst TC = {};\n// TerraCorridor segment core. One record per kilometre is the platform: every module pins its facts to\n// a position along the line (chainage, in metres from the start) and reads them back per segment.\n// Pure functions, no imports, [lon, lat] order like src/engine.js.\n(function (root) {\n  const toRad = (d) => (d * Math.PI) / 180;\n\n  // Builds a lookup from the ordered segments: a flat list of line pieces with their chainage,\n  // and the chainage range each segment covers. Uses a local flat projection, good to well under\n  // a metre over a corridor of this size.\n  function buildIndex(segments) {\n    const segs = (segments || []).filter((s) => Array.isArray(s.centreline) && s.centreline.length >= 2);\n    if (!segs.length) throw new Error('no segments with a centreline');\n    const lats = segs.flatMap((s) => s.centreline.map((p) => p[1]));\n    const lat0 = lats.reduce((a, b) => a + b, 0) / lats.length;\n    const kx = 111320 * Math.cos(toRad(lat0)), ky = 110574;\n    const pieces = [], ranges = [];\n    let acc = 0;\n    for (const s of segs) {\n      const fromM = acc;\n      for (let i = 1; i < s.centreline.length; i++) {\n        const a = s.centreline[i - 1], b = s.centreline[i];\n        const ax = a[0] * kx, ay = a[1] * ky, bx = b[0] * kx, by = b[1] * ky;\n        const len = Math.hypot(bx - ax, by - ay);\n        if (len === 0) continue;\n        pieces.push({ ax, ay, bx, by, len, fromM: acc });\n        acc += len;\n      }\n      ranges.push({ id: s.id, kmFrom: s.kmFrom, kmTo: s.kmTo, fromM, toM: acc });\n    }\n    return { kx, ky, pieces, ranges, lengthM: acc };\n  }\n\n  // Nearest point on the line: how far off the centreline, and how far along it.\n  function locate(index, lonLat) {\n    const x = lonLat[0] * index.kx, y = lonLat[1] * index.ky;\n    let best = Infinity, chainageM = 0;\n    for (const p of index.pieces) {\n      const dx = p.bx - p.ax, dy = p.by - p.ay;\n      const t = Math.max(0, Math.min(1, ((x - p.ax) * dx + (y - p.ay) * dy) / (p.len * p.len)));\n      const d = Math.hypot(x - (p.ax + t * dx), y - (p.ay + t * dy));\n      if (d < best) { best = d; chainageM = p.fromM + t * p.len; }\n    }\n    return { offsetM: best, chainageM };\n  }\n\n  function segmentAt(index, chainageM) {\n    const r = index.ranges.find((q) => chainageM >= q.fromM && chainageM < q.toM) || (chainageM >= index.lengthM ? index.ranges[index.ranges.length - 1] : null);\n    return r ? r.id : null;\n  }\n\n  // Segments that a stretch of line touches. A point obligation (fromM === toM) touches one segment.\n  function overlapping(index, fromM, toM) {\n    const lo = Math.min(fromM, toM), hi = Math.max(fromM, toM);\n    if (lo === hi) { const id = segmentAt(index, lo); return id ? [id] : []; }\n    return index.ranges.filter((r) => r.fromM < hi && r.toM > lo).map((r) => r.id);\n  }\n\n  const rangeOf = (index, id) => index.ranges.find((r) => r.id === id) || null;\n\n  // Dates as ISO strings (YYYY-MM-DD). Month arithmetic is all the modules need.\n  function addMonths(iso, n) {\n    const d = new Date(iso + 'T00:00:00Z');\n    const day = d.getUTCDate();\n    d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + n);\n    const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();\n    d.setUTCDate(Math.min(day, last));\n    return d.toISOString().slice(0, 10);\n  }\n  const addHours = (isoDateTime, h) => new Date(new Date(isoDateTime).getTime() + h * 3600000).toISOString();\n  const monthsBetween = (a, b) => Math.round(((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000 / 30.4375) * 10) / 10;\n  const day = (x) => (x instanceof Date ? x.toISOString() : String(x)).slice(0, 10);\n\n  const api = { buildIndex, locate, segmentAt, overlapping, rangeOf, addMonths, addHours, monthsBetween, day };\n  root.TC_SEGMENTS = api;\n})(TC);\n// TerraCorridor class location module (lead module).\n// Counts dwellings in a sliding 1.6 km window, 200 m each side of the line, and says which segments\n// are about to change class, when, and on what evidence. Building-count vendors see a house after it\n// is built. This reads permits, so it sees it one construction season earlier, and development\n// permits and plans earlier still.\n// Rules decide. Nothing here is a probability. Missing data means \"unverified\", never \"Class 1\".\n(function (root) {\n  const SEG = root.TC_SEGMENTS || require('./segments.js');\n\n  const DEFAULTS = {\n    bandM: 200,        // each side of the centreline. US 49 CFR 192.5 uses 220 yards. CSA Z662's assessment area is paywalled: UNVERIFIED, confirm with the domain advisor.\n    windowM: 1600,     // the sliding mile\n    stepM: 200,        // how finely the window slides; the same grid the permit cache is binned on\n    thresholds: { class2: 11, class3: 46 },   // dwelling units in the window: more than 10 is Class 2, 46 or more is Class 3 (49 CFR 192.5; CSA Z662 UNVERIFIED)\n    jurisdiction: 'CA',\n    clocks: {\n      CA: { months: 6, basis: 'CER Onshore Pipeline Regulations s.42 and Filing Manual Guide E: the proposed plan is filed within six months after the change.' },\n      US: { months: 24, floor: '2028-03-16', basis: '49 CFR 192.611: 24 months after the change. Under the 2026 rule the integrity management alternative must be complete by 16 March 2028 or 24 months after the change, whichever is later.' },\n    },\n    // Assumption: months from permit issue to an occupied dwelling, by City of Edmonton building type code.\n    lagMonths: { 110: 8, 210: 8, 215: 10, 330: 12, 335: 12, 315: 20, cluster: 18, backyard: 8, default: 9 },\n    devToOccupiedMonths: 18,   // assumption: a development permit with no building permit yet\n    roofsPerDwelling: 1,       // assumption: one roof of 60 m2 or more counts as one dwelling until a crew counts\n    evidenceTop: 6,\n  };\n\n  const quarterMid = (q) => { const y = q.slice(0, 4), n = +q.slice(5); return `${y}-${String(n * 3 - 1).padStart(2, '0')}-15`; };\n  const lagFor = (cfg, code) => cfg.lagMonths[code] != null ? cfg.lagMonths[code] : cfg.lagMonths.default;\n  const parseCells = (s) => (s ? String(s).split(/[;,](?=\\d+[:,])|;/).filter(Boolean) : []);\n\n  // Turns a permit cache (data/cache/permits/*.json) into dated events along the line.\n  // Also accepts raw point permits: { id, issued, units, type, lon, lat } located with the segment index.\n  function normalize(data, index, cfg = DEFAULTS) {\n    const binM = (data && data.binM) || cfg.stepM;\n    const mid = (bin) => (bin + 0.5) * binM;\n    const events = [];\n    const add = (src, kind) => {\n      if (!src) return;\n      for (const r of src.large || []) {\n        const [id, issued, units, code, chainageM, note] = r;\n        const lag = kind === 'development_permit' ? cfg.devToOccupiedMonths : lagFor(cfg, code);\n        events.push({ id, kind, issued, units: +units, type: String(code), chainageM: +chainageM, occupied: SEG.addMonths(issued, lag), permits: 1, note: note || null, dataset: src.dataset });\n      }\n      for (const c of String(src.cells || '').split(';').filter(Boolean)) {\n        const [bin, q, n, units] = c.split(',');\n        const issued = quarterMid(q);\n        const lag = kind === 'development_permit' ? cfg.devToOccupiedMonths : cfg.lagMonths.default;\n        events.push({ id: `${src.dataset}:bin${bin}:${q}`, kind, issued, units: +units, type: 'grouped', chainageM: mid(+bin), occupied: SEG.addMonths(issued, lag), permits: +n, note: `${n} permits in ${q}`, dataset: src.dataset });\n      }\n      for (const p of src.points || []) {\n        const at = SEG.locate(index, [p.lon, p.lat]);\n        if (at.offsetM > cfg.bandM) continue;\n        const lag = kind === 'development_permit' ? cfg.devToOccupiedMonths : lagFor(cfg, p.type);\n        events.push({ id: p.id, kind, issued: SEG.day(p.issued), units: +p.units, type: String(p.type || ''), chainageM: at.chainageM, offsetM: Math.round(at.offsetM), occupied: SEG.addMonths(SEG.day(p.issued), lag), permits: 1, note: p.note || null, dataset: src.dataset });\n      }\n    };\n    add(data && data.buildingPermits, 'building_permit');\n    add(data && data.developmentPermits, 'development_permit');\n    const roofs = data && data.rooflines;\n    const bins = {}, tall = {};\n    if (roofs) {\n      for (const c of String(roofs.cells || '').split(',').filter(Boolean)) { const [k, v] = c.split(':'); bins[k] = +v; }\n      for (const c of String(roofs.tallCells || '').split(',').filter(Boolean)) { const [k, v] = c.split(':'); tall[k] = +v; }\n    }\n    return {\n      binM,\n      baseline: roofs ? { date: roofs.asOf, bins, tall, dataset: roofs.dataset, name: roofs.name } : null,\n      events: events.sort((a, b) => a.issued.localeCompare(b.issued)),\n      devSince: (data && data.developmentPermits && data.developmentPermits.since) || null,\n      plans: (data && data.plans && data.plans.rows) || [],\n      fetchedAt: (data && data.fetchedAt) || null,\n      municipality: (data && data.municipality) || null,\n    };\n  }\n\n  const classOf = (units, cfg = DEFAULTS) => (units >= cfg.thresholds.class3 ? 3 : units >= cfg.thresholds.class2 ? 2 : 1);\n  const nextThreshold = (units, cfg = DEFAULTS) => (units < cfg.thresholds.class2 ? cfg.thresholds.class2 : units < cfg.thresholds.class3 ? cfg.thresholds.class3 : null);\n\n  // Dwelling units in one window [fromM, fromM + windowM) as of a date.\n  //   existing:  roofs counted in the baseline survey, plus permitted units whose assumed occupancy date has passed\n  //   committed: building permits issued but not yet occupied\n  //   possible:  development permits not yet matched by building permits in the same window\n  function windowCount(state, fromM, asOf, cfg = DEFAULTS) {\n    const toM = fromM + cfg.windowM;\n    const inWin = (e) => e.chainageM >= fromM && e.chainageM < toM;\n    let roofs = 0, tall = 0;\n    if (state.baseline) for (const [k, v] of Object.entries(state.baseline.bins)) { const c = (+k + 0.5) * state.binM; if (c >= fromM && c < toM) { roofs += v; tall += state.baseline.tall[k] || 0; } }\n    const base = state.baseline ? state.baseline.date : '0000-00-00';\n    const bp = state.events.filter((e) => e.kind === 'building_permit' && inWin(e) && e.issued <= asOf && e.issued > base);\n    const built = bp.filter((e) => e.occupied <= asOf), pending = bp.filter((e) => e.occupied > asOf);\n    const sum = (xs) => xs.reduce((a, e) => a + e.units, 0);\n    const dev = state.events.filter((e) => e.kind === 'development_permit' && inWin(e) && e.issued <= asOf);\n    const bpSinceDev = state.devSince ? sum(bp.filter((e) => e.issued >= state.devSince)) : 0;\n    const possible = Math.max(0, sum(dev) - bpSinceDev);\n    return { fromM, toM, existing: Math.round(roofs * cfg.roofsPerDwelling) + sum(built), roofs, built: sum(built), committed: sum(pending), possible, tallRoofs: tall, pending, dev };\n  }\n\n  // The class location picture for one segment: the worst 1.6 km window that touches it.\n  function assessSegment(range, state, cfg = DEFAULTS, asOf) {\n    asOf = SEG.day(asOf || new Date());\n    let best = null;\n    const first = Math.max(0, Math.floor((range.fromM - cfg.windowM) / cfg.stepM) * cfg.stepM + cfg.stepM);\n    for (let s = first; s < range.toM; s += cfg.stepM) {\n      const w = windowCount(state, s, asOf, cfg);\n      const total = w.existing + w.committed + w.possible;\n      if (!best || total > best.total || (total === best.total && w.existing > best.w.existing)) best = { w, total };\n    }\n    const w = best.w;\n    const hasBaseline = !!state.baseline;\n    const now = classOf(w.existing, cfg), committed = classOf(w.existing + w.committed, cfg), possible = classOf(w.existing + w.committed + w.possible, cfg);\n    // When do the committed units push the count over each line? Walk them in occupancy order.\n    const crossings = [];\n    let run = w.existing;\n    for (const e of [...w.pending].sort((a, b) => a.occupied.localeCompare(b.occupied))) {\n      const before = classOf(run, cfg); run += e.units; const after = classOf(run, cfg);\n      if (after > before) crossings.push({ from: before, to: after, expected: e.occupied, tippingPermit: e.id });\n    }\n    // Did it already change inside the last year? Then the regulator's clock may be running now.\n    const yearAgo = windowCount(state, w.fromM, SEG.addMonths(asOf, -12), cfg);\n    const classYearAgo = classOf(yearAgo.existing, cfg);\n    let changedOn = null;\n    if (now > classYearAgo) {\n      let c = yearAgo.existing;\n      const base = state.baseline ? state.baseline.date : '0000-00-00';\n      const done = state.events.filter((e) => e.kind === 'building_permit' && e.chainageM >= w.fromM && e.chainageM < w.toM && e.issued > base && e.occupied > SEG.addMonths(asOf, -12) && e.occupied <= asOf)\n        .sort((a, b) => a.occupied.localeCompare(b.occupied));\n      for (const e of done) { c += e.units; if (classOf(c, cfg) > classYearAgo) { changedOn = e.occupied; break; } }\n    }\n    const status = !hasBaseline && now === 1 && committed === 1 && possible === 1 ? 'unverified'\n      : changedOn ? 'changed' : committed > now ? 'change_committed' : possible > now ? 'change_possible' : 'no_change';\n    const change = status === 'changed' ? { from: classYearAgo, to: now, date: changedOn, basis: 'estimated occupancy of permitted units' }\n      : status === 'change_committed' ? { from: now, to: committed, date: crossings[0].expected, basis: 'issued building permits', steps: crossings }\n      : status === 'change_possible' ? { from: now, to: possible, date: null, basis: 'development permits not yet matched by building permits' } : null;\n    const clockRule = cfg.clocks[cfg.jurisdiction] || cfg.clocks.CA;\n    let clock = null;\n    if (change && change.date) {\n      let due = SEG.addMonths(change.date, clockRule.months);\n      if (clockRule.floor && due < clockRule.floor) due = clockRule.floor;\n      clock = { jurisdiction: cfg.jurisdiction, changeDate: change.date, due, monthsLeft: SEG.monthsBetween(asOf, due), running: change.date <= asOf, basis: clockRule.basis };\n    }\n    const next = nextThreshold(w.existing, cfg);\n    const evidence = [...w.pending, ...(status === 'change_possible' || w.possible ? w.dev : [])]\n      .sort((a, b) => b.units - a.units || b.issued.localeCompare(a.issued)).slice(0, cfg.evidenceTop)\n      .map((e) => ({ id: e.id, kind: e.kind, issued: e.issued, units: e.units, expectedOccupied: e.occupied, km: Math.round(e.chainageM / 100) / 10, note: e.note, dataset: e.dataset }));\n    const plans = state.plans.filter((p) => p.kmFrom * 1000 < w.toM && p.kmTo * 1000 + 1 > w.fromM).map((p) => ({ name: p.name, type: p.type, bylaw: p.bylaw, pdf: p.pdf }));\n    return {\n      asOf, status, jurisdiction: cfg.jurisdiction,\n      window: { kmFrom: w.fromM / 1000, kmTo: w.toM / 1000 },\n      units: { existing: w.existing, roofsAtBaseline: w.roofs, builtSinceBaseline: w.built, committed: w.committed, possible: w.possible },\n      class: { now, committed, possible, yearAgo: classYearAgo, isLowerBound: !hasBaseline },\n      headroom: next == null ? null : next - w.existing,\n      change, clock, evidence, plans,\n      class4: { assessed: false, tallRoofs: w.tallRoofs, note: 'Class 4 depends on buildings of four or more storeys. Not assessed; tall roofs are listed as a prompt only.' },\n      basis: hasBaseline ? `${state.baseline.name}, plus building permits issued since` : 'building permits only: a lower bound, no baseline count loaded',\n    };\n  }\n\n  function forecast(segments, data, cfg = DEFAULTS, asOf) {\n    const index = SEG.buildIndex(segments), state = normalize(data, index, cfg);\n    const bySegment = {};\n    for (const r of index.ranges) bySegment[r.id] = assessSegment(r, state, cfg, asOf);\n    const all = Object.values(bySegment), n = (s) => all.filter((a) => a.status === s).length;\n    return { asOf: SEG.day(asOf || new Date()), jurisdiction: cfg.jurisdiction, municipality: state.municipality, fetchedAt: state.fetchedAt, bySegment,\n      summary: { segments: all.length, changed: n('changed'), changeCommitted: n('change_committed'), changePossible: n('change_possible'), noChange: n('no_change'), unverified: n('unverified'),\n        class3Now: all.filter((a) => a.class.now === 3).length, class2Now: all.filter((a) => a.class.now === 2).length } };\n  }\n\n  // Replay: walk forward a quarter at a time, using only what was on file by each date.\n  // \"flagged\" is the first date the issued permits already added up to a higher class.\n  // \"changed\" is the first date the estimated occupied count reached it.\n  // The gap between them rests on the construction-lag assumption until multi-date building counts replace it.\n  function backtest(segments, data, cfg = DEFAULTS, opts = {}) {\n    const index = SEG.buildIndex(segments), state = normalize(data, index, cfg);\n    const from = opts.from || (state.baseline ? SEG.addMonths(state.baseline.date, 3) : '2015-03-31'), to = SEG.day(opts.to || new Date());\n    const rows = [];\n    for (const r of index.ranges) {\n      const flagged = {}, changed = {};\n      let start = null;\n      for (let d = from; d <= to; d = SEG.addMonths(d, 3)) {\n        const a = assessSegment(r, state, cfg, d);\n        if (start == null) start = a.class.now;\n        for (let c = start + 1; c <= 3; c++) {\n          if (a.class.committed >= c && !flagged[c]) flagged[c] = d;\n          if (a.class.now >= c && !changed[c]) changed[c] = d;\n        }\n      }\n      for (let c = (start || 1) + 1; c <= 3; c++) {\n        if (!flagged[c]) continue;\n        rows.push({ segment: r.id, kmFrom: r.kmFrom, toClass: c, startClass: start, flagged: flagged[c], changed: changed[c] || null,\n          leadMonths: changed[c] ? Math.max(0, SEG.monthsBetween(flagged[c], changed[c])) : null });\n      }\n    }\n    const done = rows.filter((x) => x.changed), leads = done.map((x) => x.leadMonths).sort((a, b) => a - b);\n    return { from, to, rows, changes: done.length, flaggedAhead: done.filter((x) => x.leadMonths > 0).length, pending: rows.length - done.length,\n      medianLeadMonths: leads.length ? leads[Math.floor(leads.length / 2)] : null,\n      caveat: 'Change dates are estimated from an assumed construction lag after permit issue, not observed. Replace them with dated building counts before quoting the lead time.' };\n  }\n\n  const api = { DEFAULTS, normalize, classOf, nextThreshold, windowCount, assessSegment, forecast, backtest, quarterMid };\n  root.TC_CLASS = api;\n})(TC);\n// TerraCorridor decision module: what are the ways to deal with a class location change, what does\n// each cost, how long does each take, and which ones still fit before the regulator's deadline?\n// Every option is always listed, with the reason it is or is not available. No option is hidden\n// and no single \"answer\" is given without the assumption it hinges on.\n// COSTS ARE PLACEHOLDERS until interviews replace them (docs/CLASS_LOCATION.md). The output says so.\n(function (root) {\n  const SEG = root.TC_SEGMENTS || require('./segments.js');\n\n  const DEFAULTS = {\n    horizonYears: 10,\n    // placeholder: true means \"a team guess so the comparison runs\", not a sourced figure.\n    assumptions: {\n      replaceCostPerM:     { value: 3500,   unit: '$ per m of pipe replaced', placeholder: true },\n      replaceMonths:       { value: 12,     unit: 'months to permit and build', placeholder: true },\n      pipeLeadMonths:      { value: 8,      unit: 'months to receive line pipe', placeholder: true },\n      testFixedCost:       { value: 250000, unit: '$ per pressure test', placeholder: true },\n      testCostPerM:        { value: 60,     unit: '$ per m tested', placeholder: true },\n      testMonths:          { value: 5,      unit: 'months to plan and test', placeholder: true },\n      reductionCostYr:     { value: 400000, unit: '$ a year of capacity lost at lower pressure', placeholder: true },\n      reductionMonths:     { value: 1,      unit: 'months to lower pressure', placeholder: true },\n      imInitialPerKm:      { value: 120000, unit: '$ per km of first-time integrity work', placeholder: true },\n      imRecurringPerKmYr:  { value: 35000,  unit: '$ per km a year of added surveys and patrols', placeholder: true },\n      imMonths:            { value: 12,     unit: 'months to complete the initial requirements', placeholder: true },\n      assessCost:          { value: 150000, unit: '$ for an engineering assessment', placeholder: true },\n      assessRecurringYr:   { value: 20000,  unit: '$ a year of added monitoring', placeholder: true },\n      assessMonths:        { value: 5,      unit: 'months', placeholder: true },\n      geohazardAddPerKmYr: { value: 15000,  unit: '$ per km a year where a geohazard must also be managed', placeholder: true },\n    },\n  };\n\n  // The nine areas PHMSA lists for the integrity management alternative (2026 class change rule fact sheet).\n  const IM_AREAS = ['gas quality', 'close interval surveys', 'patrolling', 'leak surveys', 'line markers', 'class location studies', 'shorted casings', 'exposed pipe and weld examinations', 'reassessments'];\n\n  const val = (cfg, k) => { const a = cfg.assumptions[k]; return a && typeof a === 'object' ? a.value : a; };\n\n  // change: { from, to, jurisdiction, lengthM, changeDate, due, asOf,\n  //           pipe: { designClass } (optional), geohazard: { tier, hazard, why } (optional), obligations: [] (optional) }\n  function comparePaths(change, cfg = DEFAULTS) {\n    const km = (change.lengthM || 1000) / 1000, m = change.lengthM || 1000, H = cfg.horizonYears;\n    const asOf = SEG.day(change.asOf || new Date());\n    const start = change.changeDate && change.changeDate > asOf ? asOf : asOf;   // work can start now, before the change lands\n    const geo = change.geohazard && ['amber', 'red', 'red-uncertain'].includes(change.geohazard.tier) ? change.geohazard : null;\n    const digs = (change.obligations || []).filter((o) => (o.triggers || []).includes('ground_disturbance'));\n    const paths = [];\n    const add = (p) => {\n      p.total = p.eligible ? Math.round(p.capex + p.recurringYr * H) : null;\n      p.finishBy = p.eligible ? SEG.addMonths(start, Math.ceil(p.months)) : null;\n      p.meetsDeadline = p.eligible && change.due ? p.finishBy <= change.due : null;\n      paths.push(p);\n    };\n\n    const designKnown = change.pipe && change.pipe.designClass != null;\n    add({ key: 'already_compliant', label: 'Show the pipe already meets the new class',\n      eligible: designKnown ? change.pipe.designClass >= change.to : false,\n      why: designKnown ? (change.pipe.designClass >= change.to ? `Pipe was designed for Class ${change.pipe.designClass}.` : `Pipe was designed for Class ${change.pipe.designClass}, below Class ${change.to}.`)\n        : 'Not known: needs the design class from the operator\\'s pipe records.',\n      needs: designKnown ? [] : ['pipe design records'],\n      capex: 0, recurringYr: 0, months: 1, groundDisturbance: false, conditions: ['File the primary assessment showing the existing design meets the new class.'] });\n\n    add({ key: 'pressure_reduction', label: 'Lower the operating pressure', eligible: true, why: 'Always available. Costs capacity every year.',\n      capex: 0, recurringYr: val(cfg, 'reductionCostYr'), months: val(cfg, 'reductionMonths'), groundDisturbance: false, needs: [], conditions: ['Confirm the reduced pressure meets the new class.'] });\n\n    add({ key: 'pressure_test', label: 'Pressure test to confirm the operating pressure', eligible: true, why: 'Available where the pipe can pass a test at the level the new class needs.',\n      capex: val(cfg, 'testFixedCost') + val(cfg, 'testCostPerM') * m, recurringYr: 0, months: val(cfg, 'testMonths'), groundDisturbance: true, needs: ['pipe grade, wall thickness and prior test records'],\n      conditions: ['Line out of service during the test.', 'Test heads and water handling need ground access.'] });\n\n    const lead = val(cfg, 'pipeLeadMonths'), build = val(cfg, 'replaceMonths');\n    const replace = { key: 'replace_pipe', label: 'Replace the pipe', eligible: true, why: 'Always available. The most expensive and slowest path.',\n      capex: val(cfg, 'replaceCostPerM') * m, recurringYr: 0, months: lead + build, groundDisturbance: true, needs: [],\n      conditions: ['Line pipe has to be ordered before construction can be scheduled.'],\n      materials: { leadMonths: lead, orderBy: change.due ? SEG.addMonths(change.due, -Math.ceil(lead + build)) : null } };\n    if (replace.materials.orderBy) replace.materials.note = replace.materials.orderBy < asOf\n      ? `To finish by ${change.due} the pipe had to be ordered by ${replace.materials.orderBy}. That date has passed, so this path needs an interim measure.`\n      : `Order pipe by ${replace.materials.orderBy} to finish by ${change.due}.`;\n    add(replace);\n\n    const imOk = change.jurisdiction === 'US' && change.to === 3 && (change.from === 1 || change.from === 2);\n    add({ key: 'im_alternative', label: 'Integrity management alternative, 49 CFR 192.611(a)(4)',\n      eligible: imOk,\n      why: change.jurisdiction !== 'US' ? 'United States rule. Not available under Canadian regulation.' : imOk ? 'Class 1 or 2 changing to Class 3, subject to the segment meeting the rule\\'s eligibility criteria.' : 'Only for a change from Class 1 or 2 to Class 3.',\n      capex: val(cfg, 'imInitialPerKm') * km, recurringYr: (val(cfg, 'imRecurringPerKmYr') + (geo ? val(cfg, 'geohazardAddPerKmYr') : 0)) * km, months: val(cfg, 'imMonths'), groundDisturbance: false,\n      needs: ['confirmation that the segment is an \"eligible Class 3 segment\" under 49 CFR 192.3'],\n      conditions: [`Initial and recurring requirements cover: ${IM_AREAS.join(', ')}.`, ...(geo ? [`This kilometre is flagged for ${geo.hazard || 'a geohazard'} (${geo.why || geo.tier}). The integrity program has to address it, and the geohazard record becomes part of the evidence.`] : [])] });\n\n    add({ key: 'engineering_assessment', label: 'Engineering assessment in the proposed plan',\n      eligible: change.jurisdiction !== 'US',\n      why: change.jurisdiction === 'US' ? 'Canadian route. In the United States use the integrity management alternative or a special permit.' : 'The CER expects the plan to show the pipe is suitable for continued service at the new class. CSA Z662 sets what the assessment must cover (UNVERIFIED: standard is paywalled).',\n      capex: val(cfg, 'assessCost'), recurringYr: val(cfg, 'assessRecurringYr') + (geo ? val(cfg, 'geohazardAddPerKmYr') * km : 0), months: val(cfg, 'assessMonths'), groundDisturbance: false,\n      needs: ['pipe condition data: inspection results, coating, depth of cover'],\n      conditions: ['If the assessment cannot be finished inside the six months, the plan gives its timeline and the interim measures.', ...(geo ? [`This kilometre is flagged for ${geo.hazard || 'a geohazard'} (${geo.why || geo.tier}); the assessment has to cover it.`] : [])] });\n\n    // The join with land obligations: any path that breaks ground triggers them.\n    for (const p of paths) {\n      p.obligations = p.groundDisturbance ? digs.map((o) => ({ id: o.id, requirement: o.requirement, noticeHours: o.noticeHours || 0, verified: !!o.verified })) : [];\n      if (p.obligations.length) p.conditions = [...p.conditions, `${p.obligations.length} land obligation${p.obligations.length === 1 ? '' : 's'} on this kilometre apply before ground is broken.`];\n    }\n\n    const rank = (list) => [...list].sort((a, b) => a.total - b.total);\n    const open = paths.filter((p) => p.eligible);\n    const inTime = open.filter((p) => p.meetsDeadline !== false);\n    const pick = rank(inTime)[0] || rank(open)[0] || null;\n    return {\n      change: { from: change.from, to: change.to, jurisdiction: change.jurisdiction, due: change.due || null, km: Math.round(km * 100) / 100 },\n      horizonYears: H,\n      paths: paths.map((p) => ({ ...p, months: Math.ceil(p.months) })),\n      lowestCost: pick ? { key: pick.key, label: pick.label, total: pick.total, meetsDeadline: pick.meetsDeadline } : null,\n      needsInterim: pick ? pick.meetsDeadline === false : null,\n      unknowns: [...new Set(paths.flatMap((p) => p.needs || []))],\n      pricedWithPlaceholders: Object.values(cfg.assumptions).some((a) => a && a.placeholder),\n    };\n  }\n\n  // Which assumption does the lowest-cost answer hinge on? Halve and double each one and see if the pick changes.\n  function hingesOn(change, cfg = DEFAULTS) {\n    const base = comparePaths(change, cfg).lowestCost;\n    if (!base) return [];\n    const out = [];\n    for (const [k, a] of Object.entries(cfg.assumptions)) {\n      for (const f of [0.5, 2]) {\n        const c = JSON.parse(JSON.stringify(cfg)); c.assumptions[k].value = a.value * f;\n        const pick = comparePaths(change, c).lowestCost;\n        if (pick && pick.key !== base.key) { out.push({ assumption: k, unit: a.unit, at: a.value * f, flipsTo: pick.key, placeholder: !!a.placeholder }); break; }\n      }\n    }\n    return out;\n  }\n\n  function mergeAssumptions(over) {\n    const c = JSON.parse(JSON.stringify(DEFAULTS));\n    for (const [k, v] of Object.entries(over || {})) {\n      if (k === 'horizonYears') c.horizonYears = +v;\n      else if (c.assumptions[k]) c.assumptions[k] = typeof v === 'object' ? { ...c.assumptions[k], ...v } : { ...c.assumptions[k], value: +v, placeholder: false };\n    }\n    return c;\n  }\n\n  const api = { DEFAULTS, IM_AREAS, comparePaths, hingesOn, mergeAssumptions };\n  root.TC_DECISION = api;\n})(TC);\n\n// ---- n8n wrapper. Missing data stays \"unverified\": a failed permit download never reads as \"no change\".\nconst rows = (name) => { try { return $(name).all().map((i) => i.json).filter((j) => j && !j.error && Object.keys(j).length); } catch (e) { return []; } };\nconst centrelineOf = (s) => { try { const f = (JSON.parse(s.polygon_geometry_json || '{}').features || []).find((x) => x.properties && x.properties.zone === 'centreline'); if (f && f.geometry.coordinates.length >= 2) return f.geometry.coordinates; } catch (e) {} return s.lon_start != null && s.lon_end != null ? [[+s.lon_start, +s.lat_start], [+s.lon_end, +s.lat_end]] : []; };\nconst segmentsOf = (name, corridor) => rows(name).filter((s) => !corridor || s.corridor_id === corridor).sort((a, b) => +a.segment_index - +b.segment_index).map((s, i) => ({ id: s.segment_id, kmFrom: i, kmTo: i + 1, centreline: centrelineOf(s) })).filter((s) => s.centreline.length >= 2);\nconst cfg = $('Plan permit queries').first().json;\nconst segments = segmentsOf('Get segments', cfg.corridor_id);\nconst bp = rows('Building permits (open data)'), dev = rows('Development permits (open data)');\nconst code = (t) => (String(t || '').match(/\\((\\d+)\\)/) || [])[1] || 'default';\nconst dwellings = (d) => { const m = String(d || '').match(/(\\d+)\\s*(?:principal\\s+)?dwelling/i); return m ? +m[1] : /semi-detached/i.test(d) ? 2 : /(single detached|backyard) house/i.test(d) ? 1 : null; };\nconst base = rows('Get class baseline').filter((r) => r.corridor_id === cfg.corridor_id);\nconst data = { municipality: cfg.municipality, fetchedAt: new Date().toISOString().slice(0, 10), binM: 200,\n  buildingPermits: { dataset: '24uj-dj8v', points: bp.filter((r) => r.latitude && r.row_id).map((r) => ({ id: r.row_id, issued: r.issue_date, units: +r.units_added, type: code(r.building_type), lon: +r.longitude, lat: +r.latitude })) },\n  developmentPermits: { dataset: '2ccn-pwtu', since: cfg.devSince, points: dev.filter((r) => r.latitude && /construct/i.test(r.description_of_development || '') && dwellings(r.description_of_development)).map((r) => ({ id: r.city_file_number, issued: r.permit_date, units: dwellings(r.description_of_development), type: 'cluster', lon: +r.longitude, lat: +r.latitude, note: String(r.description_of_development).slice(0, 120) })) },\n  rooflines: base.length ? { dataset: 'jpxi-a9a5', name: 'City of Edmonton rooflines (2019)', asOf: cfg.baselineDate, cells: base.map((r) => r.bin + ':' + r.roofs).join(','), tallCells: base.filter((r) => +r.tall_roofs > 0).map((r) => r.bin + ':' + r.tall_roofs).join(',') } : null };\nconst permitsOk = bp.length > 0;\nconst classCfg = { ...TC.TC_CLASS.DEFAULTS, jurisdiction: cfg.jurisdiction };\nconst f = TC.TC_CLASS.forecast(segments, data, classCfg, new Date());\nreturn segments.map((s) => {\n  const a = f.bySegment[s.id];\n  const decision = a.change ? TC.TC_DECISION.comparePaths({ from: a.change.from, to: a.change.to, jurisdiction: cfg.jurisdiction, lengthM: classCfg.windowM, changeDate: a.change.date, due: a.clock ? a.clock.due : null }) : null;\n  return { json: { segment_id: s.id, corridor_id: cfg.corridor_id, status: permitsOk ? a.status : 'unverified', class_now: a.class.now, class_committed: a.class.committed, class_possible: a.class.possible,\n    lower_bound: a.class.isLowerBound, change_date: a.change && a.change.date ? a.change.date : '', plan_due: a.clock ? a.clock.due : '', units_json: JSON.stringify(a.units), evidence_json: JSON.stringify(a.evidence),\n    decision_json: decision ? JSON.stringify(decision) : '', assessment_json: JSON.stringify(a), data_status: permitsOk ? (base.length ? 'verified' : 'permits_only') : 'permit_download_failed', assessed_at: new Date().toISOString() } };\n});"
+      },
+      "id": "f88433e5-aa96-41d4-8932-4bf04db35182",
+      "name": "Assess class location",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SET_ID_corridor_class",
+          "cachedResultName": "corridor_class"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "segment_id",
+              "keyValue": "={{ $json.segment_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "segment_id": "={{ $json.segment_id }}",
+            "corridor_id": "={{ $json.corridor_id }}",
+            "status": "={{ $json.status }}",
+            "class_now": "={{ $json.class_now }}",
+            "class_committed": "={{ $json.class_committed }}",
+            "class_possible": "={{ $json.class_possible }}",
+            "lower_bound": "={{ $json.lower_bound }}",
+            "change_date": "={{ $json.change_date }}",
+            "plan_due": "={{ $json.plan_due }}",
+            "units_json": "={{ $json.units_json }}",
+            "evidence_json": "={{ $json.evidence_json }}",
+            "decision_json": "={{ $json.decision_json }}",
+            "assessment_json": "={{ $json.assessment_json }}",
+            "data_status": "={{ $json.data_status }}",
+            "assessed_at": "={{ $json.assessed_at }}"
+          },
+          "schema": [
+            {
+              "id": "segment_id",
+              "displayName": "segment_id",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "corridor_id",
+              "displayName": "corridor_id",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "class_now",
+              "displayName": "class_now",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "class_committed",
+              "displayName": "class_committed",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "class_possible",
+              "displayName": "class_possible",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lower_bound",
+              "displayName": "lower_bound",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "change_date",
+              "displayName": "change_date",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "plan_due",
+              "displayName": "plan_due",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "units_json",
+              "displayName": "units_json",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "evidence_json",
+              "displayName": "evidence_json",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision_json",
+              "displayName": "decision_json",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assessment_json",
+              "displayName": "assessment_json",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "data_status",
+              "displayName": "data_status",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assessed_at",
+              "displayName": "assessed_at",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "id": "22e7f1da-1ad0-4eeb-8a76-d73e8079c4b9",
+      "name": "Upsert class rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Run class watch now": {
+      "main": [
+        [
+          {
+            "node": "Class config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Class config": {
+      "main": [
+        [
+          {
+            "node": "Get segments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get segments": {
+      "main": [
+        [
+          {
+            "node": "Plan permit queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan permit queries": {
+      "main": [
+        [
+          {
+            "node": "Building permits (open data)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Building permits (open data)": {
+      "main": [
+        [
+          {
+            "node": "Development permits (open data)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Development permits (open data)": {
+      "main": [
+        [
+          {
+            "node": "Get class baseline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get class baseline": {
+      "main": [
+        [
+          {
+            "node": "Assess class location",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assess class location": {
+      "main": [
+        [
+          {
+            "node": "Upsert class rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Monday 06:00": {
+      "main": [
+        [
+          {
+            "node": "Class config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "84a369c4-4bc9-4af6-8ae2-f7864eacccea",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

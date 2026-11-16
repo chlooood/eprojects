@@ -35,3 +35,16 @@ Base failure rate per km-year, risk multiplier, mitigation effectiveness, inspec
 - Not a weather forecast past 16 days. 5 to 10 year outputs are projected frequencies from climate models.
 - The learned model, if shipped, is trained on US data and applied to Alberta. First calibration, not validated.
 - Clean energy figures are reported on their own and never as an offset of pipeline emissions.
+
+## Platform rewrite (2026-11-16)
+
+- Class location on the Edmonton line uses real City of Edmonton open data (building permits, development permits, 2019 rooflines, plans in effect), fetched 2026-11-16. Contains information licensed under the Open Government Licence - City of Edmonton.
+- The route is a public OpenStreetMap pipeline way. No operator is involved, and nothing claims the line has a class location obligation.
+- Dwelling counts are estimates (one roof of 60 m2 or more counts as one dwelling) until a crew counts. Class change dates rest on an assumed construction lag.
+- The replay result (2 of 2 changes, 9 months) is not a measured lead time. It restates the lag assumption.
+- CSA Z662 counting rules were not verified; thresholds follow 49 CFR 192.5.
+- Every cost in the decision comparison is a placeholder. The page and the draft PDF say so.
+- The land obligation rows and the commitment table excerpt are invented examples. No real agreement, landowner or filing is in the repo.
+- The draft plan PDF is a draft for an engineer, not a filing.
+- The four new n8n workflows have not been run in n8n.
+- Built with Claude (Anthropic) on 2026-11-16.
