@@ -18,7 +18,7 @@ const tileUrl = (id) => `https://wayback.maptiles.arcgis.com/arcgis/rest/service
 let store = { ledger: [], findings: [], orders: [], assumptions: {}, jurisdiction: 'CA', before: '2019' };
 try { store = { ...store, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { /* storage unavailable: state stays in memory */ }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* in memory only */ } };
-let built = null, selected = null, tab = 'km', chosen = {}, swipe = 0.5;
+let built = null, selected = null, step = 'changed', chosen = {}, swipe = 0.38;
 let map, beforeLayer, lines = {}, bandLayer, dotLayer;
 const today = () => new Date().toISOString().slice(0, 10);
 const index = SEG.buildIndex(DATA.segments);
@@ -50,7 +50,6 @@ function bandOf(fromM, toM, halfM) {
 }
 function initMap() {
   map = L.map('map', { zoomControl: false, zoomSnap: 0.25, zoomDelta: 0.5 });
-  L.control.zoom({ position: 'topright' }).addTo(map);
   map.createPane('after').style.zIndex = 210;
   const attribution = 'Imagery: Esri World Imagery (Wayback), Maxar, Earthstar Geographics';
   beforeLayer = L.tileLayer(tileUrl(WAYBACK.find((w) => w.year === store.before).id), { maxZoom: 19, maxNativeZoom: 18, attribution }).addTo(map);
@@ -62,24 +61,30 @@ function initMap() {
     lines[s.id] = L.polyline(s.centreline.map((p) => [p[1], p[0]]), { color: C.grey, weight: 5, lineCap: 'butt' }).addTo(map).on('click', () => select(s.id))
       .bindTooltip(() => { const r = built.records.find((x) => x.id === s.id); return `<b>km ${r.kmFrom}–${r.kmTo}</b> · ${esc(statusOf(r)[1])}`; }, { sticky: true, className: 'tc', direction: 'top', offset: [0, -8] });
   }
-  const fitAll = () => map.fitBounds(L.latLngBounds(all), { paddingTopLeft: [300, 30], paddingBottomRight: [40, 70] });
+  const fitAll = () => map.fitBounds(L.latLngBounds(all), { paddingTopLeft: [40, 110], paddingBottomRight: [480, 160] });
   fitAll(); requestAnimationFrame(() => { map.invalidateSize(); fitAll(); clip(); });
   map.on('move zoom resize', clip);
   new ResizeObserver(() => { map.invalidateSize(); clip(); }).observe($('mapBox'));
   $('swipe').oninput = (e) => { swipe = e.target.value / 100; clip(); };
+  // Drag anywhere on the line. The hidden range input keeps it usable from the keyboard.
+  const drag = $('drag'); let dragging = false;
+  const move = (e) => { const box = $('mapBox').getBoundingClientRect(); swipe = Math.max(0.02, Math.min(0.98, (e.clientX - box.left) / box.width)); $('swipe').value = swipe * 100; clip(); };
+  drag.addEventListener('pointerdown', (e) => { dragging = true; drag.setPointerCapture(e.pointerId); map.dragging.disable(); move(e); });
+  drag.addEventListener('pointermove', (e) => { if (dragging) move(e); });
+  const end = () => { dragging = false; map.dragging.enable(); };
+  drag.addEventListener('pointerup', end); drag.addEventListener('pointercancel', end);
   $('years').innerHTML = WAYBACK.map((w) => `<button type="button" data-y="${w.year}" aria-pressed="${w.year === store.before}">${w.year}</button>`).join('');
   for (const b of $('years').querySelectorAll('button')) b.onclick = () => { store.before = b.dataset.y; save(); beforeLayer.setUrl(tileUrl(WAYBACK.find((w) => w.year === store.before).id)); for (const x of $('years').querySelectorAll('button')) x.setAttribute('aria-pressed', x === b); clip(); };
-  $('legend').innerHTML = `<div class="eyebrow" style="margin-bottom:4px">Class location</div><div><i style="background:${C.red}"></i>Change dated</div><div><i style="background:${C.amber}"></i>Change possible</div><div><i style="background:${C.green}"></i>No change</div>
-    <div class="eyebrow" style="margin:8px 0 4px">Dwellings since 2019, per 200 m</div><div><b style="background:${C.ink}"></b>Built<b style="background:${C.amber}"></b>Permit issued<b style="border:1.5px dashed ${C.amber}"></b>Approved only</div>`;
   clip();
 }
 // Left of the divider shows the older imagery, right of it shows today.
 function clip() {
   const size = map.getSize(), nw = map.containerPointToLayerPoint([0, 0]), x = nw.x + size.x * swipe;
   map.getPane('after').style.clipPath = `polygon(${x}px ${nw.y}px, ${nw.x + size.x}px ${nw.y}px, ${nw.x + size.x}px ${nw.y + size.y}px, ${x}px ${nw.y + size.y}px)`;
-  const w = WAYBACK.find((v) => v.year === store.before), d = $('divider');
-  d.style.left = size.x * swipe + 'px'; d.dataset.before = 'Imagery published ' + w.date; d.dataset.after = 'Today, ' + LATEST.date;
-  $('grip').style.left = size.x * swipe + 'px';
+  const px = size.x * swipe;
+  $('divider').style.left = px + 'px'; $('drag').style.left = px + 'px';
+  $('years').style.left = Math.max(12, px - $('years').offsetWidth - 14) + 'px';
+  const after = $('sideAfter'); after.textContent = 'Today'; after.style.left = px + 14 + 'px';
 }
 // Dwellings added since the 2019 roof survey, drawn on the line at the nearest 200 m (true positions are within 200 m of it).
 function paintMap() {
@@ -91,13 +96,13 @@ function paintMap() {
     const b = bins[Math.floor(e.chainageM / 200)] || (bins[Math.floor(e.chainageM / 200)] = { built: 0, permit: 0, approved: 0 });
     if (e.kind === 'development_permit') b.approved += e.units; else if (e.occupied <= now) b.built += e.units; else b.permit += e.units;
   }
-  const rad = (u) => 2.5 + Math.sqrt(u) * 1.1;
+  // One quiet dot per 200 m: white for homes added since 2019, amber where permits are issued, a ring where only approved.
+  const rad = (u) => 2.5 + Math.sqrt(u) * 0.9;
   for (const [k, b] of Object.entries(bins)) {
-    const p = pointAt((+k + 0.5) * 200), at = ll(p.x, p.y), tip = `<b>near km ${((+k + 0.5) * 0.2).toFixed(1)}</b><br>${b.built} built since 2019 · ${b.permit} with a building permit · ${b.approved} approved (development permit)`;
+    const p = pointAt((+k + 0.5) * 200), at = ll(p.x, p.y), tip = `<b>Near km ${((+k + 0.5) * 0.2).toFixed(1)}</b><br>${b.built} homes added since 2019<br>${b.permit} more with a building permit<br>${b.approved} more approved`;
     const dot = (o) => L.circleMarker(at, o).addTo(dotLayer).bindTooltip(tip, { className: 'tc', direction: 'top' });
-    if (b.approved) dot({ radius: rad(b.approved + b.built + b.permit) + 3, color: C.amber, weight: 1.5, dashArray: '3 3', fill: false });
-    if (b.built) dot({ radius: rad(b.built), color: C.bg, weight: 1, fillColor: C.ink, fillOpacity: 0.9 });
-    if (b.permit) dot({ radius: rad(b.permit), color: C.bg, weight: 1, fillColor: C.amber, fillOpacity: 0.95 });
+    if (b.approved) dot({ radius: rad(b.approved + b.built + b.permit) + 4, color: C.amber, weight: 1.2, fill: false, opacity: 0.9 });
+    if (b.built + b.permit) dot({ radius: rad(b.built + b.permit), stroke: false, fillColor: b.permit ? C.amber : C.ink, fillOpacity: 0.92 });
   }
   const r = rec(), c = r.classLocation, range = SEG.rangeOf(index, r.id);
   const from = c ? c.window.kmFrom * 1000 : range.fromM, to = c ? c.window.kmTo * 1000 : range.toM;
@@ -105,95 +110,98 @@ function paintMap() {
   L.polygon(bandOf(from, to, 30), { color: C.ink, weight: 0, fillColor: C.ink, fillOpacity: 0.1, interactive: false }).addTo(bandLayer);
 }
 function select(id, fly = true) {
-  selected = id; tab = 'km'; render();
+  selected = id; if (step === 'corridor') step = 'changed'; render();
   if (!fly) return;
   const r = rec(), c = r.classLocation, range = SEG.rangeOf(index, id);
-  map.flyToBounds(L.latLngBounds(bandOf(c ? c.window.kmFrom * 1000 : range.fromM, c ? c.window.kmTo * 1000 : range.toM, 320)), { padding: [30, 30], duration: 0.8 });
+  map.flyToBounds(L.latLngBounds(bandOf(c ? c.window.kmFrom * 1000 : range.fromM, c ? c.window.kmTo * 1000 : range.toM, 320)), { paddingTopLeft: [40, 110], paddingBottomRight: [480, 160], duration: 0.9 });
 }
 
 /* ---------- strip and queue ---------- */
 function renderStrip() {
-  const recs = [...built.records].sort((a, b) => a.kmFrom - b.kmFrom);
-  const max = Math.max(...recs.map((r) => (r.classLocation ? r.classLocation.units.existing + r.classLocation.units.committed + r.classLocation.units.possible : 0)), 46), h = (u) => (44 * Math.sqrt(u / max)).toFixed(1);
-  const cell = (r, inner, style = '', cls = '') => `<button type="button" class="cell ${cls}${r.id === selected ? ' sel' : ''}" data-id="${esc(r.id)}" style="${style}" aria-label="km ${r.kmFrom} to ${r.kmTo}" title="km ${r.kmFrom}–${r.kmTo}">${inner}</button>`;
-  $('strip').innerHTML = `
-    <div class="row"><span class="eyebrow">Class</span><div class="cells">${recs.map((r) => { const c = r.classLocation; return cell(r, c ? c.class.now + (c.change ? '→' + c.change.to : '') : '–', `background:${C[statusOf(r)[0]]}`); }).join('')}</div></div>
-    <div class="row"><span class="eyebrow">Dwellings</span><div class="cells bars">${recs.map((r) => { const u = r.classLocation ? r.classLocation.units : { existing: 0, committed: 0, possible: 0 }, t = u.existing + u.committed + u.possible || 1, H = h(t);
-      return cell(r, `<span style="height:${(H * u.existing / t).toFixed(1)}px;background:${C.ink2}"></span><span style="height:${(H * u.committed / t).toFixed(1)}px;background:${C.amber}"></span><span style="height:${(H * u.possible / t).toFixed(1)}px;background:repeating-linear-gradient(45deg,#8a6a22,#8a6a22 3px,transparent 3px,transparent 6px)"></span>`); }).join('')}</div></div>
-    <div class="row"><span class="eyebrow">Geohazard</span><div class="cells">${recs.map((r) => cell(r, '', `background:${C[(TIER[r.geohazard.tier] || TIER.unverified)[0]]};height:10px`)).join('')}</div></div>
-    <div class="row"><span class="eyebrow">Land terms</span><div class="cells">${recs.map((r) => cell(r, r.obligations.length || '', 'background:var(--s3);color:var(--ink-2);height:18px')).join('')}</div></div>
-    <div class="row ruler"><span class="eyebrow">km</span><div class="cells">${recs.map((r) => `<span>${r.kmFrom % 2 === 0 ? r.kmFrom : ''}</span>`).join('')}</div></div>`;
-  for (const b of $('strip').querySelectorAll('button')) b.onclick = () => select(b.dataset.id);
-  const u = urgent();
-  $('queue').innerHTML = `<div class="eyebrow" style="margin:2px 6px 6px">Needs a decision · ${u.length}</div>` + (u.length ? u.slice(0, 5).map((r) => `<button type="button" data-id="${esc(r.id)}" class="${r.id === selected ? 'on' : ''}"><b class="mono">km ${r.kmFrom}–${r.kmTo}</b><br><span class="cap">${esc(r.openItems[0].text)}</span></button>`).join('') : '<p class="cap" style="margin:6px">Nothing is waiting.</p>');
-  for (const b of $('queue').querySelectorAll('button')) b.onclick = () => select(b.dataset.id);
+  const recs = [...built.records].sort((x, y) => x.kmFrom - y.kmFrom), u = urgent(), r = rec();
+  const next = u.find((x) => x.id !== selected) || null;
+  $('strip').innerHTML = `<div class="head"><b>${esc(DATA.meta.name)}</b><span>${recs.length} km. ${u.length} need a decision.</span>${next ? `<button type="button" id="next">Next: km ${next.kmFrom}–${next.kmTo}</button>` : ''}</div>
+    <div class="cells">${recs.map((x) => { const c = x.classLocation; return `<button type="button" class="cell${x.id === selected ? ' sel' : ''}${x.openItems.length ? ' open' : ''}" data-id="${esc(x.id)}" style="background:${C[statusOf(x)[0]]}" aria-label="km ${x.kmFrom} to ${x.kmTo}, ${esc(statusOf(x)[1])}" title="km ${x.kmFrom}–${x.kmTo}: ${esc(statusOf(x)[1])}">${c ? c.class.now + (c.change ? '→' + c.change.to : '') : ''}</button>`; }).join('')}</div>
+    <div class="cells ruler">${recs.map((x) => `<span>${x.kmFrom % 2 === 0 ? x.kmFrom : ''}</span>`).join('')}</div>
+    <div class="key"><span>Number is the class today.</span><span><i style="background:${C.green}"></i>No change</span><span><i style="background:${C.amber}"></i>Change possible</span><span><i style="background:${C.red}"></i>Change dated</span><span><i style="background:${C.ink}"></i>Dot above: needs a decision</span></div>`;
+  for (const b of $('strip').querySelectorAll('button.cell')) b.onclick = () => select(b.dataset.id);
+  if ($('next')) $('next').onclick = () => select(next.id);
 }
-/* ---------- inspector ---------- */
-function classBlock(c) {
-  if (!c) return '<p class="note">No dwelling or permit data is loaded for this corridor, so class location is not assessed here.</p>';
-  const t = CLASS.DEFAULTS.thresholds, total = c.units.existing + c.units.committed + c.units.possible, max = Math.max(60, total * 1.15), pct = (n) => (100 * n / max).toFixed(2) + '%';
-  return `<div class="kpis"><div><b>${c.units.existing}</b><span>dwellings now${c.fieldCounted ? ', counted on site' : ', estimated'}</span></div><div><b class="c-amber">${c.units.committed}</b><span>with a building permit</span></div><div><b style="color:#b89545">${c.units.possible}</b><span>approved only</span></div></div>
-    <div class="bar" role="img" aria-label="${c.units.existing} existing, ${c.units.committed} permitted, ${c.units.possible} approved dwellings">
-      <span class="ex" style="left:0;width:${pct(c.units.existing)}"></span><span class="co" style="left:${pct(c.units.existing)};width:${pct(c.units.committed)}"></span><span class="po" style="left:${pct(c.units.existing + c.units.committed)};width:${pct(c.units.possible)}"></span>
-      <span class="mk" data-l="Class 2 at ${t.class2}" style="left:${pct(t.class2)}"></span><span class="mk" data-l="Class 3 at ${t.class3}" style="left:${pct(t.class3)}"></span></div>
-    ${c.clock ? `<p class="note ${c.clock.running ? 'bad' : 'warn'}"><b>${c.clock.running ? 'Plan due' : 'Plan would be due'} ${esc(c.clock.due)}</b>, ${c.clock.monthsLeft} months from now. ${esc(c.clock.basis)}</p>` : ''}
-    <p class="cap">Counted in the dashed band on the map: km ${c.window.kmFrom} to ${c.window.kmTo}, 200 m each side. ${esc(c.basis)}.${c.fieldCounted ? ' The estimate was ' + c.units.estimatedBeforeCount + '.' : ''}</p>
-    ${c.evidence.length ? `<details><summary>Evidence: ${c.evidence.length} permit records</summary><ul>${c.evidence.map((e) => `<li><b>${e.units}</b> unit${e.units === 1 ? '' : 's'} near km ${e.km}, ${esc(e.kind.replace(/_/g, ' '))}${e.note ? ', ' + esc(e.note.replace(/^1 permits/, '1 permit')) : ' issued ' + esc(e.issued)} <span class="mono cap">${esc(e.id)}</span></li>`).join('')}</ul></details>` : ''}
-    ${c.plans.length ? `<p class="cap">Plans in effect here: ${c.plans.map((p) => `<a href="${esc(p.pdf)}" target="_blank" rel="noopener">${esc(p.name)}</a>`).join(', ')}.</p>` : ''}`;
-}
+/* ---------- inspector: one kilometre, one step at a time ---------- */
+const STEPS = [['changed', 'What changed'], ['options', 'Options'], ['decide', 'Decide'], ['record', 'Record']];
 function sentence(r) {
   const c = r.classLocation;
   if (!c) return 'Class location is not assessed on this kilometre.';
   return c.status === 'changed' ? `This stretch moved from Class ${c.change.from} to Class ${c.change.to} around ${c.change.date}. The regulator's clock is running.`
     : c.status === 'change_committed' ? `Building permits already issued take this stretch from Class ${c.change.from} to Class ${c.change.to} around ${c.change.date}.`
     : c.status === 'change_possible' ? `Approved developments could take this stretch from Class ${c.change.from} to Class ${c.change.to}. No building permits yet, so there is no date.`
-    : c.status === 'unverified' ? 'There is no dwelling data for this stretch.' : `Class ${c.class.now}, and nothing on file changes that.${c.headroom == null ? '' : ' ' + c.headroom + ' more dwellings would reach the next class.'}`;
+    : c.status === 'unverified' ? 'There is no dwelling data for this stretch.' : `Class ${c.class.now}, and nothing on file changes that.`;
 }
-function decisionBlock(r) {
-  const d = r.decision; if (!d) return '';
+function changedStep(r) {
+  const c = r.classLocation, g = TIER[r.geohazard.tier] || TIER.unverified, st = statusOf(r);
+  let body = '';
+  if (c) {
+    const t = CLASS.DEFAULTS.thresholds, total = c.units.existing + c.units.committed + c.units.possible, max = Math.max(60, total * 1.15), pct = (n) => (100 * n / max).toFixed(2) + '%';
+    body = `<div class="trio"><div><b>${c.units.existing}</b><span>dwellings today${c.fieldCounted ? ', counted on site' : ''}</span></div><div><b class="c-amber">${c.units.committed}</b><span>more with a building permit</span></div><div><b class="c-amber" style="opacity:.7">${c.units.possible}</b><span>more approved, no permit yet</span></div></div>
+      <div class="bar" role="img" aria-label="${c.units.existing} existing, ${c.units.committed} permitted, ${c.units.possible} approved dwellings, against class lines at ${t.class2} and ${t.class3}">
+        <span class="ex" style="left:0;width:${pct(c.units.existing)}"></span><span class="co" style="left:${pct(c.units.existing)};width:${pct(c.units.committed)}"></span><span class="po" style="left:${pct(c.units.existing + c.units.committed)};width:${pct(c.units.possible)}"></span>
+        <span class="mk" data-l="Class 2 at ${t.class2}" style="left:${pct(t.class2)}"></span><span class="mk" data-l="Class 3 at ${t.class3}" style="left:${pct(t.class3)}"></span></div>
+      ${c.clock ? `<p class="note ${c.clock.running ? 'bad' : 'warn'}"><b>${c.clock.running ? 'Plan due' : 'Plan would be due'} ${esc(c.clock.due)}</b>, ${c.clock.monthsLeft} months from now.</p>` : ''}`;
+  }
+  return `<div class="where">KM ${r.kmFrom} TO ${r.kmTo}</div><h1>km ${r.kmFrom}–${r.kmTo}</h1>
+    <div class="status c-${st[0]}"><i></i>${esc(st[1])}</div><p class="lead">${esc(sentence(r))}</p>${body}
+    <div class="facts">
+      <div><span class="k">Ground</span><span><span class="c-${g[0]}">${esc(g[1])}</span>, ${esc(r.geohazard.hazard || 'no score on file')}. <span class="cap">${esc(r.geohazard.why || '')}</span></span></div>
+      <div><span class="k">Land terms</span><span>${r.obligations.length ? `${r.obligations.length} on this kilometre${r.obligations.some((o) => !o.verified) ? ', not all verified' : ''}` : 'None on file'}</span></div>
+      <div><span class="k">Digging nearby</span><span>${r.encroachment.length ? `${r.encroachment.length} report${r.encroachment.length === 1 ? '' : 's'} inside 30 m` : 'Nothing reported'}</span></div>
+      ${c ? `<div><span class="k">Counted in</span><span>The dashed band on the map: km ${c.window.kmFrom} to ${c.window.kmTo}, 200 m each side. <span class="cap">${esc(c.basis)}.</span></span></div>` : ''}
+    </div>
+    ${c && c.evidence.length ? `<details style="margin-top:14px"><summary>${c.evidence.length} permit records behind this</summary><ul>${c.evidence.map((e) => `<li><b>${e.units}</b> unit${e.units === 1 ? '' : 's'} near km ${e.km}, ${esc(e.kind.replace(/_/g, ' '))}${e.note ? ', ' + esc(e.note.replace(/^1 permits/, '1 permit')) : ' issued ' + esc(e.issued)}</li>`).join('')}</ul>${c.plans.length ? `<p class="cap">Plans in effect: ${c.plans.map((p) => `<a href="${esc(p.pdf)}" target="_blank" rel="noopener">${esc(p.name)}</a>`).join(', ')}.</p>` : ''}</details>` : ''}`;
+}
+function optionsStep(r) {
+  const d = r.decision;
+  if (!d) return `<h1>Options</h1><p class="lead">Nothing to choose on this kilometre. The class is not changing.</p>`;
   const pick = chosen[r.id] || (d.lowestCost && d.lowestCost.key);
-  return `<h2>Ways to deal with it</h2>${d.pricedWithPlaceholders ? '<p class="note warn">Costs are placeholders, not operator figures. Change them under Corridor.</p>' : ''}
-    <table><thead><tr><th></th><th>Path</th><th class="num">${d.horizonYears}-yr cost</th><th class="num">Months</th><th>In time</th></tr></thead><tbody>${d.paths.map((p) => `<tr class="${p.eligible ? '' : 'off'}"><td>${p.eligible ? `<input type="radio" name="path" value="${p.key}" ${p.key === pick ? 'checked' : ''} aria-label="${esc(p.label)}">` : ''}</td>
-      <td>${esc(p.label)}<div class="cap">${esc(p.why)}${p.materials && p.materials.note ? ' ' + esc(p.materials.note) : ''}${p.obligations.length ? ` Breaks ground: ${p.obligations.length} land obligation${p.obligations.length === 1 ? ' applies' : 's apply'}.` : ''}</div></td>
-      <td class="num">${p.eligible ? money(p.total) : ''}</td><td class="num">${p.eligible ? p.months : ''}</td><td>${!p.eligible ? '' : p.meetsDeadline == null ? '<span class="cap">no date</span>' : p.meetsDeadline ? chip('green', 'yes') : chip('red', 'no')}</td></tr>`).join('')}</tbody></table>
-    ${d.hingesOn.length ? `<p class="cap">The cheapest answer flips if ${d.hingesOn.map((h) => `${esc(h.unit)} were ${esc(Math.round(h.at).toLocaleString('en-US'))}`).join(', or if ')}.</p>` : ''}
+  return `<div class="where">CLASS ${d.change.from} TO CLASS ${d.change.to}</div><h1>Options</h1>
+    ${d.pricedWithPlaceholders ? '<p class="note warn">Costs are placeholders, not operator figures. Change them under Corridor.</p>' : ''}
+    ${d.paths.map((p) => `<label class="path ${p.eligible ? '' : 'off'}">${p.eligible ? `<input type="radio" name="path" value="${p.key}" ${p.key === pick ? 'checked' : ''}>` : '<span></span>'}<span>${esc(p.label)}</span>
+      <span class="n">${p.eligible ? money(p.total) : 'n/a'}</span><span class="cap">${p.eligible ? `About ${p.months} months${p.meetsDeadline == null ? '' : p.meetsDeadline ? ', in time' : ', <b class="c-red">misses the deadline</b>'}. ` : ''}${esc(p.why)}${p.materials && p.materials.note ? ' ' + esc(p.materials.note) : ''}${p.obligations.length ? ` Breaks ground, so ${p.obligations.length} land term${p.obligations.length === 1 ? ' applies' : 's apply'}.` : ''}</span></label>`).join('')}
+    <p class="cap" style="margin-top:14px">Cost over ${d.horizonYears} years.${d.hingesOn.length ? ` The cheapest answer flips if ${d.hingesOn.map((h) => `${esc(h.unit)} were ${esc(Math.round(h.at).toLocaleString('en-US'))}`).join(', or if ')}.` : ''}</p>
     ${d.unknowns.length ? `<p class="cap">Still needed from the operator: ${esc(d.unknowns.join('; '))}.</p>` : ''}`;
 }
-function kmTab(r) {
-  const g = TIER[r.geohazard.tier] || TIER.unverified, st = statusOf(r), record = LEDGER.decisionRecord(store.ledger, r.id), orders = store.orders.filter((o) => o.segment === r.id);
-  return `<div class="eyebrow">Segment record · ${esc(r.id)}</div><h1>km ${r.kmFrom}–${r.kmTo}</h1>
-    <p>${chip(st[0], st[1])}</p><p class="lead">${esc(sentence(r))}</p>
-    <h2>Class location</h2>${classBlock(r.classLocation)}${decisionBlock(r)}
-    <h2>Geohazard</h2><p>${chip(g[0], g[1])} ${esc(r.geohazard.hazard || 'No score on file')}${r.geohazard.score == null ? '' : `, score <span class="mono">${esc(r.geohazard.score)}</span>`}. <span class="cap">${esc(r.geohazard.why || '')}</span></p>
-    <h2>Land obligations</h2>${r.obligations.length ? `<ul>${r.obligations.map((o) => `<li>${esc(o.requirement)}${o.noticeHours ? ` (${o.noticeHours} hours' notice)` : ''} <span class="cap">${esc(o.id)}, ${esc(o.source.doc)} ${esc(o.source.ref || '')}, ${o.verified ? 'verified' : 'not yet verified by a person'}</span></li>`).join('')}</ul>` : '<p class="cap">None on file for this kilometre. That is not the same as none existing.</p>'}
-    ${r.encroachment.length ? `<h2>Inside the 30 m prescribed area</h2><ul>${r.encroachment.map((f) => `<li>${esc(f.kind.replace(/_/g, ' '))}, ${esc(f.source || '')} ${esc((f.observedAt || '').slice(0, 10))}. ${esc(f.note || '')}</li>`).join('')}</ul>` : ''}
-    <h2>Decide</h2>${r.drafts.length ? `<p class="cap">Each module only drafts. A named person decides, and the decision is chained into the record.</p>
-      <div class="grid2"><div><label class="f" for="who">Your name</label><input id="who" autocomplete="name" style="width:100%"></div><div><label class="f" for="why">Reason, needed to reject</label><input id="why" style="width:100%"></div></div>
-      ${r.drafts.map((d, i) => { const s = LEDGER.statusOf(store.ledger, d); return `<div class="btnrow"><span style="flex:1">${esc(d.module.replace(/_/g, ' '))}: ${esc(d.kind.replace(/_/g, ' '))}</span>${s === 'draft' ? `<button class="btn" data-act="approve" data-i="${i}">Approve</button><button class="btn ghost" data-act="reject" data-i="${i}">Reject</button>` : chip(s === 'approved' ? 'green' : 'grey', s)}</div>`; }).join('')}` : '<p class="cap">Nothing is drafted for this kilometre.</p>'}
-    ${orders.map((o) => `<p class="note"><b class="mono">${esc(o.id)}</b>, ${esc(o.priority)}, due ${esc(o.dueBy)}. ${esc(o.reason)}<br>Land check: ${esc(o.check.summary)} Earliest start ${esc(o.check.earliestStart.slice(0, 16).replace('T', ' '))} UTC. Not dispatched; export it from Corridor.</p>`).join('')}
+function decideStep(r) {
+  const orders = store.orders.filter((o) => o.segment === r.id);
+  return `<div class="where">KM ${r.kmFrom} TO ${r.kmTo}</div><h1>Decide</h1>
+    ${r.drafts.length ? `<p>The system only drafts. A named person decides, and the decision is chained into the record.</p>
+      <div class="grid2"><div><label class="f" for="who">Your name</label><input id="who" autocomplete="name"></div><div><label class="f" for="why">Reason, needed to reject</label><input id="why"></div></div>
+      ${r.drafts.map((d, i) => { const s = LEDGER.statusOf(store.ledger, d); return `<div class="btnrow" style="border-top:1px solid var(--line);padding-top:12px"><span style="flex:1">${esc(({ class_location: 'Class location', geohazard: 'Ground', land_obligations: 'Land terms', encroachment: 'Digging nearby' })[d.module])}<br><span class="cap">${esc(d.kind.replace(/_/g, ' '))}</span></span>${s === 'draft' ? `<button class="btn" data-act="approve" data-i="${i}">Approve</button><button class="btn ghost" data-act="reject" data-i="${i}">Reject</button>` : `<span class="status c-${s === 'approved' ? 'green' : 'grey'}" style="margin:0"><i></i>${esc(s)}</span>`}</div>`; }).join('')}` : '<p class="lead">Nothing is waiting for a decision here.</p>'}
+    ${orders.map((o) => `<p class="note"><b class="mono">${esc(o.id)}</b><br>${esc(o.reason)}. Due ${esc(o.dueBy)}.<br>${esc(o.check.summary)} Earliest start ${esc(o.check.earliestStart.slice(0, 16).replace('T', ' '))} UTC.</p>`).join('')}
     <h2>Report from the field</h2>
-    <div class="grid2"><div><label class="f" for="fk">What was found</label><select id="fk" style="width:100%">${Object.entries(FEEDBACK.KINDS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join('')}</select></div><div><label class="f" for="fv">Number, for a count</label><input id="fv" type="number" min="0" style="width:100%"></div></div>
-    <label class="f" for="fn">Note</label><input id="fn" style="width:100%"><label class="f"><input type="checkbox" id="fp"> Inside the 30 m prescribed area</label>
-    <div class="btnrow"><button class="btn ghost" id="addFinding">Record finding</button></div>
-    <h2>Decision record</h2>${record.length ? `<table><tbody>${record.map((e) => `<tr><td class="mono cap">${e.seq}</td><td>${esc(e.what)}${e.value != null ? ': ' + esc(e.value) : ''}${e.estimate != null ? ', estimate ' + money(e.estimate) : ''}<div class="cap">${esc(e.by)}, ${esc(e.at.slice(0, 16).replace('T', ' '))}${e.reason ? ', ' + esc(e.reason) : ''}</div></td><td class="mono cap" title="${esc(e.hash)}">${esc(e.hash.slice(0, 8))}</td></tr>`).join('')}</tbody></table>` : '<p class="cap">Nothing decided or found here yet.</p>'}
+    <div class="grid2"><div><label class="f" for="fk">What was found</label><select id="fk">${Object.entries(FEEDBACK.KINDS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join('')}</select></div><div><label class="f" for="fv">Number, for a count</label><input id="fv" type="number" min="0"></div></div>
+    <label class="f" for="fn">Note</label><input id="fn"><label class="f"><input type="checkbox" id="fp" style="width:auto"> Inside the 30 m prescribed area</label>
+    <div class="btnrow"><button class="btn ghost" id="addFinding">Record finding</button></div>`;
+}
+function recordStep(r) {
+  const record = LEDGER.decisionRecord(store.ledger, r.id);
+  return `<div class="where">KM ${r.kmFrom} TO ${r.kmTo}</div><h1>Record</h1>
+    ${record.length ? `<table><tbody>${record.map((e) => `<tr><td class="mono cap">${e.seq}</td><td>${esc(e.what)}${e.value != null ? ': ' + esc(e.value) : ''}${e.estimate != null ? ', estimate ' + money(e.estimate) : ''}<div class="cap">${esc(e.by)}, ${esc(e.at.slice(0, 16).replace('T', ' '))}${e.reason ? ', ' + esc(e.reason) : ''}</div></td><td class="mono cap" title="${esc(e.hash)}">${esc(e.hash.slice(0, 8))}</td></tr>`).join('')}</tbody></table>` : '<p class="lead">Nothing decided or found here yet.</p>'}
+    <p class="cap">Every entry is chained to the one before it with SHA-256, so an edit made afterwards shows.</p>
     <div class="btnrow"><button class="btn ghost" id="xPack">Evidence pack PDF</button>${r.classLocation && r.classLocation.change ? '<button class="btn ghost" id="xFiling">Draft plan PDF</button>' : ''}</div>`;
 }
-function corridorTab() {
+function corridorStep() {
   const s = built.classSummary || {}, open = built.records.reduce((a, r) => a + r.openItems.length, 0), chain = LEDGER.verify(store.ledger), L = DATA.meta.labels, base = DECISION.DEFAULTS.assumptions;
-  return `<div class="eyebrow">Corridor</div><h1>${esc(DATA.meta.name)}</h1><p class="cap">${esc(DATA.meta.route)}</p>
-    <div class="kpis"><div><b>${(s.changed || 0) + (s.changeCommitted || 0)}</b><span>class changes dated</span></div><div><b>${s.changePossible || 0}</b><span>possible, no date</span></div><div><b>${open}</b><span>open items</span></div></div>
-    <h2>Would permits have warned us?</h2>${BT ? `<p>${BT.changes} class change${BT.changes === 1 ? '' : 's'} on this line since ${esc(BT.from.slice(0, 4))}. In ${BT.flaggedAhead} of ${BT.changes}, issued permits already added up to the higher class ${esc(BT.medianLeadMonths)} months before the dwellings were estimated to be occupied.</p>
-      <table><tbody>${BT.rows.map((r) => `<tr><td class="mono">km ${r.kmFrom}</td><td>Class ${r.startClass} to ${r.toClass}</td><td class="mono">permits ${esc(r.flagged)}</td><td class="mono">change ${esc(r.changed || 'not yet')}</td></tr>`).join('')}</tbody></table><p class="note warn">${esc(BT.caveat)}</p>
-      <p class="cap">Slide the divider on the map over km 7 to 8 with 2019 selected to see it in the imagery.</p>` : ''}
-    <h2>Exports</h2><div class="btnrow"><button class="btn ghost" id="xCsv">Work orders CSV</button><button class="btn ghost" id="xGeo">Segments GeoJSON</button><button class="btn ghost" id="xLabels">Prediction vs field CSV</button></div><p class="cap">Files a coordinator imports into Maximo, SAP or ArcGIS. Nothing is written back to those systems.</p>
-    <h2>What is real here</h2><ul>${Object.entries(L).map(([k, v]) => `<li><span class="cap">${esc(k.replace(/([A-Z])/g, ' $1').toLowerCase())}</span> ${esc(v)}</li>`).join('')}<li><span class="cap">imagery</span> Esri World Imagery Wayback. Dates are when Esri published each release; the photos can be older.</li><li><span class="cap">decision chain</span> ${store.ledger.length} entries, ${chain.ok ? 'intact' : 'BROKEN at entry ' + chain.brokenAt}</li></ul>
-    <h2>Cost assumptions</h2><div class="grid2">${Object.entries(base).map(([k, a]) => `<div><label class="f" for="a-${k}">${esc(a.unit)}</label><input id="a-${k}" data-k="${k}" type="number" min="0" value="${esc(store.assumptions[k] != null ? store.assumptions[k] : a.value)}" style="width:100%"></div>`).join('')}</div><div class="btnrow"><button class="btn ghost" id="resetAssume">Reset to placeholders</button></div>`;
+  return `<div class="where">CORRIDOR</div><h1 style="font-size:44px">${esc(DATA.meta.name)}</h1>
+    <div class="trio"><div><b>${(s.changed || 0) + (s.changeCommitted || 0)}</b><span>class changes with a date</span></div><div><b>${s.changePossible || 0}</b><span>possible, no date yet</span></div><div><b>${open}</b><span>open items</span></div></div>
+    ${BT ? `<h2>Would permits have warned us?</h2><p>${BT.changes} class change${BT.changes === 1 ? '' : 's'} on this line since ${esc(BT.from.slice(0, 4))}. Issued permits added up to the higher class ${esc(BT.medianLeadMonths)} months before the homes were estimated to be lived in.</p><p class="note warn">${esc(BT.caveat)}</p><p class="cap">Pick 2019 and drag the line over km 7 to 8 to see it happen.</p>` : ''}
+    <h2>Take it with you</h2><div class="btnrow"><button class="btn ghost" id="xCsv">Work orders CSV</button><button class="btn ghost" id="xGeo">GeoJSON for Esri</button><button class="btn ghost" id="xLabels">Prediction vs field</button></div>
+    <h2>What is real here</h2><div class="facts">${Object.entries(L).map(([k, v]) => `<div><span class="k">${esc(k.replace(/([A-Z])/g, ' $1').replace(/^./, (x) => x.toUpperCase()))}</span><span>${esc(v)}</span></div>`).join('')}<div><span class="k">Imagery</span><span>Esri World Imagery Wayback. Years are when Esri published each release; the photos can be older.</span></div><div><span class="k">Route</span><span>${esc(DATA.meta.route)}</span></div><div><span class="k">Record</span><span>${store.ledger.length} entries, chain ${chain.ok ? 'intact' : 'BROKEN at entry ' + chain.brokenAt}</span></div></div>
+    <details style="margin-top:18px"><summary>Cost assumptions</summary><div class="grid2">${Object.entries(base).map(([k, a]) => `<div><label class="f" for="a-${k}">${esc(a.unit)}</label><input id="a-${k}" data-k="${k}" type="number" min="0" value="${esc(store.assumptions[k] != null ? store.assumptions[k] : a.value)}"></div>`).join('')}</div><div class="btnrow"><button class="btn ghost" id="resetAssume">Reset to placeholders</button></div></details>`;
 }
 function renderInspector() {
-  const r = rec();
-  $('inspector').innerHTML = `<div class="tabs" role="tablist"><button role="tab" aria-selected="${tab === 'km'}" data-tab="km">This kilometre</button><button role="tab" aria-selected="${tab === 'all'}" data-tab="all">Corridor</button></div>` + (tab === 'km' ? kmTab(r) : corridorTab());
+  const r = rec(), view = { changed: changedStep, options: optionsStep, decide: decideStep, record: recordStep }[step];
+  $('inspector').innerHTML = `<div class="steps" role="tablist">${STEPS.map(([k, l]) => `<button role="tab" aria-selected="${step === k}" data-step="${k}">${l}</button>`).join('')}<button role="tab" class="corr" aria-selected="${step === 'corridor'}" data-step="corridor">Corridor</button></div>` + (view ? view(r) : corridorStep());
   const q = (s) => $('inspector').querySelectorAll(s);
-  for (const b of q('[data-tab]')) b.onclick = () => { tab = b.dataset.tab; renderInspector(); $('inspector').scrollTop = 0; };
+  for (const b of q('[data-step]')) b.onclick = () => { step = b.dataset.step; renderInspector(); $('inspector').scrollTop = 0; };
   for (const el of q('input[name=path]')) el.onchange = () => { chosen[r.id] = el.value; };
   for (const b of q('button[data-act]')) b.onclick = () => decide(r, r.drafts[+b.dataset.i], b.dataset.act);
   for (const el of q('input[data-k]')) el.onchange = () => { const v = +el.value; if (v >= 0) { store.assumptions[el.dataset.k] = v; save(); render(); } };
