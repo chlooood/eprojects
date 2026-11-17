@@ -32,5 +32,13 @@ fs.mkdirSync(path.join(root, 'data/platform'), { recursive: true });
 fs.writeFileSync(path.join(root, `data/platform/${corridor}.json`), JSON.stringify(doc) + '\n');
 const bt = CLASS.backtest(segments, permits, CLASS.DEFAULTS, { to: permits.fetchedAt });
 fs.writeFileSync(path.join(root, `data/platform/${corridor}-backtest.json`), JSON.stringify({ corridor, builtFrom: permitsFile, ...bt }, null, 2) + '\n');
+// Growth model: chances of each class change to 2035, and a 2016 to 2026 hindcast. Deterministic (fixed seed).
+const GROWTH = require('../src/growth.js');
+const growthFile = 'data/cache/growth/edmonton-growth-fit-2026-11-16.json', growthData = read(growthFile);
+const sim = GROWTH.simulate(segments, permits, growthData, { runs: 1000, asOf: permits.fetchedAt, to: '2035-12-31' });
+const hind = GROWTH.hindcast(segments, permits, growthData, { runs: 1000 });
+for (const r of hind.blocks.rows) delete r.bin;
+fs.writeFileSync(path.join(root, `data/platform/${corridor}-growth.json`), JSON.stringify({ corridor, builtFrom: [permitsFile, growthFile], sha256: sha(growthFile), forecast: sim, hindcast: hind }) + '\n');
+console.log(`growth: ${sim.runs} futures to ${sim.to}; hindcast from ${hind.asOf}: segment Brier ${hind.segmentBrier}, blocks expected ${hind.blocks.expectedStarts} started ${hind.blocks.startedSince} of ${hind.blocks.planned}`);
 console.log(`platform data: ${segments.length} segments, ${imported.obligations.length} obligations (${imported.rejected.length} rejected)`);
 console.log(`backtest ${bt.from} to ${bt.to}: ${bt.changes} class changes, ${bt.flaggedAhead} flagged ahead, median lead ${bt.medianLeadMonths} months (assumed construction lag)`);

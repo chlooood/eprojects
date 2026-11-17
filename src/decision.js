@@ -134,6 +134,23 @@
     return c;
   }
 
-  const api = { DEFAULTS, IM_AREAS, comparePaths, hingesOn, mergeAssumptions };
+  // When to order pipe, from a forecast that gives a spread of change dates instead of one date.
+  // samples: simulated change dates (decimal years) from the futures that changed; runs: how many futures in all.
+  // The work has to be done by the change date plus the regulator's clock, so pipe must be ordered
+  // (lead + build - clock) months before the change. Order now if the chance the change lands inside that window
+  // is at least the threshold the operator sets. Also says the latest order date at that threshold.
+  function orderSignal(samples, runs, o = {}) {
+    const lead = o.leadMonths != null ? o.leadMonths : val(DEFAULTS, 'pipeLeadMonths'), build = o.buildMonths != null ? o.buildMonths : val(DEFAULTS, 'replaceMonths');
+    const clock = o.clockMonths != null ? o.clockMonths : 6, threshold = o.threshold != null ? o.threshold : 0.5, now = o.now;
+    const windowMonths = lead + build - clock, xs = [...(samples || [])].sort((a, b) => a - b), n = runs || xs.length || 1;
+    const pBy = (t) => xs.filter((x) => x <= t).length / n;
+    if (windowMonths <= 0) return { windowMonths, needed: false, orderNow: false, note: 'The regulator\'s clock is longer than the pipe lead time plus construction. Order after the change.' };
+    const pWithin = pBy(now + windowMonths / 12), need = Math.ceil(threshold * n);
+    const orderBy = xs.length >= need ? xs[need - 1] - windowMonths / 12 : null;
+    return { windowMonths, threshold, pWithin: +pWithin.toFixed(3), orderNow: pWithin >= threshold, orderBy, needed: true,
+      note: orderBy == null ? `Fewer than ${Math.round(threshold * 100)}% of futures change at all, so no order date.` : null };
+  }
+
+  const api = { DEFAULTS, IM_AREAS, comparePaths, hingesOn, mergeAssumptions, orderSignal };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TC_DECISION = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
