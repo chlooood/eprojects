@@ -58,15 +58,33 @@ The route is a public OpenStreetMap pipeline way. No operator is involved. Nothi
 
 ## Looking ahead to 2035
 
-`CLASS.outlook` adds four layers per 200 m of line, each on top of the last: building permits issued, development permits approved, then two scenarios. **Recent pace** carries the last three years of building permits forward. **Plans filled in** brings land inside residential neighbourhood plans (Plans in Effect, `jdmr-bidz`, tested per 200 m against the plan polygons) to full density by 2035. Full density is measured, not assumed: the 90th percentile of homes per 200 m among the built stretches inside the line's own plans (124). Industrial and river valley plans add nothing.
+`src/growth.js` treats growth as stages and runs 1,000 possible futures (seeded Monte Carlo, quarterly steps, to 2035-12-31). The page shows chances and date ranges, never one date. `CLASS.outlook` (permits, approvals, pace and plan scenarios) is kept for the n8n workflows and tests but no longer drives the page.
 
-On the Edmonton line: 203 homes with a permit or approval, about 1,660 more if Walker, Charlesworth, The Orchards at Ellerslie and Mattson fill in. Only km 5 to 6 changes class: Class 2 from approvals, Class 3 if The Orchards fills in. Edmonton publishes planned unit counts only as PDF reports, so plan capacity is the measured density, not the plans' own figures.
+Each stage is measured from City of Edmonton records across the whole city, cached in `data/cache/growth/` with SHA-256:
+
+| Stage | Measured | From |
+| --- | --- | --- |
+| Planned land starts building | Chance a 4 ha block inside a plan starts each year, by what is nearby: 34% next to a block started in the last two years, 9% with nothing within 600 m | 700 starts, 2009 on, on buildable land |
+| Land that never builds | 45% of plan land in 27 mature plans never got a home (parks, roads, storm ponds, schools). Left out of the rates above | Plans in Effect plus building permits |
+| Build-out | 90% of a block's homes within 3 years of its first permit; median 52 homes per block | 303 finished blocks |
+| Approval to building permit | 97% convert, median 0.5 months | 10,101 matched development permits |
+| Building permit to move-in | Median 8.5 months, houses and rowhouses separately | 8,231 homes with an occupancy date |
+
+Apartment move-in (20 months) is still an assumption: too few have an occupancy date.
+
+On the Edmonton line: km 5 to 6 has a 95% chance of Class 2 by 2035 (most likely early 2028; 8 in 10 of the futures that change fall between mid 2027 and late 2029) and 90% of Class 3. About 820 homes are added within 200 m of the line by 2035 on average.
+
+**Hindcast.** Fitted only on records to the end of 2016, started from the line as it stood then, run to mid 2026. km 6 was given 92% and changed; km 5 was given 64% and did not. Per kilometre Brier score 0.055 over 14 kilometres. Per block it expected 4.6 of 16 planned blocks to start and 7 did, Brier 0.278 against 0.246 for one flat rate: **it picks the kilometre well but does no better than a flat rate at which block starts first.** One line, one hindcast.
+
+**When to order pipe.** `DECISION.orderSignal` takes every simulated change date. The order window is pipe lead time plus build time minus the regulator's clock (8 + 12 - 6 = 14 months in Canada with the placeholders). It says order now if the chance of a change inside that window is above a threshold the user sets (50% by default), and otherwise gives the date when it will be. With a 24-month US clock the window is negative: order after the change.
+
+**Not built.** A gradient-boosted model to explain which blocks start first needs lot-level features (roads, servicing, school sites) that are not loaded yet; the hindcast says that is where the error is. The model is JavaScript, not Python, so the page, the tests and the n8n Code nodes run the same code.
 
 ## What is a guess
 
 - **CSA Z662 counting rules.** The standard is paywalled. Thresholds (11 and 46 dwelling units) and the 200 m by 1.6 km window follow 49 CFR 192.5. Confirm with a pipeline engineer.
 - **Every cost in the decision module.** Placeholders, flagged in the code, the page and the draft PDF.
-- **Construction lag** from permit to occupied dwelling (8 to 20 months by building type).
+- **Apartment move-in time** (20 months). Houses and rowhouses are measured.
 - **A roof is counted as one dwelling.** A duplex is one roof and two units. A crew count overrides the estimate.
 - **Class 4** is not assessed. Tall roofs are listed as a prompt.
 - **Pandell's export layout** and **Guide E's full list of required plan contents** were not seen. The draft plan leaves marked blanks.
@@ -107,4 +125,4 @@ Still to do on the existing workflows: W1 does not yet write the class assessmen
 
 ## Tests
 
-`npm test` runs 74 tests: the 54 that existed, plus 20 for the platform (`test/platform.test.js`), including one on the real Edmonton data and four that run the generated workflows' code.
+`npm test` runs 81 tests: the 54 that existed, 22 for the platform (`test/platform.test.js`) and 5 for the growth model and the order rule (`test/growth.test.js`).
