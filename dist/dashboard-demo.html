@@ -739,7 +739,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .ov-grid > .ws-map { grid-row:2; }
   .ov-grid > .ws-strip { grid-row:3; }
   /* "About this map": the corridor note and how to read it, folded into the map instead of two text bands above it */
-  .about { left:16px; bottom:16px; max-width:340px; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
+  .about { right:16px; top:60px; width:320px; max-height:calc(100% - 156px); overflow:auto; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
   .about summary { list-style:none; cursor:pointer; padding:9px 14px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
   .about summary::-webkit-details-marker { display:none; }
   .about summary::before { content:'i'; display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; border:1px solid var(--ink-3); font:600 10px/1 var(--serif); font-style:italic; color:var(--ink-2); }
@@ -1008,7 +1008,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
     .controls { position:static; }
     .keys { display:none; }
     .card-float { width:360px; }
-    .about[open] { bottom:96px; }
   }
   @media (max-width: 860px) {
     body { height:auto; overflow:auto; display:block; }
@@ -1036,8 +1035,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     .stops span { display:none; }
     #legend { top:12px; left:12px; min-width:0; font-size:11.5px; }
     #basemap { top:auto; bottom:92px; right:12px; }
-    .about { left:12px; right:auto; top:auto; bottom:84px; max-width:calc(100% - 24px); }
-    .about[open] { bottom:84px; }
+    .about { left:12px; right:12px; top:auto; bottom:84px; width:auto; max-height:50%; }
     #sheet { padding:12px 16px; }
     .wf { grid-template-columns:minmax(0,1fr) 80px; } .wf .trk { grid-column:1 / -1; grid-row:2; }
   }
