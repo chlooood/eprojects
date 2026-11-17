@@ -734,12 +734,19 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .stat p { margin:0; font-size:13px; color:var(--ink-2); line-height:1.5; }
 
   /* overview: the full-screen dashboard */
-  .ov-grid { display:grid; grid-template-rows:auto auto auto minmax(0,1fr) auto; height:100%; }
+  .ov-grid { display:grid; grid-template-rows:auto minmax(0,1fr) auto; height:100%; }
   .ov-grid > .ledger { grid-row:1; }
-  #corridorContext { grid-row:2; }
-  .ov-grid > .hint { grid-row:3; }
-  .ov-grid > .ws-map { grid-row:4; }
-  .ov-grid > .ws-strip { grid-row:5; }
+  .ov-grid > .ws-map { grid-row:2; }
+  .ov-grid > .ws-strip { grid-row:3; }
+  /* "About this map": the corridor note and how to read it, folded into the map instead of two text bands above it */
+  .about { left:16px; bottom:16px; max-width:340px; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
+  .about summary { list-style:none; cursor:pointer; padding:9px 14px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
+  .about summary::-webkit-details-marker { display:none; }
+  .about summary::before { content:'i'; display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; border:1px solid var(--ink-3); font:600 10px/1 var(--serif); font-style:italic; color:var(--ink-2); }
+  .about[open] summary { border-bottom:1px solid var(--line); }
+  .about .about-body { padding:10px 14px 12px; display:grid; gap:8px; }
+  .about p { margin:0; }
+  .about a { color:var(--ink-2); }
   .hint { display:flex; align-items:center; gap:16px; padding:9px 20px; border-bottom:1px solid var(--line); background:var(--s1); font-size:13px; color:var(--ink-2); line-height:1.45; }
   .hint b { color:var(--ink); font-weight:600; }
   .hint .k { font-weight:600; }
@@ -751,7 +758,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .cell:hover { background:var(--s1); }
   .cell:last-child { border-right:0; }
   .cell:nth-child(2){animation-delay:.04s} .cell:nth-child(3){animation-delay:.08s} .cell:nth-child(4){animation-delay:.12s} .cell:nth-child(5){animation-delay:.16s} .cell:nth-child(6){animation-delay:.2s}
-  .cell .e { font:500 10.5px/1.2 var(--mono); text-transform:uppercase; letter-spacing:.12em; color:var(--ink-3); }
+  .cell .e { font:500 12.5px/1.25 var(--sans); color:var(--ink-2); }
   .cell .v { font:500 26px/1.1 var(--mono); letter-spacing:-.03em; margin:9px 0 5px; white-space:nowrap; font-variant-numeric:tabular-nums; }
   .cell .v small { font-size:13px; color:var(--ink-3); letter-spacing:0; margin:0 3px; }
   .cell .s { font-size:12px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -759,7 +766,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .stack span { height:100%; border-radius:2px; transition:flex-grow .3s var(--ease); }
   @keyframes rise { from { opacity:0; transform:translateY(6px); } }
   #view-overview .cell { padding:10px 20px 11px; }
-  #view-overview .cell .v { font-size:22px; margin:6px 0 3px; }
+  #view-overview .cell .v { font-size:21px; margin:5px 0 2px; }
+  #view-overview .cell .s { color:var(--ink-3); }
+  #view-overview .keys { display:none; }
   #view-overview .stack { margin-top:6px; }
   .ov-strip #sheet { padding:8px 24px 6px; }
   .ov-strip .sheet-head { margin-bottom:2px; }
@@ -807,9 +816,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .leaflet-tooltip.tc::before, .leaflet-tooltip.anno::before { display:none; }
   .leaflet-tooltip.anno { background:rgba(10,11,10,.85); color:var(--ink); border:1px solid var(--line-2) !important; border:0; border-radius:7px; font:500 12px/1.3 var(--sans); padding:5px 9px; box-shadow:0 4px 14px rgba(0,0,0,.25); pointer-events:none; }
   .leaflet-tooltip.anno b { font:500 11.5px var(--mono); margin-right:6px; }
-  .ovl { position:absolute; z-index:600; background:rgba(16,18,16,.86); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); }
-  #legend { left:16px; top:16px; padding:12px 14px; font-size:12.5px; display:grid; gap:6px; min-width:170px; }
-  #legend .t { font-weight:600; font-size:12.5px; margin-bottom:2px; }
+  .ovl { position:absolute; z-index:600; background:rgba(12,14,12,.74); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border:1px solid rgba(236,238,230,.08); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.35); }
+  #legend { left:16px; top:16px; padding:12px 14px; font-size:12.5px; display:grid; gap:7px; }
+  #legend .t { font-weight:600; font-size:12.5px; margin-bottom:2px; color:var(--ink); }
+  #legend .sw { width:18px; height:4px; }
+  /* Imagery is context, not content: muted so the line and its colours carry the map */
+  .tiles-sat { filter:saturate(.35) brightness(.6) contrast(1.08); }
+  .tiles-plain { filter:brightness(1.12); }
   #legend .li { display:flex; align-items:center; gap:9px; color:var(--ink-2); }
   #basemap { right:60px; top:16px; padding:3px; display:flex; gap:2px; }
   #basemap button, .seg button { border:0; background:none; padding:5px 11px; border-radius:8px; cursor:pointer; font-size:12.5px; color:var(--ink-2); }
@@ -995,6 +1008,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     .controls { position:static; }
     .keys { display:none; }
     .card-float { width:360px; }
+    .about[open] { bottom:96px; }
   }
   @media (max-width: 860px) {
     body { height:auto; overflow:auto; display:block; }
@@ -1022,6 +1036,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
     .stops span { display:none; }
     #legend { top:12px; left:12px; min-width:0; font-size:11.5px; }
     #basemap { top:auto; bottom:92px; right:12px; }
+    .about { left:12px; right:auto; top:auto; bottom:84px; max-width:calc(100% - 24px); }
+    .about[open] { bottom:84px; }
     #sheet { padding:12px 16px; }
     .wf { grid-template-columns:minmax(0,1fr) 80px; } .wf .trk { grid-column:1 / -1; grid-row:2; }
   }
@@ -1052,14 +1068,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <section class="view ws" id="view-overview" hidden>
     <div class="ov-grid" id="ovGrid">
       <section class="ledger" id="ovLedger" aria-label="Climate summary"></section>
-      <div id="corridorContext" class="cap" style="padding:10px 20px;border-bottom:1px solid var(--line)"></div>
-      <div class="hint" id="ovHint">
-        <span><b>How to read this:</b> the line is a <span id="hintKm">demo</span> pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.
-        <span class="k" style="color:var(--red)">Red</span> = inspect first, <span class="k" style="color:var(--amber)">amber</span> = plan a visit, <span class="k" style="color:var(--green)">green</span> = routine cycle. The 2026–30 and 2031–35 windows are separate five-year climate-frequency projections for planning, not weather forecasts.
-        Press <b>&#9654;</b> on the map to compare the observed baseline and projected windows. Hover any number for what it means.</span>
-        <button class="linkbtn" id="bHint">Got it</button>
+      <div class="ws-map"><div class="map-slot" data-map></div>
+        <details class="ovl about" id="ovHint">
+          <summary>About this map</summary>
+          <div class="about-body">
+            <p id="corridorContext"></p>
+            <p>The line is a <span id="hintKm">demo</span> pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.</p>
+            <p>The 2026–30 and 2031–35 windows are five-year climate projections for planning, not weather forecasts. Press <b>&#9654;</b> to compare them with the past 30 years. Hover any number for what it means.</p>
+          </div>
+        </details>
       </div>
-      <div class="ws-map"><div class="map-slot" data-map></div></div>
       <div class="ws-strip ov-strip" data-strip="0.55" data-lanes="climate" data-annot="1"></div>
     </div>
   </section>
@@ -1133,7 +1151,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <div id="mapBox">
     <div id="map" aria-label="Corridor map"></div>
     <div class="ovl" id="legend"></div>
-    <div class="ovl" id="basemap" role="group" aria-label="Basemap"><button data-bm="sat" class="on">Satellite</button><button data-bm="map">Map</button></div>
+    <div class="ovl" id="basemap" role="group" aria-label="Basemap"><button data-bm="sat" class="on">Satellite</button><button data-bm="map">Plain</button></div>
     <div class="ovl" id="timeline" role="group" aria-label="Projection timeline">
       <button id="bPlay" aria-label="Play the projection"></button>
       <div class="stops">
@@ -2048,8 +2066,8 @@ function initMap() {
   // setView now so Leaflet counts as "loaded"; otherwise invalidateSize() is a no-op and the first fit uses a 0x0 size.
   map = L.map('map', { zoomControl: false, zoomSnap: .25, zoomDelta: .5 }).setView([53.1, -112.4], 8);
   L.control.zoom({ position: 'topright' }).addTo(map);
-  baseLayers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagery: Esri, Maxar, Earthstar Geographics', maxZoom: 18 });
-  baseLayers.map = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap contributors © CARTO', subdomains: 'abcd', maxZoom: 19 });
+  baseLayers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagery: Esri, Maxar, Earthstar Geographics', maxZoom: 18, className: 'tiles-sat' });
+  baseLayers.map = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap contributors © CARTO', subdomains: 'abcd', maxZoom: 19, className: 'tiles-plain' });
   baseLayers.sat.addTo(map);
   const all = [];
   sunLayer = L.layerGroup();
@@ -2059,7 +2077,7 @@ function initMap() {
   }
   for (const s of segs) {
     const ll = s.centreline.map((p) => [p[1], p[0]]); all.push(...ll);
-    casings[s.id] = L.polyline(ll, { color: C.bg, weight: 9, opacity: .9, interactive: false }).addTo(map);
+    casings[s.id] = L.polyline(ll, { color: C.bg, weight: 12, opacity: .8, lineJoin: 'round', interactive: false }).addTo(map);
   }
   for (const s of segs) {
     const ll = s.centreline.map((p) => [p[1], p[0]]);
@@ -2072,7 +2090,7 @@ function initMap() {
   crossLayer = L.layerGroup().addTo(map);
   for (const s of segs) for (const x of s.crossings || []) {
     if (!x.at) continue;
-    crossMarkers.push({ s, m: L.circleMarker([x.at[1], x.at[0]], { radius: 7, color: C.bg, weight: 2, fillColor: C.river, fillOpacity: 1 })
+    crossMarkers.push({ s, m: L.circleMarker([x.at[1], x.at[0]], { radius: 6, color: C.bg, weight: 2.5, fillColor: C.river, fillOpacity: 1 })
       .addTo(crossLayer).on('click', () => select(s.id))
       .bindTooltip(() => { const h = (s.risk[stop].hazards || {}).crossing; return `<b>River crossing</b> · ${esc(x.name || x.kind)}${x.peakFlowM3s != null ? ' · peak ' + Math.round(x.peakFlowM3s) + ' m³/s' : ''}${h ? ' · ' + TIER_LABEL[h.tier] + ' ' + Math.round(h.score) : ''}`; }, { className: 'tc', direction: 'top', offset: [0, -8] }) });
   }
@@ -2104,7 +2122,7 @@ function paint() {
   if (layer !== 'build' && map.hasLayer(sunLayer)) map.removeLayer(sunLayer);
   for (const s of segs) {
     const isSel = s.id === selected, isHov = s.id === hover, t = tierOf(s);
-    const w = isSel ? 9 : isHov ? 8 : (layer === 'risk' && t.startsWith('red') ? 6.5 : 5);
+    const w = isSel ? 10 : isHov ? 9 : (layer === 'risk' && t.startsWith('red') ? 7.5 : 6);
     lines[s.id].setStyle({ color: mapColor(s), weight: w, opacity: selected && !isSel && !isHov ? .75 : 1 });
     casings[s.id].setStyle({ color: isSel ? C.ink : C.bg, weight: w + (isSel ? 6 : 4) });
     if (isSel || isHov) { casings[s.id].bringToFront(); lines[s.id].bringToFront(); }
@@ -2867,8 +2885,8 @@ function wire() {
   addEventListener('hashchange', onRoute);
   document.addEventListener('click', (e) => { const b = e.target instanceof Element && e.target.closest('[data-stop]'); if (b) setStop(b.dataset.stop); });
   bPlay.onclick = play;
-  try { if (localStorage.getItem('tc-hint') === '1') ovHint.hidden = true; } catch (e) {}
-  bHint.onclick = () => { ovHint.hidden = true; try { localStorage.setItem('tc-hint', '1'); } catch (e) {} requestAnimationFrame(() => map.invalidateSize()); };
+  try { ovHint.open = localStorage.getItem('tc-hint') !== '1'; } catch (e) { ovHint.open = true; }
+  ovHint.addEventListener('toggle', () => { if (!ovHint.open) try { localStorage.setItem('tc-hint', '1'); } catch (e) {} });
   basemap.querySelectorAll('button').forEach((b) => b.onclick = () => {
     basemap.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
     for (const [k, l] of Object.entries(baseLayers)) k === b.dataset.bm ? l.addTo(map) : map.removeLayer(l);
