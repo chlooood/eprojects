@@ -91,3 +91,34 @@ SVG and Leaflet need hex: use the `C` object in JS, which mirrors these tokens.
 - Every control reachable by keyboard; visible focus ring (`outline: 2px solid var(--ink)`).
 - Tier is never colour-only: chip text or tooltip always names it.
 - Contrast: body text on `--s1` >= 4.5:1 (`--ink-2` passes; `--ink-3` only for labels >= 10.5px uppercase).
+
+
+## Segment record page (`web/platform.html`, added 2026-11-16)
+
+The project grew from a geohazard dashboard into a compliance platform. This page has its own rules.
+
+Concept: **the imagery is the page.** Satellite imagery runs edge to edge. Chrome sits at the edges. One panel tells
+one kilometre's story. One strip is the whole line.
+
+- **One signature move:** the compare line. Older imagery on the left; on the right, today or the outlook to 2028,
+  2030 or 2035 (default 2035). Draggable anywhere along its height. Nothing else on the page competes with it.
+- **The outlook is drawn only right of the line:** amber for homes with a permit or approval, dashed sand for the
+  scenarios. Zoomed out, one label per neighbourhood plan; zoomed in, one per 400 m. Scenario numbers carry a `~`.
+- **One panel, one step at a time:** What changed, Options, Decide, Record. Never show all four at once. The first
+  screen is a kilometre name, one sentence, three numbers and one bar.
+- **One strip:** a single row of cells, one per kilometre, coloured by class location status. No stacked lanes.
+- **Type:** kilometre name in Instrument Serif italic at 64px. Lead sentence 19px. Numbers 34px mono. No uppercase
+  eyebrows except the small location line above the title.
+- **Markers:** one quiet dot per 200 m. White for homes added, amber where permits are issued, a ring where only
+  approved. Never clusters of overlapping circles.
+- **No cards inside the panel.** Hairlines between facts, a left rule for notes. Pills only for buttons.
+- **Glass panels** over imagery: `rgba(10,11,10,.82)` with a 14px blur. Corners 14 to 16px.
+- Imagery: Esri World Imagery Wayback releases, with attribution. Label years as publication dates.
+- The page must be opened in a real browser. Sandboxed previews block the imagery tiles.
+
+References studied (Awwwards maps collection, Nov 2026): Statskogmillionen (full-bleed dark map, controls only at
+the edges), Lewa House wildlife map (satellite imagery beside one editorial panel), The Witcher map of the Continent
+(a timeline along the bottom as the main navigation), Google Cloud Infrastructure (sparse labels, one accent),
+Beyond the Fold (map and story side by side), Kopke port wine map (large serif over terrain), Misato Town (scroll
+drives the map), plus Marseille by La Phase 5, Local Guides, Tavalo, Horizonte Village and two WebGL terrain maps.
+

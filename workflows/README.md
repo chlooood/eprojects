@@ -55,3 +55,7 @@ You do not need to re-import W1 or W2 if they already run. The repo copy of W1 n
 ## Coquihalla comparison corridor
 
 The new manual-only **TerraCorridor Seed - Coquihalla assessment** (15 nodes) upserts only BC rows, preserving Edmonton. The updated API has 12 nodes. See [BC evidence and activation](../docs/BC_CORRIDOR.md) before importing. The seed includes cached real inputs; it does not run other workflows or send mail.
+
+## Platform workflows (W6 to W9)
+
+Generated from `src/` by `node scripts/make-platform-workflows.js`: class location watch, field feedback, land obligations, approval gate and evidence. They need five new Data tables. Columns and import steps are in `docs/PLATFORM.md`. They are exported inactive and have not been run in n8n yet. W5 (solar) is retired from the interface; its export stays because existing tests read it.

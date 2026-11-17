@@ -2,11 +2,11 @@
   "name": "terracorridor",
   "version": "0.2.0",
   "private": true,
-  "description": "Self-running pipeline corridor risk dashboard. UBC eProjects x n8n LOOP buildathon.",
+  "description": "Pipeline compliance platform: one record per kilometre for class location, geohazards, land obligations and encroachment, with one approval trail.",
   "scripts": {
-    "test": "node --test test/engine.test.js test/dashboard-api.test.js test/workflows.test.js test/corridors.test.js",
+    "test": "node --test test/engine.test.js test/dashboard-api.test.js test/workflows.test.js test/corridors.test.js test/platform.test.js test/growth.test.js",
     "demo": "node scripts/make-demo.js",
-    "build": "node scripts/build.js && node scripts/make-api-workflow.js",
+    "build": "node scripts/make-platform-data.js && node scripts/build.js && node scripts/make-api-workflow.js",
     "features": "node ml/features.js",
     "train": "python ml/train.py",
     "validate": "node scripts/validate-workflows.js",
@@ -29,7 +29,10 @@
     "verify-bc-inputs": "node scripts/verify-bc-inputs.js",
     "record-bc-inputs": "node scripts/verify-bc-inputs.js --record",
     "verify-bc-route": "node scripts/verify-bc-route.js",
-    "refresh-bc-climate": "node scripts/refresh-bc-climate.js"
+    "refresh-bc-climate": "node scripts/refresh-bc-climate.js",
+    "platform-workflows": "node scripts/make-platform-workflows.js",
+    "platform-data": "node scripts/make-platform-data.js",
+    "fetch-permits": "node scripts/fetch-permits.js"
   },
   "devDependencies": {
     "playwright": "1.62.1"
