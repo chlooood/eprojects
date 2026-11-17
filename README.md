@@ -29,7 +29,7 @@ On a public pipeline route near Edmonton, using City of Edmonton open data:
 ## Run it
 
 ```
-npm test        # 74 tests
+npm test        # 76 tests
 npm run build   # rebuilds the data and the pages
 ```
 

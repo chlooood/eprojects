@@ -70,6 +70,7 @@
   .btnrow { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; align-items:center; } label.f { display:block; font-size:12.5px; color:var(--ink-3); margin:12px 0 4px; } .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   select, input[type=text], input[type=number], input:not([type]) { background:rgba(236,238,230,.06); border:1px solid var(--line); border-radius:8px; padding:8px 10px; width:100%; }
   header select { width:auto; border-radius:99px; padding:5px 10px; font-size:13px; }
+  header .rules { color:var(--ink-2); display:flex; align-items:center; gap:8px; padding:4px 4px 4px 14px; border-radius:99px; }
   details summary { cursor:pointer; color:var(--ink-2); font-size:14px; }
   table { width:100%; border-collapse:collapse; font-size:14px; } td { padding:9px 6px 9px 0; border-top:1px solid var(--line); vertical-align:top; }
   #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:99px; font-size:14px; display:none; z-index:999; }
@@ -91,7 +92,7 @@
     <a class="mark" href="index.html">Terra<em>Corridor</em></a>
     <nav aria-label="Pages"><a href="index.html?corridor=ab-strathcona-demo">Geohazard map</a><a class="on" href="platform.html" aria-current="page">Segment record</a><a href="index.html?corridor=ab-strathcona-demo#/log">Work orders</a></nav>
     <span style="flex:1"></span>
-    <label class="cap">Rules <select id="jur" aria-label="Regulator"><option value="CA">Canada, CER</option><option value="US">United States, PHMSA</option></select></label>
+    <label class="cap glass rules">Rules <select id="jur" aria-label="Regulator"><option value="CA">Canada, CER</option><option value="US">United States, PHMSA</option></select></label>
   </header>
   <div class="glass" id="strip" aria-label="The pipeline, kilometre by kilometre"></div>
   <aside class="glass" id="inspector" aria-live="polite"></aside>

@@ -2277,7 +2277,7 @@ function drawStrip() {
       }
     });
     if (lane.k === 'ndvi' || lane.clim) out += `<line x1="${LW}" x2="${W}" y1="${y + h / 2}" y2="${y + h / 2}" stroke="${C.ink3}" stroke-width=".6"/>`;
-    if (lane.clim) out += `<text x="0" y="${y + h - 2}" fill="${C.ink3}" font-size="9.5" font-family="JetBrains Mono, monospace">change</text>`;
+    if (lane.clim && h >= 24) out += `<text x="0" y="${y + h - 2}" fill="${C.ink3}" font-size="9.5" font-family="JetBrains Mono, monospace">change</text>`;
     y += h + GAP;
   }
   y -= GAP;
