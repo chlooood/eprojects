@@ -1,8 +1,5 @@
 # n8n workflows
 
-> **This page describes the hackathon workflow set (Nov 14 to 15), which is frozen.** The current setup, the v2 workflows in the "TerraCorridor Revamped" folder, is in [docs/N8N_V2.md](../docs/N8N_V2.md). Read that first.
-
-
 These exports run as one system in **one** n8n instance. They share Data tables, so the order and the table names matter.
 
 ```
@@ -52,12 +49,9 @@ You do not need to re-import W1 or W2 if they already run. The repo copy of W1 n
 - **AI nodes use n8n "Gateway credits"** (W2 Claude Haiku, WF4 and W5 OpenAI). All three fail open: W2 leaves the explanation empty, WF4 writes a fixed-template summary, W5 falls back without the narrative. Nothing stops.
 - **W2 only explains amber and red.** Green segments show template text built from the same numbers. See `docs/THRESHOLDS.md` for the tier mapping.
 - **Overrides are per horizon.** A tier override at `y10` does not change the `y5` tier.
+- **W6 is not in the repo.** W5's shared adapter block says there is an identical copy in W6. If W6 exists, run its copy of the block through `scripts/wire-workflows.js` too (it matches on the `integrations` object).
 - Each export has `active` set as its author left it. n8n ignores that on import. Publish what you need.
 
 ## Coquihalla comparison corridor
 
 The new manual-only **TerraCorridor Seed - Coquihalla assessment** (15 nodes) upserts only BC rows, preserving Edmonton. The updated API has 12 nodes. See [BC evidence and activation](../docs/BC_CORRIDOR.md) before importing. The seed includes cached real inputs; it does not run other workflows or send mail.
-
-## Platform workflows (W6 to W9)
-
-Generated from `src/` by `node scripts/make-platform-workflows.js`: class location watch, field feedback, land obligations, approval gate and evidence. They need five new Data tables. Columns and import steps are in `docs/PLATFORM.md`. They now run live as the v2 set; see `docs/N8N_V2.md`. W5 (solar) is cut from the product; its export stays because existing tests read it. `legacy/` holds the old single-workflow design and the hackathon showcase export, for reference only.

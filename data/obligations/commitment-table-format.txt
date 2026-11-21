@@ -1,5 +1,0 @@
-ILLUSTRATIVE COMMITMENT TRACKING TABLE (format example, not a real filing)
-ID | Source | Commitment | Location | Status
-C-101 | Hearing transcript vol. 3 | The Company will provide landowners with a minimum of 72 hours notice prior to any ground disturbance on their lands. | KP 5.2 to KP 6.4 | In progress
-C-102 | Application s. 8.4 | The Company will retain an Indigenous monitor for all clearing activity within the identified traditional use area. | KP 7.4 to KP 8.8 | Scoping
-C-103 | Response to IR 2.14 | The Company will complete reclamation of disturbed agricultural land within one growing season. | KP 5.2 to KP 9.0 | Not started
