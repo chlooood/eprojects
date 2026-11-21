@@ -119,7 +119,7 @@ To put them live in the team's instance:
 3. Import the four JSON files. W8 points at the same Gemini credential as WF4.
 4. Open the page with `?api=https://YOUR-INSTANCE.app.n8n.cloud/webhook/terracorridor` and decisions and findings go to n8n as well as the browser.
 
-Not tested live: nothing above has run inside n8n. The tests run the real Code-node source with n8n's globals mocked (`test/platform.test.js`). Whether n8n Cloud can reach data.edmonton.ca is unknown.
+Live status: W6 to W9 are running in the team's n8n instance as the v2 set, behind a webhook key, and n8n Cloud reaches data.edmonton.ca directly. Current state, table IDs and next steps: `docs/N8N_V2.md`. The tests still run the real Code-node source with n8n's globals mocked (`test/platform.test.js`).
 
 Still to do on the existing workflows: W1 does not yet write the class assessment band as a polygon (the module computes it from the centreline), and the W2 scoring still lives in n8n Code nodes rather than a module.
 

@@ -14,6 +14,16 @@ TerraCorridor reads free public records (building permits, development permits, 
 - **Joins what nobody joins.** Class location, ground hazards, land terms and nearby digging sit on the same kilometre and change each other's answers.
 - **Keeps the decision record.** What changed, what was chosen, what the crew found, hash-chained per kilometre. That history cannot be scraped.
 
+## How it's built
+
+One record per pipeline kilometre, with three modules on it:
+
+- **Class location:** permits and plans forecast class changes and start the regulator's clock.
+- **Land obligations:** promises from agreements, checked before any work order breaks ground.
+- **Geohazard:** ground and weather risk, the context that can change which response is cheapest.
+
+n8n runs the schedules and the approval gate: every decision is made by a named person and hash-chained. Setup, status and next steps: [docs/N8N_V2.md](docs/N8N_V2.md).
+
 ## See it
 
 Open `dist/platform.html` in a browser. Pick a year and drag the line across the map to compare older satellite imagery with today's. Click any kilometre in the strip.
@@ -38,6 +48,6 @@ A weekly GitHub Action refreshes the permit data. No paid services.
 
 ## Honest limits
 
-Costs are placeholders. Land terms are example rows. The class rules follow the US regulation because the Canadian standard is paywalled. No operator is involved. Details: [docs/PLATFORM.md](docs/PLATFORM.md). The original geohazard dashboard: [docs/GEOHAZARD_DASHBOARD.md](docs/GEOHAZARD_DASHBOARD.md).
+Costs are placeholders. Land terms are example rows. The class rules follow the US regulation because the Canadian standard is paywalled. No operator is involved. Details: [docs/PLATFORM.md](docs/PLATFORM.md). The geohazard dashboard: [docs/GEOHAZARD_DASHBOARD.md](docs/GEOHAZARD_DASHBOARD.md). Buildathon-era notes: [docs/hackathon/](docs/hackathon/).
 
 Built by a UBC student team. Started at the UBC eProjects x n8n buildathon.

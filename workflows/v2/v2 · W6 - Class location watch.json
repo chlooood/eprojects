@@ -14,30 +14,6 @@
     },
     {
       "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "weeks",
-              "weeksInterval": 1,
-              "triggerAtDay": [
-                1
-              ],
-              "triggerAtHour": 6
-            }
-          ]
-        }
-      },
-      "id": "2cb91a14-5300-421b-8049-22e8e88460fc",
-      "name": "Every Monday 06:00",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        0,
-        200
-      ]
-    },
-    {
-      "parameters": {
         "jsCode": "// One municipality to start: City of Edmonton open data (free, no key). Change the corridor and jurisdiction here.\nreturn [{ json: { corridor_id: 'ab-strathcona-demo', jurisdiction: 'CA', municipality: 'City of Edmonton',\n  buildingPermits: 'https://data.edmonton.ca/resource/24uj-dj8v.json', developmentPermits: 'https://data.edmonton.ca/resource/2ccn-pwtu.json', devSince: '2024-01-01', baselineDate: '2019-12-31' } }];"
       },
       "id": "b095eb18-9f31-49e1-88e4-aa8d76681e93",
@@ -45,7 +21,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        260,
+        256,
         0
       ]
     },
@@ -65,7 +41,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        520,
+        528,
         0
       ],
       "executeOnce": true,
@@ -81,7 +57,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        780,
+        784,
         0
       ]
     },
@@ -149,7 +125,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1300,
+        1296,
         0
       ],
       "executeOnce": true,
@@ -172,7 +148,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1560,
+        1568,
         0
       ],
       "executeOnce": true,
@@ -188,7 +164,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1820,
+        1824,
         0
       ]
     },
@@ -351,7 +327,8 @@
               "canBeUsedToMatch": true
             }
           ]
-        }
+        },
+        "options": {}
       },
       "id": "22e7f1da-1ad0-4eeb-8a76-d73e8079c4b9",
       "name": "Upsert class rows",
@@ -364,19 +341,42 @@
     },
     {
       "parameters": {
-        "content": "## W6 Class location watch (beachhead core)\nCounts dwellings in a 1.6 km window, 200 m each side, from City of Edmonton building and development permits plus the 2019 roofline baseline, and flags class changes with the regulator clock and response options. A failed download writes unverified, never no change. Verified run on Nov 17: 22 no change, 1 Class 1 to 2 possible.\n\n**Trigger:** Mondays 06:00, or run by hand\n**Reads:** corridor_segments, corridor_class_baseline, data.edmonton.ca 24uj-dj8v and 2ccn-pwtu\n**Writes:** corridor_class\n**Next:** Read by v2 · W9 platform feed\n\nPart of the v2 set. Hackathon originals are untouched. Source of truth: github.com/katiescase/terracorridor/workflows. Change the repo and re-import, do not hand-edit.",
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "2cb91a14-5300-421b-8049-22e8e88460fc",
+      "name": "Every Monday 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## W6 Class location watch (beachhead core)\nCounts dwellings in a 1.6 km window, 200 m each side, from City of Edmonton building and development permits plus the 2019 roofline baseline, and flags class changes with the regulator clock and response options. A failed download writes unverified, never no change. Verified run on Nov 17: 22 no change, 1 Class 1 to 2 possible.\n\n**Trigger:** Mondays 06:00, or run by hand\n**Reads:** corridor_segments, corridor_class_baseline, data.edmonton.ca 24uj-dj8v and 2ccn-pwtu\n**Writes:** corridor_class\n**Next:** corridor_class is read by **v2 · W9** (platform feed), **v2 · W11** (filing clock) and **v2 · API - Dashboard feed**\n\ndecision_json carries placeholder response-option costs on purpose. They are labelled placeholders, not estimates.\n\nPart of the v2 set. Hackathon originals are untouched. Source of truth: github.com/katiescase/terracorridor/workflows. Change the repo and re-import, do not hand-edit.",
         "height": 300,
         "width": 1100,
         "color": 5
       },
+      "id": "d15ea21e-012a-4fb2-b054-992621d1b718",
+      "name": "About this workflow",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -40,
-        -360
-      ],
-      "id": "2f2b65fa-c56d-4f8a-adb3-0a1d0fcafbc2",
-      "name": "About this workflow"
+        -32,
+        -352
+      ]
     }
   ],
   "pinData": {},
@@ -481,12 +481,24 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
   },
+  "versionId": "7d5bd91a-aa12-4a60-bba2-c55977245275",
   "meta": {
-    "templateCredsSetupCompleted": true
+    "instanceId": "75fcd7e84008a7bc6d8634e6f5f0aeef3cc11569a8e4c5b0e2e834fc9112e9a8"
   },
-  "tags": []
+  "nodeGroups": [],
+  "id": "gn4jvaPxSQY59uAF",
+  "tags": [
+    {
+      "updatedAt": "2026-11-17T20:00:26.055Z",
+      "createdAt": "2026-11-17T20:00:26.055Z",
+      "id": "hB0nphs0IEBhbMk2",
+      "name": "v2"
+    }
+  ]
 }

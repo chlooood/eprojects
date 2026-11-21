@@ -69,7 +69,7 @@ dist/                    Built files. dashboard-demo.html opens in any browser w
 ml/features.js           Builds training data from PHMSA accidents + Open-Meteo history
 ml/train.py              Logistic regression -> ml/model.json (paste into 05-score.js MODEL)
 data/cache/              Real API responses saved for demo fallback
-docs/                    Disclosures, tier mapping (THRESHOLDS.md), backend notes, judge pack (JUDGE_PACK.md)
+docs/                    Disclosures, tier mapping (THRESHOLDS.md), hackathon-era notes and judge pack (docs/hackathon/)
 ```
 
 ## Quick start
@@ -82,7 +82,7 @@ npm run build            # rebuild dashboard and n8n node code
 
 Open `dist/dashboard-demo.html` in a browser to see the dashboard with demo data.
 
-In n8n: import the exports in `workflows/` following `workflows/README.md`. Passing tests prove the Code-node logic and the data contracts. They do not prove that the n8n instance, its credentials, webhooks or Data tables are set up; `JUDGE_PACK.md` lists what was checked live.
+In n8n: import the exports in `workflows/` following `workflows/README.md`. Passing tests prove the Code-node logic and the data contracts. They do not prove that the n8n instance, its credentials, webhooks or Data tables are set up; `docs/hackathon/JUDGE_PACK.md` lists what was checked live during the buildathon. The current n8n setup is in `docs/N8N_V2.md`.
 
 ## Data is labelled
 
