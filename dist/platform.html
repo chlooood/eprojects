@@ -699,7 +699,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   #drag { position:absolute; top:0; bottom:0; width:48px; margin-left:-24px; z-index:460; cursor:ew-resize; touch-action:none; }
   #grip { position:absolute; top:46%; left:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:var(--ink); color:var(--bg); display:grid; place-items:center; font:15px var(--mono); box-shadow:0 4px 18px rgba(0,0,0,.45); }
   .side { position:absolute; top:74px; z-index:455; font:11px var(--mono); letter-spacing:.06em; padding:5px 10px; border-radius:99px; white-space:nowrap; pointer-events:none; }
-  .yr { position:absolute; top:70px; z-index:470; display:flex; gap:2px; padding:3px; border-radius:99px; } .yr button { background:none; border:0; border-radius:99px; padding:4px 11px; font:11.5px var(--mono); color:var(--ink-2); cursor:pointer; white-space:nowrap; } .yr button[aria-pressed=true] { background:var(--ink); color:var(--bg); } #ahead button.fut[aria-pressed=true] { background:var(--amber); }
+  .yr { position:absolute; top:70px; z-index:470; display:flex; gap:2px; padding:3px; border-radius:99px; } .yr button { background:none; border:0; border-radius:99px; padding:4px 11px; font:11.5px var(--mono); color:var(--ink-2); cursor:pointer; white-space:nowrap; } .yr button[aria-pressed=true] { background:var(--ink); color:var(--bg); } #ahead button.fut[aria-pressed=true] { background:var(--amber); } .yr .yl { align-self:center; padding:0 6px 0 9px; font:11px var(--mono); color:var(--ink-3); white-space:nowrap; } #aheadNote { position:absolute; top:106px; z-index:470; max-width:300px; padding:6px 10px; border-radius:10px; font-size:12px; color:var(--ink-2); pointer-events:none; }
   .plus { font:500 11.5px/20px var(--mono); color:var(--bg); background:var(--amber); border-radius:99px; padding:0 9px; white-space:nowrap; width:auto !important; transform-origin:left; box-shadow:0 2px 8px rgba(0,0,0,.4); } .plus.maybe { background:#d9c48c; }
   /* the line, as a strip */
   #strip { position:absolute; left:22px; right:474px; bottom:20px; z-index:600; border-radius:14px; padding:12px 14px 8px; }
@@ -752,6 +752,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div id="drag" aria-hidden="true"><span id="grip">↔</span></div>
     <div class="glass yr" id="ahead" role="group" aria-label="Right of the line: today, or a forecast year"></div>
     <div class="glass yr" id="years" role="group" aria-label="Older imagery to compare with today"></div>
+    <div class="glass" id="aheadNote" aria-live="polite"></div>
     <input class="sr" id="swipe" type="range" min="2" max="98" value="26" aria-label="Move the compare line. Older imagery is on the left, today on the right.">
   </div>
   <header class="top">
@@ -1860,6 +1861,15 @@ window.TC_GROWTH_RESULT = {"corridor":"ab-strathcona-demo","builtFrom":["data/ca
 const DATA = window.TC_PLATFORM_DATA, BT = window.TC_BACKTEST;
 const { TC_SEGMENTS: SEG, TC_CLASS: CLASS, TC_DECISION: DECISION, TC_LEDGER: LEDGER, TC_FEEDBACK: FEEDBACK, TC_EXPORT: EXPORT, TC_PLATFORM: PLATFORM } = globalThis;
 const API = new URLSearchParams(location.search).get('api') || '';
+// Key for POSTs to n8n (Header Auth credential "TerraCorridor v2 webhook key"). Open the page once with ?key=...;
+// it is kept in this browser and removed from the address bar so a copied link never carries it.
+const N8N_KEY = (() => {
+  const q = new URLSearchParams(location.search), k = q.get('key');
+  try {
+    if (k) { localStorage.setItem('tc-key', k); q.delete('key'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); }
+    return k || localStorage.getItem('tc-key') || '';
+  } catch (e) { return k || ''; }
+})();
 const KEY = 'tc-platform:' + DATA.meta.corridorId;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1959,9 +1969,9 @@ function initMap() {
   drag.addEventListener('pointermove', (e) => { if (dragging) move(e); });
   const end = () => { dragging = false; map.dragging.enable(); };
   drag.addEventListener('pointerup', end); drag.addEventListener('pointercancel', end);
-  $('years').innerHTML = WAYBACK.map((w) => `<button type="button" data-y="${w.year}" aria-pressed="${w.year === store.before}">${w.year}</button>`).join('');
+  $('years').innerHTML = `<span class="yl">Photo from</span>` + WAYBACK.map((w) => `<button type="button" data-y="${w.year}" aria-pressed="${w.year === store.before}">${w.year}</button>`).join('');
   for (const b of $('years').querySelectorAll('button')) b.onclick = () => { store.before = b.dataset.y; save(); beforeLayer.setUrl(tileUrl(WAYBACK.find((w) => w.year === store.before).id)); for (const x of $('years').querySelectorAll('button')) x.setAttribute('aria-pressed', x === b); clip(); };
-  $('ahead').innerHTML = `<button type="button" data-y="">Today</button>` + AHEAD.map((y) => `<button type="button" class="fut" data-y="${y}">${y}</button>`).join('');
+  $('ahead').innerHTML = `<span class="yl">Forecast</span><button type="button" data-y="">Off</button>` + AHEAD.map((y) => `<button type="button" class="fut" data-y="${y}">${y}</button>`).join('');
   for (const b of $('ahead').querySelectorAll('button')) b.onclick = () => { store.ahead = b.dataset.y; save(); render(); };
   clip();
 }
@@ -1974,6 +1984,7 @@ function clip() {
   $('years').style.left = Math.max(12, px - $('years').offsetWidth - 14) + 'px';
   map.getPane('future').style.clipPath = map.getPane('after').style.clipPath;
   $('ahead').style.left = px + 14 + 'px';
+  $('aheadNote').style.left = px + 14 + 'px';
 }
 // Per 200 m of line: homes built since the 2019 roof survey, homes with a building permit that are not finished,
 // and homes approved by development permit. "coming" is what has yet to be built.
@@ -1992,6 +2003,7 @@ function paintMap() {
   for (const r of built.records) lines[r.id].setStyle({ color: C[tone(r)], weight: r.id === selected ? 8 : 5 });
   dotLayer.clearLayers(); bandLayer.clearLayers(); futureLayer.clearLayers();
   for (const b of $('ahead').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.y === store.ahead);
+  $('aheadNote').textContent = store.ahead ? `Right: today's photo. Shaded where homes are expected by ${store.ahead} (average of ${(FUT ? FUT.runs : 1000).toLocaleString('en-CA')} simulated futures).` : "Right: today's photo.";
   const bins = binsNow();
   // One quiet dot per 200 m: white for homes added since 2019, amber where permits are issued, a ring where only approved.
   const rad = (u) => 2.5 + Math.sqrt(u) * 0.9;
@@ -2043,7 +2055,7 @@ function renderStrip() {
   $('strip').innerHTML = `<div class="head"><b>${esc(DATA.meta.name)}</b><span>${recs.length} km. ${u.length} need a decision.${store.ahead ? ` Looking ahead to ${store.ahead}.` : ''}</span>${next ? `<button type="button" id="next">Next: km ${next.kmFrom}–${next.kmTo}</button>` : ''}</div>
     <div class="cells">${recs.map((x) => { const c = x.classLocation, o = ahead(x), tip = o && !o.top ? `${pct(o.p)} chance of Class ${o.to} by ${store.ahead}` : statusOf(x)[1]; return `<button type="button" class="cell${x.id === selected ? ' sel' : ''}${x.openItems.length ? ' open' : ''}" data-id="${esc(x.id)}" style="background:${tone(x) === 'sand' ? 'repeating-linear-gradient(135deg,#d9c48c,#d9c48c 4px,#a8975f 4px,#a8975f 8px)' : C[tone(x)]}" aria-label="km ${x.kmFrom} to ${x.kmTo}, ${esc(tip)}" title="km ${x.kmFrom}–${x.kmTo}: ${esc(tip)}">${o && !o.top ? o.s.classNow + (o.p >= 0.05 ? '→' + o.to : '') : c ? c.class.now + (c.change ? '→' + c.change.to : '') : ''}</button>`; }).join('')}</div>
     <div class="cells ruler">${recs.map((x) => `<span>${x.kmFrom % 2 === 0 ? x.kmFrom : ''}</span>`).join('')}</div>
-    <div class="key">${store.ahead ? `<span>Chance of the next class by ${store.ahead}, from ${FUT.runs} simulated futures.</span><span><i style="background:${C.red}"></i>70% or more</span><span><i style="background:${C.amber}"></i>30 to 70%</span><span><i style="background:${C.sand}"></i>5 to 30%</span><span><i style="background:${C.green}"></i>Under 5%, or already Class 3</span>` : `<span>Number is the class today.</span><span><i style="background:${C.green}"></i>No change</span><span><i style="background:${C.red}"></i>Permits issued</span><span><i style="background:${C.amber}"></i>Approved</span>`}<span><i style="background:${C.ink}"></i>Dot above: needs a decision</span></div>`;
+    <div class="key">${store.ahead ? `<span>Colour: chance this km moves to a stricter class by ${store.ahead}, out of ${FUT.runs.toLocaleString('en-CA')} simulated futures.</span><span><i style="background:${C.red}"></i>70% or more</span><span><i style="background:${C.amber}"></i>30 to 70%</span><span><i style="background:${C.sand}"></i>5 to 30%</span><span><i style="background:${C.green}"></i>Under 5%, or already Class 3</span>` : `<span>Number: class today. Colour: what city records show now.</span><span><i style="background:${C.green}"></i>No change</span><span><i style="background:${C.red}"></i>Permits issued</span><span><i style="background:${C.amber}"></i>Approved</span>`}<span><i style="background:${C.ink}"></i>Dot above: needs a decision</span></div>`;
   for (const b of $('strip').querySelectorAll('button.cell')) b.onclick = () => select(b.dataset.id);
   if ($('next')) $('next').onclick = () => select(next.id);
 }
@@ -2188,7 +2200,7 @@ function render() { compute(); renderStrip(); paintMap(); renderInspector(); }
 /* ---------- actions ---------- */
 async function send(path, body) {
   if (!API) return 'kept in this browser';
-  try { const res = await fetch(API.replace(/\/$/, '') + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); return res.ok ? 'recorded in n8n' : 'n8n refused it (' + res.status + '), kept in this browser'; }
+  try { const res = await fetch(API.replace(/\/$/, '') + path, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, N8N_KEY ? { 'X-TerraCorridor-Key': N8N_KEY } : {}), body: JSON.stringify(body) }); return res.ok ? 'recorded in n8n' : res.status === 403 ? 'n8n refused it: missing or wrong key (open the page once with ?key=...), kept in this browser' : 'n8n refused it (' + res.status + '), kept in this browser'; }
   catch (e) { return 'n8n not reachable, kept in this browser'; }
 }
 async function decide(r, draft, decision) {
