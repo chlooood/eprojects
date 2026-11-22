@@ -1,0 +1,133 @@
+--
+title: "Pipeline Engineering Meeting Notes"
+date: "2026-11-21"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+---
+
+# 1. Canadian Pipeline Code – CSA Z662
+
+## Location Classes
+
+- Z662 is the Canadian pipeline code.
+- The code establishes different pipeline location classes:
+    - **Class 1:** Wilderness areas.
+    - **Class 4:** High-rise / densely populated areas.
+- When a pipeline is built, builders must take into account the current location class of each section.
+- The reason for having different location classes is that pipelines are pressure-containing entities:
+    - Higher location classes require thicker pipeline walls.
+- Future development must also be taken into account to predict where housing may be built.
+
+**Example:**
+
+- ATCO could have built a pipeline 40 years ago.
+- Very old pipelines can experience location class changes that did not exist when they were originally built.
+- Pipeline companies regularly track their pipelines to make sure they are up to date with current requirements.
+- A lot of planning is involved in accounting for these changes.
+
+# 2. Pipeline Failure, Corrosion and Third-Party Damage
+
+- There is money in pipeline corrosion and third-party strikes.
+- There are lots of issues where these factors cause pipeline failure.
+
+# 3. UBC Pipeline – In-Field Design and Engineering
+
+## Incorporating Location Classes into Pipeline Design
+
+- Pipeline design must incorporate the current location class and take into account potential future changes to the pipeline's location class.
+
+## Example: 60-Year-Old Pipeline
+
+- For a 60-year-old pipeline, an assessment would be performed to check whether the existing wall thickness meets the requirements of the new location class.
+    - This is called a **class line analysis**.
+    - Determines what wall thickness would meet the required standards.
+- A cost analysis is then performed.
+- The pipeline is flushed.
+- The pipeline is isolated at the location where it needs to be cut.
+- The company then adds pipeline sections that comply with regulations.
+
+**Potential approaches to achieving compliance:**
+
+1. Reduce pressure.
+2. Change pipeline thickness.
+3. **ECA (Engineering Criticality Assessment):**
+    - Tells you specifically which sections require attention.
+
+- You can't cut pipelines most of the time, so the CSA allows for an ECA to be done.
+
+# 4. Field Engineering Example Experience – BC Pipeline
+
+## Engineer of Record Responsibilities
+
+- **Engineer of Record (EOR):**
+    - Representative of the Engineer of Record on site.
+- They are responsible for the alignment sheet and its interpretation.
+    - Ensured that inspectors were well informed.
+    - Ensured that inspectors were interpreting the alignment sheet correctly.
+- Responsible for onsite changes to the plan that happened in the field.
+- Check whether changes affected:
+    - Cost.
+    - Quality.
+    - *[Other factors not specified in the original notes.]*
+
+# 5. Predicting Future Changes to Location Classes
+
+## How Are Future Location Class Changes Planned and Predicted Currently?
+
+- Companies communicate with landowners.
+- The city does not permit pipelines that do not meet its standards.
+
+## Permitting and Environmental Assessments
+
+- City permits take time.
+- The process involves:
+    - Environmental assessment.
+    - Community assessment.
+- Companies do not want pipelines going through sensitive areas that may affect:
+    - Nature.
+    - Animals.
+    - Archaeological sites.
+    - First Nations sites.
+    - Other sensitive areas.
+
+## Route Planning and Environmental Research
+
+- Companies use Google Earth and LiDAR to account for potential routes and determine where they can best build a pipeline.
+- They engage with:
+    - Biologists.
+    - Geologists.
+- These specialists help them understand the area.
+- Companies also use free online resources to determine things such as:
+    - Animals and nature in the area.
+    - First Nations in the area.
+- They take their findings to the government and ask for a right of way.
+- This is a very arduous process.
+
+# 6. Pipeline Monitoring, Inspection and Tracking
+
+## How Do Companies Track Their Pipelines?
+
+> "They are heavily tracked."
+
+- Companies have a GIS map that tracks every map and everything is on record.
+
+## In-Line Pipeline Pigs / Inspection
+
+- Inline pipeline piggins are made near the pipeline where possible.
+- These check for:
+    - Geometry.
+    - Buckles.
+    - Symmetry.
+    - Cracks in the pipeline walls.
+- They track the shape, thickness and structural stability of the pipeline walls over time.
+- Companies take this information into account and send people to check.
+
+## IMU Monitoring
+
+- They use IMUs to track the movement of the pipeline (if there is a pipeline).
+
+## Consequences of Pipeline Damage
+
+- Damage to a pipeline can be cause of government to sue them.
