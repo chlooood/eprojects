@@ -711,6 +711,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
   #strip .head .tools { margin-left:auto; display:flex; gap:6px; }
   #strip .head button { background:none; border:1px solid var(--line); border-radius:99px; padding:4px 12px; font-size:13px; cursor:pointer; } #strip .head button:hover { background:var(--s3); }
   #strip .head .kmchip { border-color:var(--ink-2); padding:2px 10px; } #strip .head .kmchip.on { background:var(--ink); color:var(--bg); }
+  #strip .head .kmchip b { font-weight:600; margin-right:4px; } #strip .head .kmstep { padding:2px 9px; font-size:14px; line-height:1; }
+  .seccap span { position:absolute; left:0; bottom:14px; transform:translateX(-50%); white-space:nowrap; padding:6px 10px 6px 12px; border-radius:8px; border-left:3px solid var(--c); background:rgba(12,14,12,.86); color:#eceee6; font-size:12.5px; box-shadow:0 6px 18px rgba(0,0,0,.35); pointer-events:none; }
+  .seccap span b { margin-right:6px; }
+  .seccap span::after { content:''; position:absolute; left:50%; bottom:-6px; margin-left:-6px; border:6px solid transparent; border-bottom:0; border-top-color:rgba(12,14,12,.86); }
   #strip .head .hi { background:var(--ink); color:var(--bg); border-color:var(--ink); font-weight:600; } #strip .head .hi:hover { background:#fff; }
   #strip .cells { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px; }
   #strip .cell { height:30px; border-radius:5px; border:0; padding:0; cursor:pointer; font:600 12px var(--sans); font-variant-numeric:tabular-nums; color:var(--bg); position:relative; transition:transform .15s; background:var(--c); }
@@ -780,7 +784,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   </div>
   <header class="top">
     <a class="mark" href="platform.html">Terra<em>Corridor</em></a>
-    <nav aria-label="Pages"><a class="on" href="platform.html" aria-current="page">Segment record</a><a href="index.html?corridor=ab-strathcona-demo">Ground and climate</a><a href="index.html?corridor=ab-strathcona-demo#/log">Work orders</a></nav>
+    <nav aria-label="Pages"><a class="on" href="platform.html" aria-current="page">Segment record</a><a href="index.html?corridor=ab-strathcona-demo">Ground and climate</a><a href="index.html?corridor=ab-strathcona-demo&amp;view=log">Work orders</a></nav>
     <span style="flex:1"></span>
     <label class="cap glass rules">Rules <select id="jur" aria-label="Regulator"><option value="CA">Canada, CER</option><option value="US">United States, PHMSA</option></select></label>
   </header>
@@ -1985,6 +1989,11 @@ function compute() {
   if (!selected || !rec()) selected = (urgent()[0] || built.records[0]).id;
   if (store.ahead && !AHEAD.includes(store.ahead)) store.ahead = '2035';
 }
+// The first sentence of a stretch's headline, short enough for a chip or a map caption.
+const shortLead = (r) => { const h = headline(r, statusFor(r)).lead || ''; return h.split('. ')[0].replace(/\.$/, ''); };
+// Why a stretch needs a decision, in a few words: the class change when there is one, else its first open item.
+const chipReason = (r) => { const it = r.openItems[0]; if (!it || it.module === 'class_location') return shortLead(r);
+  return it.module === 'encroachment' ? it.text.split(', inside')[0].replace(/ inside the prescribed area\.$/, ' in the safety zone') : it.module === 'geohazard' ? `${r.geohazard.hazard} risk` : 'land obligations to check'; };
 const urgent = () => built.records.filter((r) => r.openItems.length).sort((a, b) => a.openItems[0].level - b.openItems[0].level || b.openItems.length - a.openItems.length || a.kmFrom - b.kmFrom);
 
 /* ---------- map ---------- */
@@ -2073,6 +2082,12 @@ function paintMap() {
   dotLayer.clearLayers(); bandLayer.clearLayers(); futureLayer.clearLayers();
   for (const b of $('ahead').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.y === store.ahead);
   $('aheadNote').textContent = proofMode ? "Right: today's photo." : store.ahead ? `Right: today's photo. Shaded where homes are expected by ${store.ahead} (average of ${(FUT ? FUT.runs : 1000).toLocaleString('en-CA')} simulated futures).` : "Right: today's photo.";
+  // A caption on the map at the selected stretch, saying what is likely there in plain words.
+  const sr = rec();
+  if (sr && !proofMode) {
+    const st = statusFor(sr), p = pointAt((sr.kmFrom + sr.kmTo) * 500);
+    L.marker(ll(p.x, p.y), { interactive: false, keyboard: false, zIndexOffset: 1000, icon: L.divIcon({ className: 'seccap', html: `<span style="--c:${st.col}"><b>km ${sr.kmFrom}–${sr.kmTo}</b>${esc(shortLead(sr))}</span>`, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(bandLayer);
+  }
   const bins = binsNow();
   // One quiet dot per 200 m: white for homes added since 2019, amber where permits are issued, a ring where only approved.
   const rad = (u) => 2.5 + Math.sqrt(u) * 0.9;
@@ -2138,7 +2153,7 @@ function select(id, fly = true) {
 function renderStrip() {
   const recs = [...built.records].sort((x, y) => x.kmFrom - y.kmFrom), u = urgent(), pr = proofRecord();
   $('strip').innerHTML = `<div class="head"><b>${esc(DATA.meta.name)}</b><span>${recs.length} km</span>
-      <span class="need">${u.length ? `${u.length} need${u.length === 1 ? 's' : ''} a decision:${u.map((x) => ` <button type="button" class="kmchip${x.id === selected ? ' on' : ''}" data-id="${esc(x.id)}">km ${x.kmFrom}–${x.kmTo}</button>`).join('')}` : 'Nothing needs a decision'}</span>
+      <span class="need">${u.length ? `${u.length} need${u.length === 1 ? 's' : ''} a decision. Zoom to each:${u.map((x) => ` <button type="button" class="kmchip${x.id === selected ? ' on' : ''}" data-id="${esc(x.id)}"><b>km ${x.kmFrom}–${x.kmTo}</b> ${esc(chipReason(x))}</button>`).join('')}${u.length > 1 ? ` <button type="button" class="kmstep" id="kmPrev" aria-label="Previous section">‹</button><button type="button" class="kmstep" id="kmNext" aria-label="Next section">›</button>` : ''}` : 'Nothing needs a decision'}</span>
       <span class="tools">${pr ? `<button type="button" id="proofBtn" class="hi">See it happen: km ${pr.kmFrom}–${pr.kmTo}</button>` : ''}<button type="button" id="wholeLine">Whole line</button></span></div>
     <div class="cells">${recs.map((x) => { const st = statusFor(x), tip = tipOf(st); return `<button type="button" class="cell st-${st.k}${x.id === selected ? ' sel' : ''}${x.openItems.length ? ' open' : ''}" data-id="${esc(x.id)}" style="--c:${st.col}" aria-label="km ${x.kmFrom} to ${x.kmTo}, ${esc(tip)}${x.openItems.length ? ', needs a decision' : ''}" title="km ${x.kmFrom}–${x.kmTo}: ${esc(tip)}">${esc(cellText(x, st))}</button>`; }).join('')}</div>
     <div class="cells ruler">${recs.map((x) => `<span>${x.kmFrom % 2 === 0 ? x.kmFrom : ''}</span>`).join('')}</div>
@@ -2146,6 +2161,8 @@ function renderStrip() {
       <span class="why">Coming: building permits issued, or 30%+ of ${FUT ? FUT.runs.toLocaleString('en-CA') : ''} simulated futures by ${horizon()}. Watch: 5 to 30%.</span></div>`;
   for (const b of $('strip').querySelectorAll('[data-id]')) b.onclick = () => select(b.dataset.id);
   if ($('proofBtn')) $('proofBtn').onclick = openProof;
+  const stepTo = (d) => { const i = u.findIndex((x) => x.id === selected); select(u[i < 0 ? 0 : (i + d + u.length) % u.length].id); };
+  if ($('kmPrev')) { $('kmPrev').onclick = () => stepTo(-1); $('kmNext').onclick = () => stepTo(1); }
   $('wholeLine').onclick = () => fitAll();
 }
 /* ---------- inspector: one kilometre, one step at a time ---------- */

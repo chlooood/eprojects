@@ -105,6 +105,11 @@ function compute() {
   if (!selected || !rec()) selected = (urgent()[0] || built.records[0]).id;
   if (store.ahead && !AHEAD.includes(store.ahead)) store.ahead = '2035';
 }
+// The first sentence of a stretch's headline, short enough for a chip or a map caption.
+const shortLead = (r) => { const h = headline(r, statusFor(r)).lead || ''; return h.split('. ')[0].replace(/\.$/, ''); };
+// Why a stretch needs a decision, in a few words: the class change when there is one, else its first open item.
+const chipReason = (r) => { const it = r.openItems[0]; if (!it || it.module === 'class_location') return shortLead(r);
+  return it.module === 'encroachment' ? it.text.split(', inside')[0].replace(/ inside the prescribed area\.$/, ' in the safety zone') : it.module === 'geohazard' ? `${r.geohazard.hazard} risk` : 'land obligations to check'; };
 const urgent = () => built.records.filter((r) => r.openItems.length).sort((a, b) => a.openItems[0].level - b.openItems[0].level || b.openItems.length - a.openItems.length || a.kmFrom - b.kmFrom);
 
 /* ---------- map ---------- */
@@ -193,6 +198,12 @@ function paintMap() {
   dotLayer.clearLayers(); bandLayer.clearLayers(); futureLayer.clearLayers();
   for (const b of $('ahead').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.y === store.ahead);
   $('aheadNote').textContent = proofMode ? "Right: today's photo." : store.ahead ? `Right: today's photo. Shaded where homes are expected by ${store.ahead} (average of ${(FUT ? FUT.runs : 1000).toLocaleString('en-CA')} simulated futures).` : "Right: today's photo.";
+  // A caption on the map at the selected stretch, saying what is likely there in plain words.
+  const sr = rec();
+  if (sr && !proofMode) {
+    const st = statusFor(sr), p = pointAt((sr.kmFrom + sr.kmTo) * 500);
+    L.marker(ll(p.x, p.y), { interactive: false, keyboard: false, zIndexOffset: 1000, icon: L.divIcon({ className: 'seccap', html: `<span style="--c:${st.col}"><b>km ${sr.kmFrom}–${sr.kmTo}</b>${esc(shortLead(sr))}</span>`, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(bandLayer);
+  }
   const bins = binsNow();
   // One quiet dot per 200 m: white for homes added since 2019, amber where permits are issued, a ring where only approved.
   const rad = (u) => 2.5 + Math.sqrt(u) * 0.9;
@@ -258,7 +269,7 @@ function select(id, fly = true) {
 function renderStrip() {
   const recs = [...built.records].sort((x, y) => x.kmFrom - y.kmFrom), u = urgent(), pr = proofRecord();
   $('strip').innerHTML = `<div class="head"><b>${esc(DATA.meta.name)}</b><span>${recs.length} km</span>
-      <span class="need">${u.length ? `${u.length} need${u.length === 1 ? 's' : ''} a decision:${u.map((x) => ` <button type="button" class="kmchip${x.id === selected ? ' on' : ''}" data-id="${esc(x.id)}">km ${x.kmFrom}–${x.kmTo}</button>`).join('')}` : 'Nothing needs a decision'}</span>
+      <span class="need">${u.length ? `${u.length} need${u.length === 1 ? 's' : ''} a decision. Zoom to each:${u.map((x) => ` <button type="button" class="kmchip${x.id === selected ? ' on' : ''}" data-id="${esc(x.id)}"><b>km ${x.kmFrom}–${x.kmTo}</b> ${esc(chipReason(x))}</button>`).join('')}${u.length > 1 ? ` <button type="button" class="kmstep" id="kmPrev" aria-label="Previous section">‹</button><button type="button" class="kmstep" id="kmNext" aria-label="Next section">›</button>` : ''}` : 'Nothing needs a decision'}</span>
       <span class="tools">${pr ? `<button type="button" id="proofBtn" class="hi">See it happen: km ${pr.kmFrom}–${pr.kmTo}</button>` : ''}<button type="button" id="wholeLine">Whole line</button></span></div>
     <div class="cells">${recs.map((x) => { const st = statusFor(x), tip = tipOf(st); return `<button type="button" class="cell st-${st.k}${x.id === selected ? ' sel' : ''}${x.openItems.length ? ' open' : ''}" data-id="${esc(x.id)}" style="--c:${st.col}" aria-label="km ${x.kmFrom} to ${x.kmTo}, ${esc(tip)}${x.openItems.length ? ', needs a decision' : ''}" title="km ${x.kmFrom}–${x.kmTo}: ${esc(tip)}">${esc(cellText(x, st))}</button>`; }).join('')}</div>
     <div class="cells ruler">${recs.map((x) => `<span>${x.kmFrom % 2 === 0 ? x.kmFrom : ''}</span>`).join('')}</div>
@@ -266,6 +277,8 @@ function renderStrip() {
       <span class="why">Coming: building permits issued, or 30%+ of ${FUT ? FUT.runs.toLocaleString('en-CA') : ''} simulated futures by ${horizon()}. Watch: 5 to 30%.</span></div>`;
   for (const b of $('strip').querySelectorAll('[data-id]')) b.onclick = () => select(b.dataset.id);
   if ($('proofBtn')) $('proofBtn').onclick = openProof;
+  const stepTo = (d) => { const i = u.findIndex((x) => x.id === selected); select(u[i < 0 ? 0 : (i + d + u.length) % u.length].id); };
+  if ($('kmPrev')) { $('kmPrev').onclick = () => stepTo(-1); $('kmNext').onclick = () => stepTo(1); }
   $('wholeLine').onclick = () => fitAll();
 }
 /* ---------- inspector: one kilometre, one step at a time ---------- */

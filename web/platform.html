@@ -50,6 +50,10 @@
   #strip .head .tools { margin-left:auto; display:flex; gap:6px; }
   #strip .head button { background:none; border:1px solid var(--line); border-radius:99px; padding:4px 12px; font-size:13px; cursor:pointer; } #strip .head button:hover { background:var(--s3); }
   #strip .head .kmchip { border-color:var(--ink-2); padding:2px 10px; } #strip .head .kmchip.on { background:var(--ink); color:var(--bg); }
+  #strip .head .kmchip b { font-weight:600; margin-right:4px; } #strip .head .kmstep { padding:2px 9px; font-size:14px; line-height:1; }
+  .seccap span { position:absolute; left:0; bottom:14px; transform:translateX(-50%); white-space:nowrap; padding:6px 10px 6px 12px; border-radius:8px; border-left:3px solid var(--c); background:rgba(12,14,12,.86); color:#eceee6; font-size:12.5px; box-shadow:0 6px 18px rgba(0,0,0,.35); pointer-events:none; }
+  .seccap span b { margin-right:6px; }
+  .seccap span::after { content:''; position:absolute; left:50%; bottom:-6px; margin-left:-6px; border:6px solid transparent; border-bottom:0; border-top-color:rgba(12,14,12,.86); }
   #strip .head .hi { background:var(--ink); color:var(--bg); border-color:var(--ink); font-weight:600; } #strip .head .hi:hover { background:#fff; }
   #strip .cells { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px; }
   #strip .cell { height:30px; border-radius:5px; border:0; padding:0; cursor:pointer; font:600 12px var(--sans); font-variant-numeric:tabular-nums; color:var(--bg); position:relative; transition:transform .15s; background:var(--c); }
@@ -119,7 +123,7 @@
   </div>
   <header class="top">
     <a class="mark" href="platform.html">Terra<em>Corridor</em></a>
-    <nav aria-label="Pages"><a class="on" href="platform.html" aria-current="page">Segment record</a><a href="index.html?corridor=ab-strathcona-demo">Ground and climate</a><a href="index.html?corridor=ab-strathcona-demo#/log">Work orders</a></nav>
+    <nav aria-label="Pages"><a class="on" href="platform.html" aria-current="page">Segment record</a><a href="index.html?corridor=ab-strathcona-demo">Ground and climate</a><a href="index.html?corridor=ab-strathcona-demo&amp;view=log">Work orders</a></nav>
     <span style="flex:1"></span>
     <label class="cap glass rules">Rules <select id="jur" aria-label="Regulator"><option value="CA">Canada, CER</option><option value="US">United States, PHMSA</option></select></label>
   </header>

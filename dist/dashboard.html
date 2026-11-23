@@ -739,11 +739,33 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .ov-grid > .ws-map { grid-row:2; }
   .ov-grid > .ws-strip { grid-row:3; }
   /* "About this map": the corridor note and how to read it, folded into the map instead of two text bands above it */
-  .about { right:16px; top:60px; width:320px; max-height:calc(100% - 156px); overflow:auto; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
-  .about summary { list-style:none; cursor:pointer; padding:9px 14px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
-  .about summary::-webkit-details-marker { display:none; }
-  .about summary::before { content:'i'; display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; border:1px solid var(--ink-3); font:600 10px/1 var(--serif); font-style:italic; color:var(--ink-2); }
-  .about[open] summary { border-bottom:1px solid var(--line); }
+  .about { right:16px; top:60px; width:340px; max-height:calc(100% - 156px); overflow:auto; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
+  .bl-wrap { padding:14px 16px 12px; border-bottom:1px solid var(--line); }
+  .bl-wrap .bl { margin:0; font-size:15px; line-height:1.4; font-weight:600; color:var(--ink); letter-spacing:-.005em; }
+  .bl-wrap .blw { margin:6px 0 0; font-size:13px; color:var(--ink-2); }
+  .spots { margin-top:12px; display:grid; gap:4px; }
+  .spots .sh { font-size:11.5px; color:var(--ink-3); margin-bottom:2px; }
+  .spot { display:grid; grid-template-columns:10px auto 1fr; gap:4px 8px; align-items:baseline; text-align:left; width:100%; padding:7px 9px; border-radius:8px; border:1px solid transparent; background:rgba(255,255,255,.03); color:var(--ink-2); font:inherit; font-size:12.5px; cursor:pointer; }
+  .spot i { width:8px; height:8px; border-radius:50%; align-self:center; }
+  .spot b { color:var(--ink); font-weight:600; white-space:nowrap; }
+  .spot span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .spot:hover { background:rgba(255,255,255,.07); }
+  .spot.on { border-color:var(--ink-3); background:rgba(255,255,255,.08); }
+  .spot:focus-visible { outline:2px solid var(--ink); outline-offset:1px; }
+  .spot.all { display:block; color:var(--ink-3); background:none; padding:5px 9px; }
+  .pv { margin:16px 0 6px; }
+  .pv .vw { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:650; letter-spacing:-.01em; }
+  .pv .vw i { width:10px; height:10px; border-radius:50%; background:currentColor; }
+  .pv p { margin:8px 0 0; font-size:14px; line-height:1.5; color:var(--ink-2); max-width:60ch; }
+  .pv .vlead { color:var(--ink); font-weight:550; }
+  .pv .vsure { font-size:12.5px; color:var(--ink-3); }
+  details.eng { margin-top:18px; border-top:1px solid var(--line); padding-top:10px; }
+  details.eng summary { cursor:pointer; color:var(--ink-3); font-size:12.5px; }
+  details.eng[open] summary { margin-bottom:8px; }
+  #ovHint summary { list-style:none; cursor:pointer; padding:9px 14px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
+  #ovHint summary::-webkit-details-marker { display:none; }
+  #ovHint summary::before { content:'i'; display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; border:1px solid var(--ink-3); font:600 10px/1 var(--serif); font-style:italic; color:var(--ink-2); }
+  #ovHint[open] summary { border-bottom:1px solid var(--line); }
   .about .about-body { padding:10px 14px 12px; display:grid; gap:8px; }
   .about p { margin:0; }
   .about a { color:var(--ink-2); }
@@ -1048,9 +1070,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <span>Terra<em>Corridor</em></span>
   </a>
   <nav class="pages" id="nav" aria-label="Pages">
-    <a href="#/" data-p="overview">Overview</a>
-    <a href="#/triage" data-p="triage">Triage</a>
     <a href="platform.html" data-p="platform">Segment record</a>
+    <a href="#/" data-p="overview">Ground and climate</a>
+    <a href="#/triage" data-p="triage">Where to look first</a>
     <a href="#/log" data-p="log">Work orders <span class="count" id="logCount" data-n="0">0</span></a>
   </nav>
   <label style="font-size:12px;display:flex;align-items:center;gap:6px">Corridor <select id="corridorSelect" aria-label="Study corridor" style="max-width:220px;background:var(--s2);color:var(--ink);border:1px solid var(--line-2);padding:6px;border-radius:6px"></select></label>
@@ -1067,14 +1089,17 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="ov-grid" id="ovGrid">
       <section class="ledger" id="ovLedger" aria-label="Climate summary"></section>
       <div class="ws-map"><div class="map-slot" data-map></div>
-        <details class="ovl about" id="ovHint">
-          <summary>About this map</summary>
+        <div class="ovl about" id="ovPanel">
+          <div class="bl-wrap" id="bottomLine" aria-live="polite"></div>
+        <details id="ovHint">
+          <summary>How to read this map</summary>
           <div class="about-body">
             <p id="corridorContext"></p>
             <p>The line is a <span id="hintKm">demo</span> pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.</p>
             <p>The 2026–30 and 2031–35 windows are five-year climate projections for planning, not weather forecasts. Press <b>&#9654;</b> to compare them with the past 30 years. Hover any number for what it means.</p>
           </div>
         </details>
+        </div>
       </div>
       <div class="ws-strip ov-strip" data-strip="0.55" data-lanes="climate" data-annot="1"></div>
     </div>
@@ -1828,9 +1853,13 @@ let API = window.TC_API || new URLSearchParams(location.search).get('api') || ''
 let OFFLINE = false;
 let offlineReason = '';   // true when n8n could not be reached and the page runs on the snapshot built into this file
 const PARAMS = new URLSearchParams(location.search);
+// Last "corridor=" / "view=" anywhere in the address. A page served through a preview wrapper carries its own URL in the
+// query string, so URLSearchParams alone misses them and the page fell back to the wrong corridor.
+const urlParam = (k) => { const m = [...location.href.split('#')[0].matchAll(new RegExp('[?&]' + k + '=([A-Za-z0-9_-]+)', 'g'))]; return m.length ? m[m.length - 1][1] : null; };
+{ const v = urlParam('view'); if (v && !location.hash) history.replaceState(null, '', location.href.split('#')[0] + '#/' + (v === 'overview' ? '' : v)); }
 const CATALOG = window.TC_CATALOG || { default:'ab-strathcona-demo', corridors:[{id:'ab-strathcona-demo',name:'Edmonton · reference corridor'}] };
 const legacyEdmontonLink = /^#\/(?:segment|triage)\/seg_[a-z0-9]+(?:$|[?&])/.test(location.hash);
-const requestedCorridor = PARAMS.get('corridor') || (legacyEdmontonLink ? 'ab-strathcona-demo' : CATALOG.default);
+const requestedCorridor = urlParam('corridor') || (legacyEdmontonLink ? 'ab-strathcona-demo' : CATALOG.default);
 const CORRIDOR_ID = CATALOG.corridors.some(c => c.id === requestedCorridor) ? requestedCorridor : CATALOG.default;
 const DATA_URL = API ? API + '/corridor?corridor=' + encodeURIComponent(CORRIDOR_ID) : '../data/demo/corridor.json';
 const STATE_KEY = 'tc-state:' + CORRIDOR_ID;
@@ -1842,8 +1871,19 @@ const C = { green:'#6fd08f', amber:'#f2a93b', red:'#ff5d4f', 'red-uncertain':'#f
   rain:'#82c8ff', freeze:'#c3b6ff', wet:'#5fd4c4', fire:'#ff8a5c', dry:'#d9b46a', river:'#5aa9ff' };
 const HAZ = { ground: 'Ground failure', crossing: 'River crossing', wildfire: 'Wildfire weather', drought: 'Drought' };
 const TIER_LABEL = { green:'Low', amber:'Medium', red:'High', 'red-uncertain':'High · models disagree', unverified:'Missing data', grey:'Poor site', excluded:'Too steep' };
+// What each level means you should do, in plain words. Used everywhere a level is shown.
+const ACTION = { red:'Inspect first', 'red-uncertain':'Inspect first', amber:'Plan a visit', green:'Routine checks', unverified:'Not enough data' };
+// What each hazard does to a buried pipe, for someone who has never thought about one.
+const PLAIN = {
+  ground: 'More heavy rain and more freeze-thaw loosen the soil, so slopes can slide or wash out and leave the pipe unsupported.',
+  crossing: 'Where the pipe runs under a river, floods can scour away the riverbed that covers it and leave it exposed.',
+  wildfire: 'Hot, dry, rainless days let fires spread. Fire damages above-ground valves and leaves bare slopes that slide in the next rain.',
+  drought: 'Very dry soil shrinks and cracks along the trench, which can let the pipe settle, and dry land burns more easily.',
+};
+const SURE = { high:'The three climate models agree on this.', medium:'The climate models mostly agree on this.', low:'The climate models disagree here, so treat this as less certain.', observed:'Measured from the past 30 years, not projected.' };
 const STOPS = ['y0', 'y5', 'y10'];
 const STOP_LABEL = { y0:'Today', y5:'2026–30', y10:'2031–35' };
+const STOP_WHEN = { y0:'today', y5:'in 2026–30', y10:'by 2031–35' };
 const DRIVER_WORD = { rain:'heavy rain', freezeThaw:'freeze-thaw', saturation:'soaked ground', vegetation:'plant loss', slope:'slope' };
 const PAGES = ['overview', 'triage', 'segment', 'money', 'build', 'log'];
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1989,7 +2029,7 @@ function clusters() {
       text: worst ? whyText(worst.risk[stop]) : '' };
   });
 }
-const kpRange = (c) => `KP ${c.kpFrom}–${c.kpTo}`;
+const kpRange = (c) => `km ${c.kpFrom}–${c.kpTo}`;
 const listJoin = (a) => a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
 
 /* ---------- recompute + refresh ---------- */
@@ -2136,11 +2176,11 @@ function paint() {
 function renderLegend() {
   const rows = layer === 'build'
     ? [['Good site', C.build], ['Possible', C.buildDim], ['Poor site', C.grey], ['Too steep', C.excluded]]
-    : [['High · inspect first', C.red], ['Medium · plan a visit', C.amber], ['Low · routine cycle', C.green], ['Missing data', null]];
-  legend.innerHTML = `<div class="t">${layer === 'build' ? 'Where solar panels fit' : 'Natural-hazard risk · ' + STOP_LABEL[anim ? anim.to : stop]}</div>` +
+    : [['Inspect first (high)', C.red], ['Plan a visit (medium)', C.amber], ['Routine checks (low)', C.green], ['Not enough data', null]];
+  legend.innerHTML = `<div class="t">${layer === 'build' ? 'Where solar panels fit' : 'What to do, ' + STOP_LABEL[anim ? anim.to : stop]}</div>` +
     rows.map(([l, c]) => `<span class="li"><span class="sw ${c ? '' : 'hatch'}" style="${c ? 'background:' + c : ''}"></span>${l}</span>`).join('') +
     `<span class="li"><span class="sw" style="background:${C.sub};width:8px;height:8px;border-radius:50%;margin:0 4px"></span>Substation</span>` +
-    (layer === 'risk' ? `<span class="li"><span class="sw" style="background:${C.river};width:10px;height:10px;border-radius:50%;margin:0 3px;box-shadow:0 0 0 2px ${C.amber}"></span>River crossing (ring = its risk)</span>` : '') +
+    (layer === 'risk' ? `<span class="li"><span class="sw" style="background:${C.river};width:10px;height:10px;border-radius:50%;margin:0 3px;box-shadow:0 0 0 2px ${C.amber}"></span>Where the pipe crosses a river</span>` : '') +
     (layer === 'build' ? (() => { const [lo, hi] = sunRange(); return `<div class="sun"><div class="t">Sunlight (wide band)</div><span class="ramp" style="background:${sunGradient()}"></span>
       <span class="rl"><span>${lo.toFixed(2)}</span><span>${hi.toFixed(2)} kWh/m²/day</span></span><span class="cap" style="margin:4px 0 0">Brighter = more sun. NASA satellite data, kWh/m² per day. Colours are stretched to this corridor's range.</span></div>`; })() : '');
   timeline.hidden = layer === 'build';
@@ -2155,7 +2195,7 @@ function updateAnnotations() {
     const m = c.mid.mid || cl[Math.floor(cl.length / 2)];
     if (!m) continue;
     L.tooltip({ permanent: true, direction: 'right', className: 'anno', offset: [14, 0] })
-      .setLatLng([m[1], m[0]]).setContent(`<b>${kpRange(c)}</b>${esc(c.text)}`).addTo(annoLayer);
+      .setLatLng([m[1], m[0]]).setContent(`<b>${kpRange(c)}</b>Inspect first: ${esc(plainShort(segs.slice(c.from, c.to + 1).filter(isHigh).sort((a, b) => b.risk[stop].score - a.risk[stop].score)[0]))}`).addTo(annoLayer);
   }
 }
 
@@ -2205,11 +2245,10 @@ function play() {
 
 /* ---------- alignment strip ---------- */
 const LANES = [
-  { k: 'score', label: 'Risk (0–100)', h: 56 },
-  { k: 'tier', label: 'High / med / low', h: 8 },
+  { k: 'score', label: 'Priority', h: 56 },
+  { k: 'tier', label: 'What to do', h: 8 },
   { k: 'slope', label: 'Slope', h: 20 },
-  { k: 'ndvi', label: 'Plant cover Δ', h: 20 },
-  { k: 'build', label: 'Solar MW', h: 20 },
+  { k: 'ndvi', label: 'Plant loss', h: 20 },
 ];
 // Build strip: sun, capacity and the constraints that limit it.
 const BUILD_LANES = [
@@ -2220,13 +2259,13 @@ const BUILD_LANES = [
 ];
 // Overview strip: climate only.
 const CLIMATE_LANES = [
-  { k: 'score', label: 'Risk (0–100)', h: 56 },
-  { k: 'tier', label: 'High / med / low', h: 8 },
-  { k: 'rain', label: 'Heavy rain', h: 28, clim: true, col: C.rain },
-  { k: 'freezeThaw', label: 'Freeze-thaw', h: 28, clim: true, col: C.freeze },
-  { k: 'saturation', label: 'Soaked ground', h: 28, clim: true, col: C.wet },
-  { k: 'fire', label: 'Fire weather', h: 28, clim: true, col: C.fire },
-  { k: 'drySoil', label: 'Dry soil', h: 28, clim: true, col: C.dry },
+  { k: 'score', label: 'Priority', h: 56 },
+  { k: 'tier', label: 'What to do', h: 8 },
+  { k: 'rain', label: 'Heavy rain', h: 22, clim: true, col: C.rain },
+  { k: 'freezeThaw', label: 'Freeze-thaw', h: 22, clim: true, col: C.freeze },
+  { k: 'saturation', label: 'Soaked ground', h: 22, clim: true, col: C.wet },
+  { k: 'fire', label: 'Fire weather', h: 22, clim: true, col: C.fire },
+  { k: 'drySoil', label: 'Dry soil', h: 22, clim: true, col: C.dry },
   { k: 'cross', label: 'River crossings', h: 10 },
 ];
 const LW = 92, GAP = 10, RULER = 20;
@@ -2399,7 +2438,7 @@ function coverageText(r) {
 function chipHTML(t) { return `<span class="chip" style="color:${C[t]};background:${C[t]}1a"><span class="led"></span>${TIER_LABEL[t]}</span>`; }
 function gaugeHTML(r) {
   return `<div class="gauge">
-    <div class="row1"><span class="big">${r.score ?? '–'}<small> / 100</small></span><span class="label">${r.agreement === 'observed' ? 'Observed conditions' : 'Model agreement: <b style="color:var(--ink)">' + (r.agreement ?? '–') + '</b>'}</span></div>
+    <div class="row1"><span class="big">${r.score == null ? '–' : Math.round(r.score)}<small> / 100 priority</small></span><span class="label">${cfg.tiers.red}+ inspect first, ${cfg.tiers.amber}+ plan a visit</span></div>
     <div class="track"><span style="background:${C.green}"></span><span style="background:${C.amber}"></span><span style="background:${C.red}"></span>${r.score != null ? `<i class="pin" style="left:calc(${r.score}% - 1.5px)"></i>` : ''}</div>
     <div class="cap">${coverageText(r)}</div>
     <div class="ticks"><span style="left:0">0</span><span style="left:${cfg.tiers.amber}%">${cfg.tiers.amber}</span><span style="left:${cfg.tiers.red}%">${cfg.tiers.red}</span><span style="left:100%">100</span></div></div>`;
@@ -2629,28 +2668,106 @@ function renderOverview() {
   const cell = (k) => ovLedger.querySelector(`[data-k="${k}"]`);
   const set = (k, e, v, s) => { const c = cell(k); c.querySelector('.e').innerHTML = esc(e) + ' <i aria-hidden="true">?</i>'; c.querySelector('.s').textContent = s; if (typeof v === 'function') v(c.querySelector('.v')); else c.querySelector('.v').innerHTML = v; };
 
-  set('risk', `High / medium risk km`, `${kmOf(hi)}<small>/</small>${kmOf(mod)}`, `out of ${D.live.km} km · ${segs.filter(s => coverageText(s.risk[stop]).startsWith('Partial')).length} segments partially assessed${unv ? ' · ' + unv + ' missing scores' : ''}`);
+  set('risk', `Km to inspect first / visit`, `${kmOf(hi)}<small>/</small>${kmOf(mod)}`, `of ${D.live.km} km${unv ? ', ' + unv + ' without enough data' : ''}`);
   cell('risk').querySelector('.stack').innerHTML = [['red', hi], ['amber', mod], ['green', t.green || 0], ['unverified', unv]]
     .map(([k, v]) => `<span style="flex-grow:${v};background:${C[k]}" title="${TIER_LABEL[k]}: ${v}"></span>`).join('');
 
-  for (const [k, e] of [['rain', 'Heavy-rain days / yr'], ['freezeThaw', 'Freeze-thaw days / yr']]) {
+  for (const [k, e] of [['rain', 'Heavy-rain days a year'], ['freezeThaw', 'Freeze-thaw days a year']]) {
     const c = corridorClimate(k);
     if (!c) { set(k, e, '–', 'no data'); continue; }
-    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? `average along the line, past 30 years` : `${sign(c.change)}% vs the past 30 years`);
+    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? `average along the line, past 30 years` : `${c.change > 0 ? sign(c.change) + '% more' : c.change < 0 ? sign(c.change) + '% fewer' : 'no change'} than 1995–2025`);
     const v = cell(k).querySelector('.v'); v.style.color = stop !== 'y0' && c.change > 5 ? C[k === 'rain' ? 'rain' : k === 'freezeThaw' ? 'freeze' : 'wet'] : '';
   }
 
-  for (const [k, hk, field, e, col] of [['fire', 'wildfire', 'fireWeatherDaysPerYr', 'Fire-weather days / yr', C.fire], ['drought', 'drought', 'drySoilDaysPerYr', 'Dry-soil days / yr', C.dry]]) {
+  for (const [k, hk, field, e, col] of [['fire', 'wildfire', 'fireWeatherDaysPerYr', 'Wildfire-weather days a year', C.fire], ['drought', 'drought', 'drySoilDaysPerYr', 'Very dry soil days a year', C.dry]]) {
     const c = corridorHazard(hk, field);
     if (!c) { set(k, e, '–', 'no humidity or soil data'); continue; }
-    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? `observed baseline · ${c.n}/${segs.length} segments` : `${sign(c.change)}% vs baseline · ${c.n}/${segs.length} segments`);
+    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? `past 30 years${c.n < segs.length ? `, ${c.n} of ${segs.length} km` : ''}` : `${c.change > 0 ? sign(c.change) + '% more' : c.change < 0 ? sign(c.change) + '% fewer' : 'no change'} than 1995–2025${c.n < segs.length ? `, ${c.n} of ${segs.length} km` : ''}`);
     cell(k).querySelector('.v').style.color = stop !== 'y0' && c.change > 5 ? col : '';
   }
 
   const xs = segs.filter((s) => s.crossings && s.crossings.length);
   const xHigh = xs.filter((s) => { const h = (s.risk[stop].hazards || {}).crossing; return h && h.score >= cfg.tiers.red; }).length;
   const xMed = xs.filter((s) => { const h = (s.risk[stop].hazards || {}).crossing; return h && h.score >= cfg.tiers.amber && h.score < cfg.tiers.red; }).length;
-  set('crossing', 'River crossings at risk', `${xHigh}<small>/</small>${xMed}`, `high / medium, of ${xs.length} crossings on the line`);
+  set('crossing', 'River crossings: inspect / visit', `${xHigh}<small>/</small>${xMed}`, `of ${xs.length} km where the pipe crosses water`);
+  renderBottomLine(hi, mod, unv);
+}
+
+
+/* ---------- plain verdicts: what is likely, why, how sure, what to do ---------- */
+// The hazard behind a level, in one sentence a member of the public can follow, with its number.
+function plainWhy(s, r) {
+  const k = r.hazard || 'ground', h = (r.hazards || {})[k], when = STOP_WHEN[stop];
+  if (k === 'crossing') { const x = h && h.crossings && h.crossings[0], rain = (r.drivers || []).find((d) => d.key === 'rain');
+    return `The pipe crosses ${riverName(s, r) || 'a river or stream'} here${rain && rain.change != null && stop !== 'y0' ? `, and heavy-rain days are expected to be ${Math.abs(rain.change)}% ${rain.change >= 0 ? 'more' : 'less'} common ${when} than in 1995–2025` : ''}.`; }
+  if (k === 'wildfire' && h && h.change && h.change.fireDays != null) return `Wildfire weather (hot, dry days with no rain) is expected on ${Math.abs(h.change.fireDays)}% ${h.change.fireDays >= 0 ? 'more' : 'fewer'} days ${when} than in 1995–2025.`;
+  if (k === 'drought' && h && h.change && h.change.drySoil != null) return `Very dry soil is expected on ${Math.abs(h.change.drySoil)}% ${h.change.drySoil >= 0 ? 'more' : 'fewer'} days ${when} than in 1995–2025.`;
+  const d = (r.drivers || [])[0];
+  if (!d || d.change == null) return 'The ground here is the main concern.';
+  if (d.key === 'slope') return `The ground is steep here (a ${d.change}% grade), so loose soil can slide.`;
+  if (d.key === 'vegetation') return d.change < 0 ? 'Plants that hold the soil in place have thinned here over the last five years.' : 'Plant cover here has changed over the last five years.';
+  return `${DRIVER_WORD[d.key] ? DRIVER_WORD[d.key][0].toUpperCase() + DRIVER_WORD[d.key].slice(1) : d.label} days are expected to be ${Math.abs(d.change)}% ${d.change >= 0 ? 'more' : 'less'} common ${when} than in 1995–2025.`;
+}
+// The named river a kilometre crosses, if any of its crossings has a name.
+const riverName = (x, r) => { const h = ((r || x.risk[stop]).hazards || {}).crossing, c = [...((h && h.crossings) || []), ...(x.crossings || [])].find((q) => q && q.name); return c ? (/ River$/.test(c.name) && !/^the /i.test(c.name) ? 'the ' + c.name : c.name) : null; };
+const RISK_NAME = { ground: 'unstable ground', crossing: 'where the pipe crosses a river', wildfire: 'wildfire', drought: 'drought' };
+// A few plain words for a list item: what the risk is, with its number.
+function plainShort(x) {
+  const r = x.risk[stop], k = r.hazard || 'ground', h = (r.hazards || {})[k], when = stop === 'y0' ? '' : ' ' + STOP_WHEN[stop];
+  if (k === 'crossing') return `crosses ${riverName(x) || 'a river'}`;
+  if (k === 'wildfire' && h && h.change && h.change.fireDays != null) return `wildfire weather on ${Math.abs(h.change.fireDays)}% ${h.change.fireDays >= 0 ? 'more' : 'fewer'} days${when}`;
+  if (k === 'drought' && h && h.change && h.change.drySoil != null) return `very dry soil on ${Math.abs(h.change.drySoil)}% ${h.change.drySoil >= 0 ? 'more' : 'fewer'} days${when}`;
+  const d = (r.drivers || [])[0];
+  if (!d || d.change == null) return 'unstable ground';
+  if (d.key === 'slope') return `steep ground (${d.change}% grade)`;
+  if (d.key === 'vegetation') return d.change < 0 ? 'plants holding the soil have thinned' : 'plant cover has changed';
+  return `${DRIVER_WORD[d.key] || d.label} on ${Math.abs(d.change)}% ${d.change >= 0 ? 'more' : 'fewer'} days${when}`;
+}
+function verdict(s, r, t) {
+  if (!r || r.score == null || t === 'unverified') return { word: ACTION.unverified, col: C.grey, lead: `There is not enough data to judge ${segmentLabel(s)}. Missing data is never treated as safe.` };
+  const k = r.hazard || 'ground', rank = segs.filter((x) => x.risk[stop].score != null).sort((a, b) => b.risk[stop].score - a.risk[stop].score).indexOf(s) + 1;
+  const what = { red: `Inspect ${segmentLabel(s)} first.`, 'red-uncertain': `Inspect ${segmentLabel(s)} first.`, amber: `Plan a visit to ${segmentLabel(s)}.`, green: `${segmentLabel(s)} can stay on routine checks.` }[t];
+  const act = t.startsWith('red') ? `Number ${rank} of ${segs.length} on the list. Send a crew to check the ${k === 'crossing' ? 'crossing' : k === 'ground' ? 'slope and cover over the pipe' : 'valves and slopes'} before ${stop === 'y0' ? 'the next wet season' : (cfg.horizons && cfg.horizons[stop] ? cfg.horizons[stop][0] : 'then')}.`
+    : t === 'amber' ? `Number ${rank} of ${segs.length} on the list. Add it to the next inspection round.` : 'Nothing here stands out.';
+  return { word: ACTION[t], col: C[t], lead: `${what} ${t === 'green' ? '' : 'The biggest risk is ' + RISK_NAME[k] + '.'}`, why: t === 'green' ? '' : plainWhy(s, r), what: t === 'green' ? '' : PLAIN[k], sure: SURE[r.agreement] || '', act };
+}
+function verdictHTML(s, r, t) {
+  const v = verdict(s, r, t);
+  return `<div class="pv"><div class="vw" style="color:${v.col}"><i></i>${esc(v.word)}</div><p class="vlead">${esc(v.lead)}</p>
+    ${v.why ? `<p class="vwhy">${esc(v.why)}</p>` : ''}${v.what ? `<p class="vwhat"><b>Why that matters:</b> ${esc(v.what)}</p>` : ''}
+    ${v.act ? `<p class="vact">${esc(v.act)}</p>` : ''}${v.sure ? `<p class="vsure">${esc(v.sure)}</p>` : ''}</div>`;
+}
+// The overview's bottom line, and the list of sections to zoom into.
+function renderBottomLine(hi, mod, unv) {
+  const el = $('bottomLine'); if (!el) return;
+  const cl = clusters(), byHaz = {};
+  for (const x of segs) if (hi ? isHigh(x) : tierOf(x) === 'amber') { const k = x.risk[stop].hazard || 'ground'; byHaz[k] = (byHaz[k] || 0) + 1; }
+  const top = Object.entries(byHaz).sort((a, b) => b[1] - a[1])[0];
+  const rain = corridorClimate('rain'), when = STOP_WHEN[stop];
+  const by = stop === 'y0' ? 'Today' : 'By ' + STOP_LABEL[stop], km = (n) => `${kmOf(n)} km`;
+  const lead = hi && mod ? `${by}, inspect ${km(hi)} first and plan visits to ${km(mod)} more, out of ${D.live.km} km.`
+    : hi ? `${by}, inspect ${km(hi)} first, out of ${D.live.km} km. The rest can stay on routine checks.`
+    : mod ? `${by}, nothing needs inspecting urgently. Plan a visit to ${km(mod)} of the ${D.live.km} km.`
+    : `${by}, no kilometre stands out. Routine checks are enough.`;
+  const why = top ? `Most of the risk is ${top[0] === 'crossing' ? 'where the pipe crosses rivers' : top[0] === 'ground' ? 'unstable ground' : HAZ[top[0]].toLowerCase()}${rain && stop !== 'y0' && rain.change ? `, and heavy rain is expected on ${Math.abs(rain.change)}% ${rain.change > 0 ? 'more' : 'fewer'} days ${when} than in 1995–2025` : ''}.` : '';
+  // Sections to look at: runs of high-priority km first, then single medium km, highest first.
+  const spots = [...cl.map((c) => { const w = segs.slice(c.from, c.to + 1).filter(isHigh).sort((a, b) => b.risk[stop].score - a.risk[stop].score)[0];
+      return { id: w.id, from: c.from, to: c.to, label: kpRange(c), text: `${c.n > 1 ? kmOf(c.n) + ' km, ' : ''}${plainShort(w)}`, col: C.red, word: 'Inspect first' }; }),
+    ...segs.map((x, i) => ({ x, i })).filter(({ x }) => tierOf(x) === 'amber').sort((a, b) => b.x.risk[stop].score - a.x.risk[stop].score).slice(0, Math.max(0, 5 - cl.length))
+      .map(({ x, i }) => ({ id: x.id, from: i, to: i, label: segmentLabel(x), text: plainShort(x), col: C.amber, word: 'Plan a visit' }))];
+  el.innerHTML = `<p class="bl">${esc(lead)}</p>${why ? `<p class="blw">${esc(why)}</p>` : ''}
+    ${spots.length ? `<div class="spots"><div class="sh">Zoom to each section</div>${spots.map((p, i) => `<button type="button" class="spot" data-i="${i}"><i style="background:${p.col}"></i><b>${esc(p.label)}</b><span>${esc(p.word)}: ${esc(p.text)}</span></button>`).join('')}
+      <button type="button" class="spot all" id="spotAll">Whole line</button></div>` : ''}`;
+  el.querySelectorAll('.spot[data-i]').forEach((b) => b.onclick = () => zoomSpot(spots[+b.dataset.i], b));
+  if ($('spotAll')) $('spotAll').onclick = () => { el.querySelectorAll('.spot').forEach((x) => x.classList.remove('on')); fitAll(true); };
+}
+function zoomSpot(p, btn) {
+  if (!mapMounted()) return;
+  $('bottomLine').querySelectorAll('.spot').forEach((x) => x.classList.toggle('on', x === btn));
+  const pts = segs.slice(p.from, p.to + 1).flatMap((x) => (x.studyPolygon || x.centreline || []).map((q) => [q[1], q[0]]));
+  if (!pts.length) return;
+  const b = L.latLngBounds(pts).pad(p.from === p.to ? 1.4 : 0.6), opts = { paddingTopLeft: [220, 40], paddingBottomRight: [380, 140], maxZoom: 15 };
+  if (REDUCED) map.fitBounds(b, { ...opts, animate: false }); else map.flyToBounds(b, { ...opts, duration: 0.8 });
 }
 
 function renderTriage() {
@@ -2660,10 +2777,10 @@ function renderTriage() {
   const hs = (s) => hazardFilter === 'all' ? s.risk[stop].score : ((s.risk[stop].hazards || {})[hazardFilter] || {}).score;
   const all = segs.filter((s) => hs(s) != null).sort((a, b) => hs(b) - hs(a));
   const attn = (s) => tierOf(s) !== 'green';
-  const F = { attn: ['Needs attention', attn], high: ['High', isHigh], pending: ['Undecided', (s) => attn(s) && !s.wo], decided: ['Decided', (s) => !!s.wo], all: ['All', () => true] };
+  const F = { attn: ['Needs attention', attn], high: ['Inspect first', isHigh], pending: ['Undecided', (s) => attn(s) && !s.wo], decided: ['Decided', (s) => !!s.wo], all: ['All', () => true] };
   const rows = all.filter(F[filter][1]);
   const HF = { all: 'All hazards', ground: 'Ground', crossing: 'Crossings', wildfire: 'Wildfire', drought: 'Drought' };
-  triageList.innerHTML = `<h2>Triage</h2><p class="lede">Ranked by ${hazardFilter === 'all' ? 'each kilometre\'s worst hazard' : HAZ[hazardFilter].toLowerCase() + ' score'} ${stop === 'y0' ? 'today' : 'for ' + STOP_LABEL[stop]}. Approving ${API ? 'records an inspection work order in n8n' : 'saves an inspection work order in this browser (local demo)'}, and every decision is logged.</p>
+  triageList.innerHTML = `<h2>Where to look first</h2><p class="lede">Every kilometre, most urgent first, ${stop === 'y0' ? 'on today\'s conditions' : 'for the climate expected in ' + STOP_LABEL[stop]}. Click one to zoom in and read why. Approving ${API ? 'records an inspection work order in n8n' : 'saves an inspection work order in this browser (local demo)'}, and every decision is logged.</p>
     <div style="margin-bottom:12px">${stopSeg()}</div>
     ${hasHaz ? `<div class="chips" style="margin-bottom:8px">${Object.entries(HF).map(([k, l]) => `<button data-h="${k}" class="${k === hazardFilter ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
     <div class="chips">${Object.entries(F).map(([k, [l, f]]) => `<button data-f="${k}" class="${k === filter ? 'on' : ''}">${l}<small>${all.filter(f).length}</small></button>`).join('')}</div>
@@ -2685,11 +2802,12 @@ function renderCard(el, mode) {
   if (!wasHidden) el.style.animation = 'none';
   el.innerHTML = `<button class="x" aria-label="Close">×</button>
     <div class="label">Kilometre post</div><div class="kp">${segmentLabel(s)}</div><div class="km">km ${s.kmFrom}–${s.kmTo} · ${s.lengthM} m</div>
-    <div style="margin-top:14px">${mode === 'build' ? `<span class="chip" style="color:${C.build};background:${C.build}1f"><span class="led"></span>${s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier]}</span> ` : ''}${chipHTML(t)}</div>
+    ${mode === 'build' ? `<div style="margin-top:14px"><span class="chip" style="color:${C.build};background:${C.build}1f"><span class="led"></span>${s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier]}</span> ${chipHTML(t)}</div>` : ''}
     ${s.override && s.override.stop === stop ? `<div class="note">Overridden to ${TIER_LABEL[s.override.tier]}: “${esc(s.override.reason)}”</div>` : ''}
     ${mode === 'build' ? `<div class="blk"><h3>Solar + storage</h3>${buildHTML(s)}</div><div class="cap">Build potential is halved where 2031–35 risk is high. Stays outside the ${cfg.exclusionM} m prescribed area.</div>
       <div class="linkrow" style="margin:20px 0 24px"><span></span><a href="#/segment/${s.id}">Full report →</a></div>`
-    : `${gaugeHTML(r)}${explainHTML(s, r)}${horizonHTML(s)}<div class="blk"><h3>Natural hazards (worst sets the level)</h3>${hazardsHTML(s, r)}</div>${actionsHTML(s, true)}`}`;
+    : `${verdictHTML(s, r, t)}<div class="blk"><h3>Each hazard, scored 0 to 100 (the worst sets what to do)</h3>${hazardsHTML(s, r)}</div>${gaugeHTML(r)}${actionsHTML(s, true)}
+      <details class="eng"><summary>Details for engineers</summary>${explainHTML(s, r)}${horizonHTML(s)}</details>`}`;
   el.querySelector('.x').onclick = () => go(page);
   wireActions(el, s);
   if (ovrOpen) el.querySelector('details.ovr').open = true;
@@ -2705,10 +2823,10 @@ function renderSegment() {
         <a class="btn ghost" ${next ? `href="#/segment/${next.id}"` : 'aria-disabled="true" style="opacity:.35"'}>${next ? segmentLabel(next) : ''} →</a></div></div></div>`;
   segBody.innerHTML = `<div class="cols c2" style="margin-top:48px">
     <div>
-      <div>${chipHTML(t)}</div>
       ${s.override && s.override.stop === stop ? `<div class="note">Overridden ${TIER_LABEL[r.tier]} → ${TIER_LABEL[s.override.tier]}: “${esc(s.override.reason)}”</div>` : ''}
-      ${gaugeHTML(r)}${explainHTML(s, r)}${horizonHTML(s)}
-      <div class="blk"><h3>Natural hazards (worst sets the level)</h3>${hazardsHTML(s, r)}</div>
+      ${verdictHTML(s, r, t)}
+      <div class="blk"><h3>Each hazard, scored 0 to 100 (the worst sets what to do)</h3>${hazardsHTML(s, r)}</div>
+      ${gaugeHTML(r)}<details class="eng"><summary>Details for engineers</summary>${explainHTML(s, r)}${horizonHTML(s)}</details>
       <div class="blk"><h3>What drives ground failure</h3>${driversHTML(r)}</div>
       ${actionsHTML(s, false)}
     </div>
@@ -2879,11 +2997,15 @@ function wire() {
   corridorSelect.innerHTML = CATALOG.corridors.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
   corridorSelect.value = CORRIDOR_ID;
   corridorSelect.closest('label').hidden = !!window.TC_DATA;
-  corridorSelect.onchange = () => { const url = new URL(location.href); url.searchParams.set('corridor', corridorSelect.value); url.hash = '#/'; location.assign(url.href); };
+  corridorSelect.onchange = () => {
+    const base = location.href.split('#')[0], v = encodeURIComponent(corridorSelect.value);
+    const next = /[?&]corridor=[A-Za-z0-9_-]+/.test(base) ? base.replace(/([?&]corridor=)[A-Za-z0-9_-]+(?!.*[?&]corridor=)/, '$1' + v) : base + (base.includes('?') ? '&' : '?') + 'corridor=' + v;
+    location.assign(next + '#/');
+  };
   addEventListener('hashchange', onRoute);
   document.addEventListener('click', (e) => { const b = e.target instanceof Element && e.target.closest('[data-stop]'); if (b) setStop(b.dataset.stop); });
   bPlay.onclick = play;
-  try { ovHint.open = localStorage.getItem('tc-hint') !== '1'; } catch (e) { ovHint.open = true; }
+  ovHint.open = false; // the bottom line leads; the reading guide is one click away
   ovHint.addEventListener('toggle', () => { if (!ovHint.open) try { localStorage.setItem('tc-hint', '1'); } catch (e) {} });
   basemap.querySelectorAll('button').forEach((b) => b.onclick = () => {
     basemap.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
