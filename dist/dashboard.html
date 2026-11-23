@@ -739,7 +739,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .ov-grid > .ws-map { grid-row:2; }
   .ov-grid > .ws-strip { grid-row:3; }
   /* "About this map": the corridor note and how to read it, folded into the map instead of two text bands above it */
-  .about { right:16px; top:60px; width:340px; max-height:calc(100% - 156px); overflow:auto; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
+  .about { right:68px; top:60px; width:340px; max-height:calc(100% - 156px); overflow:auto; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
   .bl-wrap { padding:14px 16px 12px; border-bottom:1px solid var(--line); }
   .bl-wrap .bl { margin:0; font-size:15px; line-height:1.4; font-weight:600; color:var(--ink); letter-spacing:-.005em; }
   .bl-wrap .blw { margin:6px 0 0; font-size:13px; color:var(--ink-2); }
@@ -837,6 +837,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .leaflet-tooltip.tc { background:var(--s2); color:var(--ink); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); font:12.5px/1.35 var(--sans); padding:6px 9px; }
   .leaflet-tooltip.tc::before, .leaflet-tooltip.anno::before { display:none; }
   .leaflet-tooltip.anno { background:rgba(10,11,10,.85); color:var(--ink); border:1px solid var(--line-2) !important; border:0; border-radius:7px; font:500 12px/1.3 var(--sans); padding:5px 9px; box-shadow:0 4px 14px rgba(0,0,0,.25); pointer-events:none; }
+  .leaflet-tooltip.spotcap { font-size:13px; padding:7px 11px; }
+  .leaflet-tooltip.spotcap i { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px; }
   .leaflet-tooltip.anno b { font:500 11.5px var(--mono); margin-right:6px; }
   .ovl { position:absolute; z-index:600; background:rgba(12,14,12,.74); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border:1px solid rgba(236,238,230,.08); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.35); }
   #legend { left:16px; top:16px; padding:12px 14px; font-size:12.5px; display:grid; gap:7px; }
@@ -1898,7 +1900,7 @@ const costFromSlider = (v) => Math.round(430000 * Math.pow(11700000 / 430000, v 
 const sliderFromCost = (c) => Math.round(100 * Math.log(c / 430000) / Math.log(11700000 / 430000));
 
 let D, cfg, segs, page = null, stop = 'y10', layer = 'risk', selected = null, hover = null, filter = 'attn', hazardFilter = 'all', buildFilter = 'ready';
-let map, baseLayers = {}, lines = {}, casings = {}, sunBands = {}, sunLayer, crossLayer, crossMarkers = [], annoLayer, audit = [], firstDraw = true, anim = null, playing = false;
+let map, baseLayers = {}, lines = {}, casings = {}, sunBands = {}, sunLayer, crossLayer, crossMarkers = [], annoLayer, spotLayer, audit = [], firstDraw = true, anim = null, playing = false;
 const byId = (id) => D.segments.find((s) => s.id === id);
 const segmentLabel = s => 'km ' + s.kmFrom + '–' + s.kmTo;
 const years = () => stop === 'y5' ? 5 : 10;
@@ -2132,7 +2134,7 @@ function initMap() {
       .addTo(crossLayer).on('click', () => select(s.id))
       .bindTooltip(() => { const h = (s.risk[stop].hazards || {}).crossing; return `<b>River crossing</b> · ${esc(x.name || x.kind)}${x.peakFlowM3s != null ? ' · peak ' + Math.round(x.peakFlowM3s) + ' m³/s' : ''}${h ? ' · ' + TIER_LABEL[h.tier] + ' ' + Math.round(h.score) : ''}`; }, { className: 'tc', direction: 'top', offset: [0, -8] }) });
   }
-  annoLayer = L.layerGroup().addTo(map);
+  annoLayer = L.layerGroup().addTo(map); spotLayer = L.layerGroup().addTo(map);
   D.bounds = L.latLngBounds(all);
   new ResizeObserver(() => map.invalidateSize()).observe(mapBox);
 }
@@ -2668,7 +2670,7 @@ function renderOverview() {
   const cell = (k) => ovLedger.querySelector(`[data-k="${k}"]`);
   const set = (k, e, v, s) => { const c = cell(k); c.querySelector('.e').innerHTML = esc(e) + ' <i aria-hidden="true">?</i>'; c.querySelector('.s').textContent = s; if (typeof v === 'function') v(c.querySelector('.v')); else c.querySelector('.v').innerHTML = v; };
 
-  set('risk', `Km to inspect first / visit`, `${kmOf(hi)}<small>/</small>${kmOf(mod)}`, `of ${D.live.km} km${unv ? ', ' + unv + ' without enough data' : ''}`);
+  set('risk', `Km to inspect first / visit`, `${kmOf(hi)}<small>/</small>${kmOf(mod)}`, `of ${kmOf(segs.length)} km${unv ? ', ' + unv + ' without enough data' : ''}`);
   cell('risk').querySelector('.stack').innerHTML = [['red', hi], ['amber', mod], ['green', t.green || 0], ['unverified', unv]]
     .map(([k, v]) => `<span style="flex-grow:${v};background:${C[k]}" title="${TIER_LABEL[k]}: ${v}"></span>`).join('');
 
@@ -2740,32 +2742,40 @@ function verdictHTML(s, r, t) {
 // The overview's bottom line, and the list of sections to zoom into.
 function renderBottomLine(hi, mod, unv) {
   const el = $('bottomLine'); if (!el) return;
+  if (spotLayer) spotLayer.clearLayers();
   const cl = clusters(), byHaz = {};
   for (const x of segs) if (hi ? isHigh(x) : tierOf(x) === 'amber') { const k = x.risk[stop].hazard || 'ground'; byHaz[k] = (byHaz[k] || 0) + 1; }
   const top = Object.entries(byHaz).sort((a, b) => b[1] - a[1])[0];
   const rain = corridorClimate('rain'), when = STOP_WHEN[stop];
   const by = stop === 'y0' ? 'Today' : 'By ' + STOP_LABEL[stop], km = (n) => `${kmOf(n)} km`;
-  const lead = hi && mod ? `${by}, inspect ${km(hi)} first and plan visits to ${km(mod)} more, out of ${D.live.km} km.`
-    : hi ? `${by}, inspect ${km(hi)} first, out of ${D.live.km} km. The rest can stay on routine checks.`
-    : mod ? `${by}, nothing needs inspecting urgently. Plan a visit to ${km(mod)} of the ${D.live.km} km.`
+  const lead = hi && mod ? `${by}, inspect ${km(hi)} first and plan visits to ${km(mod)} more, out of ${kmOf(segs.length)} km.`
+    : hi ? `${by}, inspect ${km(hi)} first, out of ${kmOf(segs.length)} km. The rest can stay on routine checks.`
+    : mod ? `${by}, nothing needs inspecting urgently. Plan a visit to ${km(mod)} of the ${kmOf(segs.length)} km.`
     : `${by}, no kilometre stands out. Routine checks are enough.`;
   const why = top ? `Most of the risk is ${top[0] === 'crossing' ? 'where the pipe crosses rivers' : top[0] === 'ground' ? 'unstable ground' : HAZ[top[0]].toLowerCase()}${rain && stop !== 'y0' && rain.change ? `, and heavy rain is expected on ${Math.abs(rain.change)}% ${rain.change > 0 ? 'more' : 'fewer'} days ${when} than in 1995–2025` : ''}.` : '';
   // Sections to look at: runs of high-priority km first, then single medium km, highest first.
   const spots = [...cl.map((c) => { const w = segs.slice(c.from, c.to + 1).filter(isHigh).sort((a, b) => b.risk[stop].score - a.risk[stop].score)[0];
       return { id: w.id, from: c.from, to: c.to, label: kpRange(c), text: `${c.n > 1 ? kmOf(c.n) + ' km, ' : ''}${plainShort(w)}`, col: C.red, word: 'Inspect first' }; }),
-    ...segs.map((x, i) => ({ x, i })).filter(({ x }) => tierOf(x) === 'amber').sort((a, b) => b.x.risk[stop].score - a.x.risk[stop].score).slice(0, Math.max(0, 5 - cl.length))
+    ...segs.map((x, i) => ({ x, i })).filter(({ x }) => tierOf(x) === 'amber').sort((a, b) => b.x.risk[stop].score - a.x.risk[stop].score).slice(0, Math.max(0, 4 - cl.length))
       .map(({ x, i }) => ({ id: x.id, from: i, to: i, label: segmentLabel(x), text: plainShort(x), col: C.amber, word: 'Plan a visit' }))];
   el.innerHTML = `<p class="bl">${esc(lead)}</p>${why ? `<p class="blw">${esc(why)}</p>` : ''}
     ${spots.length ? `<div class="spots"><div class="sh">Zoom to each section</div>${spots.map((p, i) => `<button type="button" class="spot" data-i="${i}"><i style="background:${p.col}"></i><b>${esc(p.label)}</b><span>${esc(p.word)}: ${esc(p.text)}</span></button>`).join('')}
       <button type="button" class="spot all" id="spotAll">Whole line</button></div>` : ''}`;
   el.querySelectorAll('.spot[data-i]').forEach((b) => b.onclick = () => zoomSpot(spots[+b.dataset.i], b));
-  if ($('spotAll')) $('spotAll').onclick = () => { el.querySelectorAll('.spot').forEach((x) => x.classList.remove('on')); fitAll(true); };
+  if ($('spotAll')) $('spotAll').onclick = () => { el.querySelectorAll('.spot').forEach((x) => x.classList.remove('on')); spotLayer.clearLayers(); fitAll(true); };
 }
 function zoomSpot(p, btn) {
   if (!mapMounted()) return;
   $('bottomLine').querySelectorAll('.spot').forEach((x) => x.classList.toggle('on', x === btn));
   const pts = segs.slice(p.from, p.to + 1).flatMap((x) => (x.studyPolygon || x.centreline || []).map((q) => [q[1], q[0]]));
   if (!pts.length) return;
+  // Mark the stretch on the map and say what it is, so the zoom lands somewhere readable.
+  spotLayer.clearLayers();
+  const run = segs.slice(p.from, p.to + 1);
+  for (const x of run) L.polyline(x.centreline.map((q) => [q[1], q[0]]), { color: '#fff', weight: 16, opacity: .28, lineCap: 'round', interactive: false }).addTo(spotLayer);
+  const mid = run[Math.floor(run.length / 2)].centreline, m = mid[Math.floor(mid.length / 2)];
+  L.tooltip({ permanent: true, direction: 'top', offset: [0, -14], className: 'anno spotcap', interactive: false })
+    .setLatLng([m[1], m[0]]).setContent(`<b>${esc(p.label)}</b><i style="background:${p.col}"></i>${esc(p.word)}: ${esc(p.text)}`).addTo(spotLayer);
   const b = L.latLngBounds(pts).pad(p.from === p.to ? 1.4 : 0.6), opts = { paddingTopLeft: [220, 40], paddingBottomRight: [380, 140], maxZoom: 15 };
   if (REDUCED) map.fitBounds(b, { ...opts, animate: false }); else map.flyToBounds(b, { ...opts, duration: 0.8 });
 }

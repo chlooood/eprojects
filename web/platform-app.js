@@ -125,7 +125,7 @@ function bandOf(fromM, toM, halfM) {
   return [...left, ...right.reverse()];
 }
 // Leave room for the panel and the strip on a wide screen; on a narrow one they sit below the map.
-const pad = () => (window.innerWidth > 900 ? { paddingTopLeft: [40, 110], paddingBottomRight: [480, 160] } : { padding: [24, 24] });
+const pad = () => (window.innerWidth > 900 ? { paddingTopLeft: [40, 150], paddingBottomRight: [480, (($('strip') && $('strip').offsetHeight) || 140) + 60] } : { padding: [24, 24] });
 function initMap() {
   map = L.map('map', { zoomControl: false, zoomSnap: 0.25, zoomDelta: 0.5 });
   map.createPane('after').style.zIndex = 210;
