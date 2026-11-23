@@ -41,6 +41,7 @@
   #grip { position:absolute; top:46%; left:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:var(--ink); color:var(--bg); display:grid; place-items:center; font:15px var(--mono); box-shadow:0 4px 18px rgba(0,0,0,.45); }
   .side { position:absolute; top:74px; z-index:455; font:11px var(--mono); letter-spacing:.06em; padding:5px 10px; border-radius:99px; white-space:nowrap; pointer-events:none; }
   .yr { position:absolute; top:70px; z-index:470; display:flex; gap:2px; padding:3px; border-radius:99px; } .yr button { background:none; border:0; border-radius:99px; padding:4px 11px; font:500 12px var(--sans); font-variant-numeric:tabular-nums; color:var(--ink-2); cursor:pointer; white-space:nowrap; } .yr button[aria-pressed=true] { background:var(--ink); color:var(--bg); } #ahead button.fut[aria-pressed=true] { background:var(--amber); } .yr .yl { align-self:center; padding:0 6px 0 9px; font:12px var(--sans); color:var(--ink-3); white-space:nowrap; } #aheadNote { position:absolute; top:106px; z-index:470; max-width:300px; padding:6px 10px; border-radius:10px; font-size:12px; color:var(--ink-2); pointer-events:none; }
+  .tagwrap { width:0 !important; height:0 !important; overflow:visible; } .tagwrap .plus { position:absolute; top:-11px; } .tagwrap .plus.r { left:0; } .tagwrap .plus.l { right:0; } .tagwrap .plus.c { left:0; transform:translateX(-50%); }
   .plus { font:600 12px/22px var(--sans); font-variant-numeric:tabular-nums; color:var(--bg); background:var(--amber); border-radius:99px; padding:0 10px; white-space:nowrap; width:auto !important; transform-origin:left; box-shadow:0 2px 8px rgba(0,0,0,.4); } .plus.maybe { background:#d9c48c; }
   /* the line, as a strip */
   #strip { position:absolute; left:22px; right:474px; bottom:20px; z-index:600; border-radius:14px; padding:12px 14px 8px; }
@@ -67,7 +68,7 @@
   h1 { font:italic 400 64px/1 var(--serif); margin:6px 0 16px; letter-spacing:-.01em; }
   h1.t { font:600 26px/1.2 var(--sans); letter-spacing:-.01em; margin:2px 0 12px; } h1 .sub { display:block; font:400 14px var(--sans); color:var(--ink-3); margin-top:4px; letter-spacing:0; }
   .why { color:var(--ink-2); font-size:14.5px; line-height:1.5; }
-  .bignum { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; align-items:center; margin:18px 0; padding:14px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .bignum { display:grid; gap:6px; margin:18px 0; padding:14px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
   .bignum b { font:500 40px/1 var(--sans); font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--amber); white-space:nowrap; } .bignum span { font-size:13px; color:var(--ink-2); line-height:1.45; }
   .photos { display:flex; gap:4px; flex-wrap:wrap; margin:6px 0 8px; } .photos button { background:none; border:1px solid var(--line); border-radius:99px; padding:5px 12px; font-size:13px; cursor:pointer; } .photos button[aria-pressed=true] { background:var(--ink); color:var(--bg); border-color:var(--ink); } .photos .play { margin-left:auto; border-color:var(--ink-2); }
   .proofchart, .spark { display:block; width:100%; height:auto; color:var(--ink); margin:6px 0 4px; } .proofchart text, .spark text { font:11px var(--sans); fill:var(--ink-3); font-variant-numeric:tabular-nums; }

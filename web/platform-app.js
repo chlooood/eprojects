@@ -170,8 +170,10 @@ function clip() {
   $('divider').style.left = px + 'px'; $('drag').style.left = px + 'px';
   $('years').style.left = Math.max(12, px - $('years').offsetWidth - 14) + 'px';
   map.getPane('future').style.clipPath = map.getPane('after').style.clipPath;
-  $('ahead').style.left = px + 14 + 'px';
-  $('aheadNote').style.left = px + 14 + 'px';
+  const yrRight = Math.max(12, px - $('years').offsetWidth - 14) + $('years').offsetWidth + 8;
+  $('ahead').style.left = Math.max(px + 14, yrRight) + 'px';
+  $('aheadNote').style.left = Math.max(px + 14, yrRight) + 'px';
+  $('ahead').style.display = proofMode ? 'none' : '';
 }
 // Per 200 m of line: homes built since the 2019 roof survey, homes with a building permit that are not finished,
 // and homes approved by development permit. "coming" is what has yet to be built.
@@ -213,7 +215,8 @@ function paintFuture() {
   futureLayer.clearLayers();
   if (!store.ahead || !FUT || proofMode) return;
   const added = addedBy(store.ahead);
-  const tag = (at, n, anchorLeft) => L.marker(at, { pane: 'future', interactive: false, icon: L.divIcon({ className: 'plus maybe', html: n, iconSize: [null, 22], iconAnchor: anchorLeft ? [0, 11] : undefined }) }).addTo(futureLayer);
+  // side: 'r' grows right from the point, 'l' grows left, 'c' is centred on it.
+  const tag = (at, n, side = 'c') => L.marker(at, { pane: 'future', interactive: false, icon: L.divIcon({ className: 'tagwrap', html: `<span class="plus maybe ${side}">${n}</span>`, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(futureLayer);
   added.forEach((n, k) => {
     if (n < 0.5) return;
     L.polygon(bandOf(k * 200, (k + 1) * 200, 200), { pane: 'future', color: C.sand, weight: 0.8, dashArray: '3 4', fillColor: C.amber, fillOpacity: Math.min(0.55, 0.1 + n / 90), interactive: false }).addTo(futureLayer);
@@ -232,14 +235,16 @@ function paintFuture() {
     return { n, at: ll(p.x, p.y), text: `${esc(pl.name.replace(/ NSP$/, ''))}: ~${n} homes` };
   }).filter((x) => x.n >= 10).map((x) => ({ ...x, pt: map.latLngToContainerPoint(x.at) })).sort((a, b) => a.pt.y - b.pt.y);
   if (!items.length) return;
-  const colX = Math.max(...items.map((q) => q.pt.x)) + 90;
+  // Put the column on whichever side of the line has room, so no label runs under the panel.
+  const rightEdge = map.getSize().x - (window.innerWidth > 900 ? 480 : 12), maxX = Math.max(...items.map((q) => q.pt.x)), minX = Math.min(...items.map((q) => q.pt.x));
+  const right = rightEdge - (maxX + 90) >= 250, colX = right ? maxX + 90 : minX - 90;
   let lastY = -Infinity;
   for (const q of items) {
     const yy = Math.max(q.pt.y, lastY + 30); lastY = yy;
     const at = map.containerPointToLatLng([colX, yy]);
     L.polyline([q.at, at], { pane: 'future', color: C.sand, weight: 1, opacity: 0.85, interactive: false }).addTo(futureLayer);
     L.circleMarker(q.at, { pane: 'future', radius: 3, stroke: false, fillColor: C.sand, fillOpacity: 1, interactive: false }).addTo(futureLayer);
-    tag(at, q.text, true);
+    tag(at, q.text, right ? 'r' : 'l');
   }
 }
 function select(id, fly = true) {
