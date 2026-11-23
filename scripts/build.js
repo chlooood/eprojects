@@ -43,14 +43,15 @@ const sw = read('web/sw.js').replace('__BUILD_HASH__', crypto.createHash('sha256
 write('deploy/sw.js', sw);
 write('dist/sw.js', sw);
 
-// dist/platform.html and deploy/platform.html: the segment record page (class location, decision paths, land
+// dist/platform.html and deploy/platform.html: the Class changes page (class location, decision paths, land
 // obligations, field feedback, approvals). The modules in src/ are inlined in dependency order, so the page runs
 // the same code as the tests and the n8n Code nodes. Data: data/platform/*.json (scripts/make-platform-data.js).
 const platformModules = ['segments', 'classlocation', 'decision', 'obligations', 'feedback', 'ledger', 'export', 'platform'].map((m) => read(`src/${m}.js`)).join('\n').replace(/<\/(script|style)/gi, '<\\/$1');
 const platformData = `window.TC_PLATFORM_DATA = ${safeJson(JSON.parse(read('data/platform/ab-strathcona-demo.json')))};\nwindow.TC_BACKTEST = ${safeJson(JSON.parse(read('data/platform/ab-strathcona-demo-backtest.json')))};\nwindow.TC_GROWTH_RESULT = ${safeJson(JSON.parse(read('data/platform/ab-strathcona-demo-growth.json')))};`;
 const platformPage = read('web/platform.html').replace('/*__LEAFLET_CSS__*/', () => read('web/vendor/leaflet.css').replace(/<\/(script|style)/gi, '<\\/$1')).replace('/*__LEAFLET_JS__*/', () => read('web/vendor/leaflet.js').replace(/<\/(script|style)/gi, '<\\/$1')).replace('/*__MODULES__*/', () => platformModules + '\n' + platformData).replace('/*__APP__*/', () => read('web/platform-app.js').replace(/<\/(script|style)/gi, '<\\/$1'));
 write('dist/platform.html', platformPage);
-write('deploy/platform.html', platformPage);
+// deploy/platform.html also knows the n8n webhook, so it can fetch the other pages' data ahead of a click.
+write('deploy/platform.html', wiring.apiBase ? platformPage.replace("window.TC_API_BASE = window.TC_API_BASE || '';", () => `window.TC_API_BASE = window.TC_API_BASE || ${JSON.stringify(wiring.apiBase)};`) : platformPage);
 
 // dist/dashboard-demo.html: the SYNTHETIC corridor inlined. No network needed at all.
 const demo = read('data/demo/corridor.json').replace(/<\//g, '<\\/');

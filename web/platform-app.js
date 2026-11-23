@@ -1,4 +1,4 @@
-// Segment record page: the alignment sheet. Satellite map on top, a km-indexed strip below, an inspector
+// Class changes page (formerly "Segment record"): the alignment sheet. Satellite map on top, a km-indexed strip below, an inspector
 // on the right. Everything is recomputed in the browser from the inlined data with the same modules the
 // tests and the n8n Code nodes run. Decisions and findings stay in this browser (and go to W7/W9 with ?api=).
 const DATA = window.TC_PLATFORM_DATA, BT = window.TC_BACKTEST;
@@ -17,7 +17,7 @@ const KEY = 'tc-platform:' + DATA.meta.corridorId;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = EXPORT.money;
-const C = { red: '#ff5d4f', amber: '#f2a93b', green: '#6fd08f', grey: '#5d625a', sand: '#d9c48c', bg: '#0a0b0a', ink: '#eceee6', ink2: '#a5aa9f' };
+const C = { red: '#df4436', amber: '#d68910', green: '#2f9e5b', grey: '#a3a69c', sand: '#d9c48c', bg: '#f3f2ec', ink: '#1c1e1a', ink2: '#4a4e46' };
 // Esri World Imagery Wayback: dated releases of the same imagery service the geohazard map uses. Free with attribution.
 // The date is when Esri published the release; the photo itself can be older.
 const WAYBACK = [{ year: '2019', id: 645, date: '26 Jun 2019' }, { year: '2022', id: 4905, date: '29 Jun 2022' }, { year: '2024', id: 39767, date: '27 Jun 2024' }];
@@ -51,7 +51,7 @@ const band = (p) => (p >= 0.7 ? 'red' : p >= 0.3 ? 'amber' : p >= 0.05 ? 'sand' 
 //   Watch: 5 to 30% of futures, or approved homes with no building permit yet.
 //   Changed since 2019: more homes now than the 2019 roof survey had for that class (the proof stretch).
 //   Stable: nothing on file moves it. No data: no dwelling data for the stretch.
-const DONE = '#aab6c4';
+const DONE = '#9fb0c4';
 const ST = { changed: 'Changed, plan clock running', coming: 'Coming', watch: 'Watch', done: 'Changed since 2019', stable: 'Stable', nodata: 'No data' };
 const horizon = () => store.ahead || '2035';
 function statusFor(r) {
@@ -551,3 +551,15 @@ function download(name, text, type) { const a = document.createElement('a'); a.h
 $('jur').value = store.jurisdiction;
 $('jur').onchange = () => { store.jurisdiction = $('jur').value; save(); render(); };
 compute(); initMap(); render();
+
+// Warm the Ground, Climate and Where to look first pages: fetch their corridor data while this page is idle,
+// into the same per-tab cache they read, so switching pages does not wait on n8n.
+(function warm() {
+  const base = window.TC_API_BASE, id = 'ab-strathcona-demo', key = 'tc-data:' + id;
+  if (!base || typeof fetch !== 'function' || typeof sessionStorage === 'undefined') return;
+  try { const c = JSON.parse(sessionStorage.getItem(key) || 'null'); if (c && Date.now() - c.t < 10 * 60e3) return; } catch (e) { return; }
+  const pull = () => fetch(base + '/corridor?corridor=' + id).then((r) => (r.ok ? r.json() : null)).then((d) => {
+    if (d && Array.isArray(d.segments) && d.segments.length && d.meta && d.meta.corridorId === id) try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), d })); } catch (e) {}
+  }).catch(() => {});
+  (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(pull);
+})();

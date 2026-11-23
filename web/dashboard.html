@@ -8,20 +8,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="prefetch" href="platform.html">
 <style>
   /* Design rules: .claude/skills/frontend-design/SKILL.md */
   :root {
-    --bg:#0a0b0a; --s1:#101210; --s2:#161916; --s3:#1d211d;
-    --line:#252925; --line-2:#323732;
-    --ink:#eceee6; --ink-2:#a5aa9f; --ink-3:#7a7f75;
-    --green:#6fd08f; --amber:#f2a93b; --red:#ff5d4f; --grey:#5d625a;
-    --build:#d6f35f; --sub:#82c8ff;
+    --bg:#f3f2ec; --s1:#fbfaf6; --s2:#efeee7; --s3:#e6e4db;
+    --line:#dedbd0; --line-2:#cfccc0;
+    --ink:#1c1e1a; --ink-2:#4a4e46; --ink-3:#6f7369;
+    --green:#2f9e5b; --amber:#d68910; --red:#df4436; --grey:#a3a69c;
+    --build:#8aa61b; --sub:#2f86d1;
     --sans:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --serif:'Instrument Serif', Georgia, serif;
     --mono:'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
     --ease:cubic-bezier(.2,.7,.1,1);
-    --shadow:0 12px 36px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.3);
-    color-scheme: dark;
+    --shadow:0 12px 32px rgba(30,32,26,.14), 0 1px 2px rgba(30,32,26,.1);
+    color-scheme: light;
   }
   * { box-sizing:border-box; }
   html, body { height:100%; }
@@ -36,14 +37,15 @@
   .muted { color:var(--ink-2); }
 
   /* ---------- header ---------- */
-  header.top { flex:none; display:flex; align-items:center; gap:14px; padding:8px 20px; min-height:58px; height:auto; flex-wrap:wrap; background:var(--s1); border-bottom:1px solid var(--line); }
-  .mark { display:flex; align-items:center; gap:9px; font:600 16px/1 var(--sans); letter-spacing:-.02em; text-decoration:none; flex:none; }
-  .mark em { font:italic 400 21px/1 var(--serif); letter-spacing:0; margin-left:-3px; }
-  nav.pages { display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; }
-  nav.pages a { padding:7px 12px; border-radius:8px; color:var(--ink-2); text-decoration:none; font-size:14px; font-weight:500; display:flex; gap:6px; align-items:center; white-space:nowrap; transition:color .16s var(--ease), background .16s var(--ease); }
-  nav.pages a:hover { color:var(--ink); background:var(--s2); }
-  nav.pages a.on { color:var(--ink); background:var(--s3); }
-  .count { font:500 10.5px/1 var(--mono); padding:3px 6px; border-radius:999px; background:var(--ink); color:var(--s1); }
+  /* ---------- the header: identical on every page (Class changes, Ground, Climate, Where to look first, Work orders) ---------- */
+  header.top { z-index:700; flex:none; display:flex; align-items:center; gap:24px; height:56px; padding:0 22px; background:rgba(251,250,246,.9); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border-bottom:1px solid rgba(28,30,26,.1); }
+  .mark { display:flex; align-items:center; gap:9px; font:600 16px/1 var(--sans); letter-spacing:-.02em; text-decoration:none; color:var(--ink); flex:none; }
+  .mark em { font:italic 400 21px/1 var(--serif); letter-spacing:0; margin-left:-3px; color:var(--ink); }
+  nav.pages { display:flex; gap:20px; overflow-x:auto; scrollbar-width:none; }
+  nav.pages a { padding:5px 0; color:var(--ink-2); text-decoration:none; font:500 14px/1.2 var(--sans); display:flex; gap:6px; align-items:center; white-space:nowrap; border-bottom:1.5px solid transparent; background:none; border-radius:0; }
+  nav.pages a:hover { color:var(--ink); }
+  nav.pages a.on { color:var(--ink); border-color:var(--ink); }
+  .count { font:500 10.5px/1 var(--mono); padding:3px 6px; border-radius:999px; background:var(--ink); color:var(--bg); }
   .count:empty, .count[data-n="0"] { display:none; }
   .spacer { flex:1; }
   .pill { display:inline-flex; align-items:center; gap:6px; font:500 12px/1 var(--sans); padding:6px 10px; border-radius:999px; border:1px solid var(--line-2); color:var(--ink-2); white-space:nowrap; }
@@ -84,12 +86,12 @@
   .bl-wrap .blw { margin:6px 0 0; font-size:13px; color:var(--ink-2); }
   .spots { margin-top:12px; display:grid; gap:4px; }
   .spots .sh { font-size:11.5px; color:var(--ink-3); margin-bottom:2px; }
-  .spot { display:grid; grid-template-columns:10px auto 1fr; gap:4px 8px; align-items:baseline; text-align:left; width:100%; padding:7px 9px; border-radius:8px; border:1px solid transparent; background:rgba(255,255,255,.03); color:var(--ink-2); font:inherit; font-size:12.5px; cursor:pointer; }
+  .spot { display:grid; grid-template-columns:10px auto 1fr; gap:4px 8px; align-items:baseline; text-align:left; width:100%; padding:7px 9px; border-radius:8px; border:1px solid transparent; background:rgba(28,30,26,.03); color:var(--ink-2); font:inherit; font-size:12.5px; cursor:pointer; }
   .spot i { width:8px; height:8px; border-radius:50%; align-self:center; }
   .spot b { color:var(--ink); font-weight:600; white-space:nowrap; }
   .spot span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .spot:hover { background:rgba(255,255,255,.07); }
-  .spot.on { border-color:var(--ink-3); background:rgba(255,255,255,.08); }
+  .spot:hover { background:rgba(28,30,26,.07); }
+  .spot.on { border-color:var(--ink-3); background:rgba(28,30,26,.08); }
   .spot:focus-visible { outline:2px solid var(--ink); outline-offset:1px; }
   .spot.all { display:block; color:var(--ink-3); background:none; padding:5px 9px; }
   .pv { margin:16px 0 6px; }
@@ -172,20 +174,20 @@
   .leaflet-container { font:inherit; }
   .leaflet-control-zoom a { color:var(--ink) !important; }
   .leaflet-bar { border:1px solid var(--line) !important; box-shadow:var(--shadow) !important; border-radius:10px !important; overflow:hidden; }
-  .leaflet-control-attribution { background:rgba(10,11,10,.7) !important; color:var(--ink-3) !important; font-size:10.5px; }
+  .leaflet-control-attribution { background:rgba(251,250,246,.92) !important; color:var(--ink-3) !important; font-size:10.5px; }
   .leaflet-tooltip.tc { background:var(--s2); color:var(--ink); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); font:12.5px/1.35 var(--sans); padding:6px 9px; }
   .leaflet-tooltip.tc::before, .leaflet-tooltip.anno::before { display:none; }
-  .leaflet-tooltip.anno { background:rgba(10,11,10,.85); color:var(--ink); border:1px solid var(--line-2) !important; border:0; border-radius:7px; font:500 12px/1.3 var(--sans); padding:5px 9px; box-shadow:0 4px 14px rgba(0,0,0,.25); pointer-events:none; }
+  .leaflet-tooltip.anno { background:rgba(251,250,246,.92); color:var(--ink); border:1px solid var(--line-2) !important; border:0; border-radius:7px; font:500 12px/1.3 var(--sans); padding:5px 9px; box-shadow:0 4px 14px rgba(30,32,26,.1); pointer-events:none; }
   .leaflet-tooltip.spotcap { font-size:13px; padding:7px 11px; }
   .leaflet-tooltip.spotcap i { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px; }
   .leaflet-tooltip.anno b { font:500 11.5px var(--mono); margin-right:6px; }
-  .ovl { position:absolute; z-index:600; background:rgba(12,14,12,.74); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border:1px solid rgba(236,238,230,.08); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.35); }
+  .ovl { position:absolute; z-index:600; background:rgba(251,250,246,.92); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border:1px solid rgba(28,30,26,.08); border-radius:12px; box-shadow:0 8px 28px rgba(30,32,26,.16); }
   #legend { left:16px; top:16px; padding:12px 14px; font-size:12.5px; display:grid; gap:7px; }
   #legend .t { font-weight:600; font-size:12.5px; margin-bottom:2px; color:var(--ink); }
   #legend .sw { width:18px; height:4px; }
   /* Imagery is context, not content: muted so the line and its colours carry the map */
-  .tiles-sat { filter:saturate(.35) brightness(.6) contrast(1.08); }
-  .tiles-plain { filter:brightness(1.12); }
+  .tiles-sat { filter:none; }
+  .tiles-plain { filter:none; }
   #legend .li { display:flex; align-items:center; gap:9px; color:var(--ink-2); }
   #basemap { right:60px; top:16px; padding:3px; display:flex; gap:2px; }
   #basemap button, .seg button { border:0; background:none; padding:5px 11px; border-radius:8px; cursor:pointer; font-size:12.5px; color:var(--ink-2); }
@@ -206,7 +208,7 @@
   .stops button { position:relative; background:none; border:0; padding:22px 4px 0; cursor:pointer; color:var(--ink-3); text-align:center; line-height:1.25; }
   .stops button::before { content:''; position:absolute; top:2px; left:50%; width:12px; height:12px; margin-left:-6px; border-radius:50%; background:var(--s1); border:2px solid var(--line-2); transition:all .2s var(--ease); }
   .stops button.past::before { border-color:var(--ink); }
-  .stops button.on::before { background:var(--ink); border-color:var(--ink); box-shadow:0 0 0 4px rgba(236,238,230,.15); }
+  .stops button.on::before { background:var(--ink); border-color:var(--ink); box-shadow:0 0 0 4px rgba(28,30,26,.15); }
   .stops button.on, .stops button:hover { color:var(--ink); }
   .stops b { display:block; font:500 13px var(--mono); }
   .stops span { display:block; font-size:11px; }
@@ -253,7 +255,7 @@
   table.kv td { padding:9px 0; border-bottom:1px solid var(--line); vertical-align:baseline; }
   table.kv td:last-child { text-align:right; font:500 13px var(--mono); white-space:nowrap; padding-left:12px; }
   table.kv tr:last-child td { border-bottom:0; }
-  .actions { position:sticky; bottom:0; margin:28px -24px 0; padding:16px 24px 20px; background:linear-gradient(to bottom, rgba(16,18,16,0), var(--s1) 16px); border-top:1px solid var(--line); }
+  .actions { position:sticky; bottom:0; margin:28px -24px 0; padding:16px 24px 20px; background:linear-gradient(to bottom, rgba(251,250,246,0), var(--s1) 16px); border-top:1px solid var(--line); }
   .actions.has-wo { position:static; background:none; }
   .doc .actions { margin:32px 0 0; padding:20px 0 0; background:none; position:static; }
   .btnrow { display:flex; gap:8px; }
@@ -294,7 +296,7 @@
   .sl .tag.src { color:var(--green); } .sl .tag.ours { color:var(--amber); }
   input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:24px; background:transparent; margin:6px 0 0; cursor:pointer; }
   input[type=range]::-webkit-slider-runnable-track { height:3px; border-radius:2px; background:linear-gradient(to right, var(--ink) var(--p,50%), var(--line-2) var(--p,50%)); }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; margin-top:-7.5px; border-radius:50%; background:var(--ink); border:3px solid var(--s1); box-shadow:0 1px 4px rgba(0,0,0,.15); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; margin-top:-7.5px; border-radius:50%; background:var(--ink); border:3px solid var(--s1); box-shadow:0 1px 4px rgba(30,32,26,.1); }
   input[type=range]::-moz-range-track { height:3px; background:var(--line-2); }
   input[type=range]::-moz-range-progress { height:3px; background:var(--ink); }
   input[type=range]::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--ink); border:3px solid var(--s1); }
@@ -333,7 +335,7 @@
   .wo ol { margin:10px 0 0; padding-left:18px; font-size:13px; line-height:1.5; color:var(--ink-2); }
   .wo ol li { margin-bottom:4px; }
   .wo .row2 { display:flex; gap:14px; margin-top:10px; font-size:12.5px; flex-wrap:wrap; }
-  .pri { font:600 11px/1 var(--mono); padding:3px 6px; border-radius:5px; background:var(--red); color:#1a0a08; }
+  .pri { font:600 11px/1 var(--mono); padding:3px 6px; border-radius:5px; background:var(--red); color:#fff; }
   .pri.P2 { background:var(--amber); } .pri.P3 { background:var(--green); }
   #toast { position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); opacity:0; z-index:2000; background:var(--ink); color:var(--bg); padding:11px 16px; border-radius:10px; font-size:13.5px; font-weight:500; box-shadow:var(--shadow); transition:opacity .2s var(--ease), transform .2s var(--ease); pointer-events:none; max-width:min(560px, calc(100vw - 32px)); }
   #toast.on { opacity:1; transform:translateX(-50%); }
@@ -403,17 +405,12 @@
     #sheet { padding:12px 16px; }
     .wf { grid-template-columns:minmax(0,1fr) 80px; } .wf .trk { grid-column:1 / -1; grid-row:2; }
   }
-  /* ---------- Ground and Climate: the segment record's layout ---------- */
-  body.imm header.top { position:absolute; top:0; left:0; right:0; z-index:700; background:linear-gradient(rgba(10,11,10,.8), transparent); border:0; pointer-events:none; padding:12px 22px 18px; }
-  body.imm header.top > * { pointer-events:auto; }
+  /* ---------- Ground, Climate and Where to look first: the Class changes page's layout ---------- */
+  body.imm header.top { position:absolute; top:0; left:0; right:0; }
   body.imm #genAt { display:none; }
-  body.imm nav.pages { gap:18px; }
-  body.imm nav.pages a { background:none !important; border-radius:0; padding:4px 0; border-bottom:1px solid transparent; }
-  body.imm nav.pages a.on { border-color:var(--ink); }
-  .imm { --glass:rgba(10,11,10,.82); --gl:rgba(236,238,230,.12); --i2:#b9bdb2; --i3:#9da296; }
+  .imm { --glass:rgba(251,250,246,.92); --gl:rgba(28,30,26,.12); --i2:#4a4e46; --i3:#6f7369; }
   .imm .map-slot { position:absolute; inset:0; }
   .imm #legend, .imm #timeline, .imm #basemap, .imm .leaflet-control-zoom { display:none !important; }
-  .imm .leaflet-tile-pane { filter:saturate(.55) brightness(.8) contrast(1.05); }
   .imm .leaflet-bottom.leaflet-right { right:452px; }
   .imm .glass { background:var(--glass); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border:1px solid var(--gl); }
   .imm .itop { position:absolute; top:70px; left:22px; right:474px; z-index:650; display:flex; gap:10px; flex-wrap:wrap; pointer-events:none; }
@@ -432,10 +429,10 @@
   .cstrip .cells { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px; }
   .cstrip .cell { height:30px; border-radius:5px; border:0; padding:0; cursor:pointer; font:600 12px var(--sans); font-variant-numeric:tabular-nums; position:relative; transition:transform .15s; background:var(--c); }
   .cstrip .cell:hover { transform:translateY(-2px); } .cstrip .cell.sel { outline:2px solid var(--ink); outline-offset:2px; }
-  .cstrip .cell.dot::after { content:''; position:absolute; top:-9px; left:50%; width:8px; height:8px; margin-left:-4px; border-radius:50%; background:var(--bg); border:2px solid #5aa9ff; }
+  .cstrip .cell.dot::after { content:''; position:absolute; top:-9px; left:50%; width:8px; height:8px; margin-left:-4px; border-radius:50%; background:var(--bg); border:2px solid #1f6fc2; }
   .cstrip .ruler { margin-top:5px; font:11px var(--sans); font-variant-numeric:tabular-nums; color:var(--i3); } .cstrip .ruler span { text-align:center; }
   .cstrip .key { display:flex; gap:16px; margin-top:7px; font-size:12px; color:var(--i2); flex-wrap:wrap; align-items:center; } .cstrip .key i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
-  .cstrip .key i.ring { border-radius:50%; background:var(--bg); border:2px solid #5aa9ff; width:9px; height:9px; }
+  .cstrip .key i.ring { border-radius:50%; background:var(--bg); border:2px solid #1f6fc2; width:9px; height:9px; }
   .cstrip .key .why { color:var(--i3); flex-basis:100%; }
   .insp { position:absolute; top:70px; right:22px; bottom:20px; width:430px; z-index:600; border-radius:16px; overflow-y:auto; padding:22px 26px 40px; scrollbar-width:thin; font-size:15px; line-height:1.55; }
   .insp .isteps { display:flex; gap:18px; margin-bottom:22px; border-bottom:1px solid var(--gl); } .insp .isteps button { background:none; border:0; padding:0 0 10px; margin-bottom:-1px; color:var(--i3); cursor:pointer; font-size:14px; border-bottom:1.5px solid transparent; } .insp .isteps button[aria-selected=true] { color:var(--ink); border-color:var(--ink); } .insp .isteps button:disabled { cursor:default; } .insp .isteps [data-whole] { margin-left:auto; }
@@ -448,7 +445,7 @@
   .insp .icap { color:var(--i3); font-size:13px; } .insp .icap.d { display:block; margin-top:2px; }
   .insp .inote { border-left:2px solid var(--gl); padding:1px 0 1px 14px; margin:14px 0; color:var(--i2); font-size:14px; } .insp .inote.warn { border-color:var(--amber); } .insp .inote b { color:var(--ink); font-weight:600; }
   .insp .itrio { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin:22px 0 14px; } .insp .itrio b { display:block; font:500 34px/1.1 var(--sans); font-variant-numeric:tabular-nums; letter-spacing:-.02em; } .insp .itrio span { font-size:12.5px; color:var(--i3); line-height:1.35; display:block; margin-top:4px; }
-  .insp .ibar { position:relative; height:8px; background:rgba(236,238,230,.1); border-radius:4px; margin:6px 0 30px; } .insp .ibar .f { position:absolute; left:0; top:0; bottom:0; border-radius:4px; }
+  .insp .ibar { position:relative; height:8px; background:rgba(28,30,26,.1); border-radius:4px; margin:6px 0 30px; } .insp .ibar .f { position:absolute; left:0; top:0; bottom:0; border-radius:4px; }
   .insp .ibar .mk { position:absolute; width:1px; top:-5px; bottom:-5px; background:var(--i2); } .insp .ibar .mk::after { content:attr(data-l); position:absolute; top:19px; left:-2px; width:110px; font:11px var(--sans); color:var(--i3); }
   .insp .ih2 { font:500 15px var(--sans); color:var(--ink); margin:28px 0 8px; }
   .insp .itrend { display:block; width:100%; height:auto; margin:4px 0; } .insp .itrend text { font:11px var(--sans); fill:var(--i3); font-variant-numeric:tabular-nums; }
@@ -468,23 +465,27 @@
     .cstrip, .insp { position:static; width:auto; margin:12px; } .imm .leaflet-bottom.leaflet-right { right:0; }
   }
   @media (prefers-reduced-motion: reduce) { .cstrip .cell { transition:none; } }
+  .insp .ichips { display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 10px; } .insp .ichips button { background:none; border:1px solid var(--gl); border-radius:99px; padding:4px 11px; font:500 12.5px var(--sans); color:var(--i2); cursor:pointer; } .insp .ichips button[aria-pressed=true] { background:var(--ink); color:var(--bg); border-color:var(--ink); } .insp .ichips small { opacity:.7; margin-left:2px; }
+  .insp .ist { font-size:11.5px; font-weight:600; margin-left:4px; } .insp .ist.approved { color:var(--green); } .insp .ist.rejected { color:var(--ink-3); }
+  .insp .idecide .actions { position:static; margin:6px 0 0; padding:0; background:none; border:0; }
+  .cstrip .key i.none { display:none; }
 </style>
 </head>
 <body>
 <header class="top">
-  <a class="mark" href="#/" aria-label="TerraCorridor overview">
-    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 16 C6 16 7 6 11 6 S16 15 20 13" fill="none" stroke="#eceee6" stroke-width="1.6"/><circle cx="2" cy="16" r="2" fill="#eceee6"/><circle cx="11" cy="6" r="2.2" fill="#f2a93b"/><circle cx="20" cy="13" r="2" fill="#eceee6"/></svg>
+  <a class="mark" href="platform.html" aria-label="TerraCorridor home">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 16 C6 16 7 6 11 6 S16 15 20 13" fill="none" stroke="#1c1e1a" stroke-width="1.6"/><circle cx="2" cy="16" r="2" fill="#1c1e1a"/><circle cx="11" cy="6" r="2.2" fill="#d68910"/><circle cx="20" cy="13" r="2" fill="#1c1e1a"/></svg>
     <span>Terra<em>Corridor</em></span>
   </a>
   <nav class="pages" id="nav" aria-label="Pages">
-    <a href="platform.html" data-p="platform">Segment record</a>
+    <a href="platform.html" data-p="platform">Class changes</a>
     <a href="#/" data-p="ground">Ground</a>
     <a href="#/climate" data-p="climate">Climate</a>
     <a href="#/triage" data-p="triage">Where to look first</a>
     <a href="#/log" data-p="log">Work orders <span class="count" id="logCount" data-n="0">0</span></a>
   </nav>
-  <label style="font-size:12px;display:flex;align-items:center;gap:6px">Corridor <select id="corridorSelect" aria-label="Study corridor" style="max-width:220px;background:var(--s2);color:var(--ink);border:1px solid var(--line-2);padding:6px;border-radius:6px"></select></label>
   <span class="spacer"></span>
+  <label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--ink-2)">Corridor <select id="corridorSelect" aria-label="Study corridor" style="max-width:220px;background:var(--s1);color:var(--ink);border:1px solid var(--line-2);padding:5px 8px;border-radius:99px"></select></label>
   <span class="pill warn" id="synthBadge" hidden><span class="led"></span>Synthetic demo data</span>
   <span class="pill live" id="liveBadge" hidden><span class="led"></span>Live from n8n</span>
   <span class="pill warn" id="offBadge" hidden><span class="led"></span>Offline snapshot</span>
@@ -492,7 +493,7 @@
 </header>
 
 <div id="views">
-  <!-- GROUND: where the ground could fail, laid out like the segment record -->
+  <!-- GROUND: where the ground could fail, laid out like Class changes -->
   <section class="view ws imm" id="view-ground" hidden>
     <div class="map-slot" data-map></div>
     <div class="itop"><div class="glass yr" role="group" aria-label="Time window"><span class="yl">When</span><button type="button" data-stop="y0">Today</button><button type="button" data-stop="y5">2026–30</button><button type="button" data-stop="y10">2031–35</button><button type="button" class="iplay" aria-label="Play through the windows"></button></div></div>
@@ -508,13 +509,12 @@
     <aside class="glass insp" id="cInsp" aria-live="polite"></aside>
   </section>
 
-  <!-- TRIAGE -->
-  <section class="view ws" id="view-triage" hidden>
-    <div class="ws-grid">
-      <div class="ws-list" id="triageList"></div>
-      <div class="ws-map"><div class="map-slot" data-map></div><div class="card-float" id="triageCard" hidden></div></div>
-      <div class="ws-strip" data-strip="1"></div>
-    </div>
+  <!-- TRIAGE: Where to look first, laid out like Class changes -->
+  <section class="view ws imm" id="view-triage" hidden>
+    <div class="map-slot" data-map></div>
+    <div class="itop"><div class="glass yr" role="group" aria-label="Time window"><span class="yl">When</span><button type="button" data-stop="y0">Today</button><button type="button" data-stop="y5">2026–30</button><button type="button" data-stop="y10">2031–35</button><button type="button" class="iplay" aria-label="Play through the windows"></button></div><div class="glass yr" id="hPick" role="group" aria-label="Hazard"></div></div>
+    <div class="glass cstrip" id="tStrip" aria-label="The pipeline, kilometre by kilometre"></div>
+    <aside class="glass insp" id="tInsp" aria-live="polite"></aside>
   </section>
 
   <!-- SEGMENT -->
@@ -622,9 +622,9 @@ const STATE_KEY = 'tc-state:' + CORRIDOR_ID;
 const getSavedState = () => localStorage.getItem(STATE_KEY) || (CORRIDOR_ID === 'ab-strathcona-demo' ? localStorage.getItem('tc-state') : null);
 
 // Hex mirrors of the CSS tokens (SVG attributes and Leaflet need literal colours).
-const C = { green:'#6fd08f', amber:'#f2a93b', red:'#ff5d4f', 'red-uncertain':'#ff5d4f', unverified:'#5d625a', grey:'#5d625a', excluded:'#3a3e38',
-  build:'#d6f35f', buildDim:'#7d8a45', sub:'#82c8ff', ink:'#eceee6', ink2:'#a5aa9f', ink3:'#7a7f75', line:'#252925', line2:'#323732', s1:'#101210', s2:'#161916', bg:'#0a0b0a',
-  rain:'#82c8ff', freeze:'#c3b6ff', wet:'#5fd4c4', fire:'#ff8a5c', dry:'#d9b46a', river:'#5aa9ff' };
+const C = { green:'#2f9e5b', amber:'#d68910', red:'#df4436', 'red-uncertain':'#df4436', unverified:'#a3a69c', grey:'#a3a69c', excluded:'#c9cbc2',
+  build:'#8aa61b', buildDim:'#b5c27a', sub:'#2f86d1', ink:'#1c1e1a', ink2:'#4a4e46', ink3:'#6f7369', line:'#dedbd0', line2:'#cfccc0', s1:'#fbfaf6', s2:'#efeee7', bg:'#f3f2ec',
+  rain:'#2f86d1', freeze:'#7b62d9', wet:'#1f9e8f', fire:'#e0622d', dry:'#b08422', river:'#1f6fc2' };
 const HAZ = { ground: 'Ground failure', crossing: 'River crossing', wildfire: 'Wildfire weather', drought: 'Drought' };
 const TIER_LABEL = { green:'Low', amber:'Medium', red:'High', 'red-uncertain':'High · models disagree', unverified:'Missing data', grey:'Poor site', excluded:'Too steep' };
 // What each level means you should do, in plain words. Used everywhere a level is shown.
@@ -765,6 +765,7 @@ function mapColor(s) {
   if (layer === 'build') { const t = s.build ? s.build.tier : 'unverified'; return t === 'green' ? C.build : t === 'amber' ? C.buildDim : C[t] || C.grey; }
   if (layer === 'ground') return C[groundOf(s).tier] || C.grey;
   if (layer === 'climate') { const m = measureAt(s, measure); return bucketCol(at() === 'y0' ? (m ? 'same' : 'none') : BUCKET(m && m.change)); }
+  if (page === 'triage') return C[triTier(s)] || C.grey;
   return C[tierOf(s)] || C.grey;
 }
 
@@ -822,7 +823,7 @@ function onRoute() {
   if (prev !== p && spotLayer) spotLayer.clearLayers();
   selected = ['triage', 'build', 'segment', 'ground', 'climate'].includes(p) ? sid : null;
   layer = p === 'build' ? 'build' : p === 'ground' || p === 'climate' ? p : 'risk';
-  document.body.classList.toggle('imm', p === 'ground' || p === 'climate');
+  document.body.classList.toggle('imm', ['ground', 'climate', 'triage'].includes(p));
   if (prev !== p) {
     for (const v of PAGES) $('view-' + v).hidden = v !== p;
     document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('on', a.dataset.p === p || (p === 'segment' && a.dataset.p === 'triage')));
@@ -921,6 +922,7 @@ function tipText(s) {
   if (layer === 'build') return `<b>${segmentLabel(s)}</b> · ${TIER_LABEL[s.build.tier] === 'Low' ? 'Build-ready' : s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier] || s.build.tier}${s.build.mw ? ' · ' + s.build.mw + ' MW' : ''}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
   const v = scoreAt(s);
   const r = s.risk[stop];
+  if (layer === 'risk' && page === 'triage') { const t = triTier(s), x = triScore(s); return `<b>${segmentLabel(s)}</b> · ${ACTION[t]}${x == null ? '' : ' · ' + Math.round(x) + ' of 100 · ' + esc(triReason(s))}`; }
   return `<b>${segmentLabel(s)}</b> · ${TIER_LABEL[tierOf(s)]} risk · ${v == null ? '–' : v.toFixed(0)}${r && r.hazard ? ' · ' + esc(whyText(r)) : ''}`;
 }
 function paint() {
@@ -958,7 +960,7 @@ function renderLegend() {
 function updateAnnotations() {
   if (!annoLayer) return;
   annoLayer.clearLayers();
-  if (layer !== 'risk' || anim) return;
+  if (layer !== 'risk' || anim || IMM()) return;
   for (const c of clusters()) {
     if (c.n < 2) continue;
     const cl = c.mid.centreline || [];
@@ -1137,7 +1139,7 @@ function drawOverlay() {
   const h = G.H - RULER - G.top + 4;
   const col = (id, fill, stroke) => { const i = segs.findIndex((s) => s.id === id); if (i < 0) return ''; const X = LW + i * G.bw;
     return `<rect x="${X - 1.5}" y="${G.top - 2}" width="${Math.max(G.bw, 2) + 3}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" rx="2"/>`; };
-  o.innerHTML = (selected ? col(selected, 'rgba(236,238,230,.07)', C.ink) : '') + (hover && hover !== selected ? col(hover, 'rgba(236,238,230,.08)', C.ink3) : '');
+  o.innerHTML = (selected ? col(selected, 'rgba(28,30,26,.07)', C.ink) : '') + (hover && hover !== selected ? col(hover, 'rgba(28,30,26,.08)', C.ink3) : '');
   readoutFor(hover || selected);
 }
 function readoutFor(id) {
@@ -1470,12 +1472,12 @@ function verdictHTML(s, r, t) {
     ${v.why ? `<p class="vwhy">${esc(v.why)}</p>` : ''}${v.what ? `<p class="vwhat"><b>Why that matters:</b> ${esc(v.what)}</p>` : ''}
     ${v.act ? `<p class="vact">${esc(v.act)}</p>` : ''}${v.sure ? `<p class="vsure">${esc(v.sure)}</p>` : ''}</div>`;
 }
-/* ---------- Ground and Climate: laid out like the segment record ----------
+/* ---------- Ground and Climate: laid out like Class changes ----------
    The map is the page. One panel on the right tells one kilometre's story (or the whole line's),
    one strip of kilometre cells along the bottom is the line. */
 // The line's name as people say it (the catalog name), not its id.
 const lineName = () => ((CATALOG.corridors.find((c) => c.id === CORRIDOR_ID) || {}).name || D.meta.name || '').replace(' · ', ' ');
-const IMM = () => page === 'ground' || page === 'climate';
+const IMM = () => page === 'ground' || page === 'climate' || page === 'triage';
 let measure = 'rain';
 // key, short name, what is counted, colour, why it matters for a buried pipe
 const MEASURES = [
@@ -1517,9 +1519,9 @@ const BUCKET = (ch) => ch == null ? 'none' : ch >= 25 ? 'much' : ch >= 10 ? 'mor
 function mixHex(a, b, t) { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
 function bucketCol(b, k = measure) {
   const c = Mk(k)[3];
-  return { much: c, more: mixHex('#5d625a', c, .55), same: '#4b5049', less: '#2f3a44', none: '#2a2d29' }[b];
+  return { much: c, more: mixHex('#ffffff', c, .45), same: '#dcdcd3', less: '#c4d4e0', none: '#ecebe4' }[b];
 }
-const bucketInk = (b) => (b === 'much' || b === 'more' ? C.bg : C.ink);
+const bucketInk = (b) => (b === 'much' ? '#fff' : b === 'none' ? C.ink3 : C.ink);
 function changeWords(ch, noun) {
   if (ch == null) return 'no data';
   const a = Math.abs(Math.round(ch));
@@ -1544,7 +1546,7 @@ function groundShort(s, g = groundOf(s)) {
   if (d.key === 'slope') return `steep ground, ${d.change}% grade`;
   if (d.key === 'vegetation') return d.change < 0 ? 'plants holding the soil have thinned' : 'plant cover has changed';
   if (at() === 'y0') return `${DRIVER_WORD[d.key] || d.label}, ${d1(d.base)} days a year`;
-  return `${changeWords(d.change, (DRIVER_WORD[d.key] || d.label) + ' days')}${when}`;
+  return `${changeWords(d.change, (DRIVER_WORD[d.key] || d.label).replace(/ /g, '-') + ' days')}${when}`;
 }
 // Even shorter, for the strip's chips.
 function groundChip(s, g) {
@@ -1628,7 +1630,7 @@ function renderGround() {
   const el = $('gStrip');
   el.innerHTML = stripHTML({ when: at() === 'y0' ? 'today' : STOP_LABEL[at()],
     need: hi.length || md.length ? `${kmOf(hi.length)} km to inspect first, ${kmOf(md.length)} to visit. Zoom to each:` : 'Nothing stands out. Routine checks are enough.', chips,
-    cells: all.map(({ s, g }) => ({ id: s.id, col: C[g.tier] || C.grey, ink: g.tier === 'unverified' ? C.ink2 : C.bg, text: g.score == null ? '–' : String(Math.round(g.score)), dot: !!(s.crossings && s.crossings.length),
+    cells: all.map(({ s, g }) => ({ id: s.id, col: C[g.tier] || C.grey, ink: g.tier === 'amber' ? C.ink : '#fff', text: g.score == null ? '–' : String(Math.round(g.score)), dot: !!(s.crossings && s.crossings.length),
       tip: `${segmentLabel(s)}: ${ACTION[g.tier]}${g.score == null ? '' : ', ' + Math.round(g.score) + ' of 100, ' + groundShort(s, g)}` })),
     key: [[`Inspect first (${cfg.tiers.red}+)`, C.red], [`Plan a visit (${cfg.tiers.amber}–${cfg.tiers.red - 1})`, C.amber], [`Routine checks (under ${cfg.tiers.amber})`, C.green], ['Not enough data', C.grey], ['The pipe crosses a river', null, 'ring']],
     why: `Each number is the ground priority out of 100 ${STOP_WHEN[at()]}: how likely the ground is to slide, wash out or heave there, or a flood to scour where the pipe crosses a river.` });
@@ -1649,7 +1651,7 @@ function groundKm(s, rank) {
   const plantWord = ndvi == null ? 'No data' : ndvi < -0.03 ? 'Thinner than five years ago' : ndvi > 0.03 ? 'Thicker than five years ago' : 'About the same as five years ago';
   const tn = (h) => (h.tier === 'red-uncertain' ? 'red' : h.tier);
   const hz = (h, none) => h && h.score != null ? `<b style="color:${C[tn(h)]}">${ACTION[tn(h)]}</b> · ${Math.round(h.score)} of 100` : `<span class="icap">${none}</span>`;
-  const xs = [...new Set((s.crossings || []).map((x) => x.name || (x.kind ? 'a ' + x.kind : '')).filter(Boolean))];
+  const xs = [...new Set((s.crossings || []).map((x) => (x.name ? (/ River$/.test(x.name) ? 'the ' + x.name : x.name) : x.kind ? 'a ' + x.kind : '')).filter(Boolean))];
   const wo = s.wo === 'approved' && s.workOrder && s.workOrder.status !== 'cancelled' ? s.workOrder : null;
   return head + `<div class="istatus" style="color:${C[t]}"><i></i>${ACTION[t]}</div>
     <p class="ilead">${esc(lead)}</p>
@@ -1690,7 +1692,7 @@ function groundWhole(all, rank, hi, md) {
 
 /* ---------- Climate ---------- */
 function setMeasure(k) { if (!Mk(k)) return; measure = k; paint(); renderPage(); }
-const lessCol = '#8fb4cf';
+const lessCol = '#4f7fa3';
 function renderClimate() {
   mapBox.classList.remove('has-card');
   const mk = Mk(measure), now = at() === 'y0';
@@ -1764,27 +1766,99 @@ function climateWhole(ranked, uniform) {
     <p class="icap">The 2026–30 and 2031–35 windows are five-year averages from three climate models, each adjusted so its past matches what was measured. They are for planning, not weather forecasts. ${esc(corridorNote())}</p>`;
 }
 
+/* ---------- Where to look first: every kilometre, most urgent first, laid out like Class changes ---------- */
+const HF = { all: 'All hazards', ground: 'Ground', crossing: 'River crossings', wildfire: 'Wildfire', drought: 'Drought' };
+const plainTier = (t) => (t || 'unverified').replace('-uncertain', '');
+function triScore(s) { return hazardFilter === 'all' ? s.risk[at()].score : ((s.risk[at()].hazards || {})[hazardFilter] || {}).score; }
+function triTier(s) {
+  if (hazardFilter === 'all') return plainTier(tierOf(s));
+  const h = (s.risk[at()].hazards || {})[hazardFilter];
+  return h && h.score != null ? plainTier(h.tier) : 'unverified';
+}
+// Each hazard in a few plain words, with its number.
+function hazardPlain(s, k) {
+  const h = (s.risk[at()].hazards || {})[k]; if (!h) return '';
+  if (k === 'ground') return cap1(groundShort(s, { k: 'ground' }));
+  if (k === 'crossing') { const xs = [...new Set((s.crossings || []).map((x) => (x.name ? (/ River$/.test(x.name) ? 'the ' + x.name : x.name) : x.kind ? 'a ' + x.kind : '')).filter(Boolean))]; return `Crosses ${listJoin(xs) || 'a stream'}`; }
+  if (k === 'wildfire') return h.change && h.change.fireDays != null ? cap1(changeWords(h.change.fireDays, 'wildfire-weather days')) : 'Wildfire weather';
+  if (k === 'drought') return h.change && h.change.drySoil != null ? cap1(changeWords(h.change.drySoil, 'very-dry-soil days')) : 'Very dry soil';
+  return '';
+}
+const triReason = (s) => (hazardFilter === 'all' ? plainShort(s) : hazardPlain(s, hazardFilter).toLowerCase());
+const decided = (s) => s.wo === 'approved' ? ' ✓' : s.wo === 'rejected' ? ' ✕' : '';
 function renderTriage() {
-  // The n8n feed has no per-hazard breakdown, so the hazard filters would all be empty. Show them only when the data has one.
-  const hasHaz = segs.some((x) => x.risk[stop].hazards && Object.keys(x.risk[stop].hazards).length);
+  mapBox.classList.remove('has-card');
+  // The n8n feed has no per-hazard breakdown, so the hazard picker would be empty. Show it only when the data has one.
+  const hasHaz = segs.some((x) => x.risk[at()].hazards && Object.keys(x.risk[at()].hazards).length);
   if (!hasHaz) hazardFilter = 'all';
-  const hs = (s) => hazardFilter === 'all' ? s.risk[stop].score : ((s.risk[stop].hazards || {})[hazardFilter] || {}).score;
-  const all = segs.filter((s) => hs(s) != null).sort((a, b) => hs(b) - hs(a));
-  const attn = (s) => tierOf(s) !== 'green';
-  const F = { attn: ['Needs attention', attn], high: ['Inspect first', isHigh], pending: ['Undecided', (s) => attn(s) && !s.wo], decided: ['Decided', (s) => !!s.wo], all: ['All', () => true] };
-  const rows = all.filter(F[filter][1]);
-  const HF = { all: 'All hazards', ground: 'Ground', crossing: 'Crossings', wildfire: 'Wildfire', drought: 'Drought' };
-  triageList.innerHTML = `<h2>Where to look first</h2><p class="lede">Every kilometre, most urgent first, ${stop === 'y0' ? 'on today\'s conditions' : 'for the climate expected in ' + STOP_LABEL[stop]}. Click one to zoom in and read why. Approving ${API ? 'records an inspection work order in n8n' : 'saves an inspection work order in this browser (local demo)'}, and every decision is logged.</p>
-    <div style="margin-bottom:12px">${stopSeg()}</div>
-    ${hasHaz ? `<div class="chips" style="margin-bottom:8px">${Object.entries(HF).map(([k, l]) => `<button data-h="${k}" class="${k === hazardFilter ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
-    <div class="chips">${Object.entries(F).map(([k, [l, f]]) => `<button data-f="${k}" class="${k === filter ? 'on' : ''}">${l}<small>${all.filter(f).length}</small></button>`).join('')}</div>
-    ${rows.length ? rows.slice(0, 80).map((s, i) => { const r = s.risk[stop], t = tierOf(s); return `<button class="qrow ${s.id === selected ? 'sel' : ''} ${s.id === hover ? 'hov' : ''}" data-id="${s.id}">
-      <span class="rk">${String(i + 1).padStart(2, '0')}</span><span class="id">${segmentLabel(s)}</span><span class="why">${esc(hazardFilter === 'all' ? whyText(r) : ((r.hazards || {})[hazardFilter] || {}).why || '')} ${statusOf(s)}</span>
-      <span class="sc">${Math.round(hs(s))}<span class="mbar"><i style="width:${hs(s)}%;background:${C[hazardFilter === 'all' ? t : (r.hazards[hazardFilter].tier)]}"></i></span></span></button>`; }).join('') : '<div class="empty">Nothing here.</div>'}`;
-  triageList.querySelectorAll('[data-f]').forEach((b) => b.onclick = () => { filter = b.dataset.f; renderTriage(); });
-  triageList.querySelectorAll('[data-h]').forEach((b) => b.onclick = () => { hazardFilter = b.dataset.h; renderTriage(); });
-  wireRows(triageList);
-  renderCard(triageCard, 'risk');
+  const hp = $('hPick'); hp.hidden = !hasHaz;
+  hp.innerHTML = `<span class="yl">Hazard</span>` + Object.entries(HF).map(([k, l]) => `<button type="button" data-h="${k}" aria-pressed="${k === hazardFilter}">${l}</button>`).join('');
+  hp.querySelectorAll('[data-h]').forEach((b) => b.onclick = () => { hazardFilter = b.dataset.h; paint(); renderTriage(); });
+  const ranked = segs.filter((s) => triScore(s) != null).sort((a, b) => triScore(b) - triScore(a));
+  const attn = (s) => triTier(s) !== 'green';
+  const pending = ranked.filter((s) => attn(s) && !s.wo);
+  const chips = pending.slice(0, 3).map((s) => ({ id: s.id, label: segmentLabel(s), reason: triReason(s) }));
+  const el = $('tStrip'), what = hazardFilter === 'all' ? 'priority' : HF[hazardFilter].toLowerCase() + ' score';
+  el.innerHTML = stripHTML({ when: at() === 'y0' ? 'today' : STOP_LABEL[at()],
+    need: pending.length ? `${pending.length} still need a decision. Zoom to each:` : 'Every kilometre that needs attention has a decision.', chips,
+    cells: segs.map((s) => { const v = triScore(s), t = triTier(s); return { id: s.id, col: C[t] || C.grey, ink: t === 'amber' ? C.ink : '#fff', text: (v == null ? '–' : String(Math.round(v))) + decided(s),
+      tip: `${segmentLabel(s)}: ${ACTION[t]}${v == null ? '' : ', ' + Math.round(v) + ' of 100, ' + triReason(s)}${s.wo ? ', ' + (s.wo === 'approved' ? 'inspection approved' : 'rejected') : ''}` }; }),
+    key: [[`Inspect first (${cfg.tiers.red}+)`, C.red], [`Plan a visit (${cfg.tiers.amber}–${cfg.tiers.red - 1})`, C.amber], [`Routine checks (under ${cfg.tiers.amber})`, C.green], ['Not enough data', C.grey], ['✓ approved · ✕ rejected', null, 'none']],
+    why: hazardFilter === 'all' ? `Each number is the priority out of 100 ${STOP_WHEN[at()]}: the worst of ground, river crossing, wildfire and drought.` : `Each number is the ${what} out of 100 ${STOP_WHEN[at()]}.` });
+  wireStrip(el, chips);
+  const s = selected && byId(selected), ins = $('tInsp');
+  const ovrOpen = ins.querySelector('details.ovr') && ins.querySelector('details.ovr').open;
+  ins.innerHTML = stepsHTML(s) + (s ? triageKm(s, ranked) : triageWhole(ranked, attn));
+  wireInsp(ins, s);
+  ins.querySelectorAll('[data-f]').forEach((b) => b.onclick = () => { filter = b.dataset.f; renderTriage(); });
+  if (ovrOpen && ins.querySelector('details.ovr')) ins.querySelector('details.ovr').open = true;
+  const t = s && triTier(s);
+  mapCaption(s, s && `${ACTION[t]}: ${triReason(s)}`, s && C[t]);
+}
+function triageKm(s, ranked) {
+  const r = s.risk[at()], t0 = tierOf(s), t = plainTier(t0), v = verdict(s, r, t0), score = r.score;
+  const place = ranked.indexOf(s) + 1;
+  const head = `<div class="iwhere">${esc(lineName())}</div><h1 class="ih1">${esc(segmentLabel(s))}</h1>`;
+  if (score == null) return head + `<div class="istatus" style="color:${C.grey}"><i></i>Not enough data</div><p class="ilead">${esc(v.lead)}</p>`;
+  const rows = ['ground', 'crossing', 'wildfire', 'drought'].map((k) => {
+    const h = (r.hazards || {})[k], name = { ground: 'Slides and washouts', crossing: 'River crossing', wildfire: 'Wildfire', drought: 'Drought' }[k];
+    if (!h || h.score == null) return `<div><dt class="k">${name}</dt><dd><span class="icap">${k === 'crossing' ? 'No river crosses this kilometre.' : 'No data'}</span></dd></div>`;
+    const ht = plainTier(h.tier);
+    return `<div><dt class="k">${name}</dt><dd><b style="color:${C[ht]}">${ACTION[ht]}</b> · ${Math.round(h.score)} of 100${r.hazard === k ? ' <span class="icap">· sets the priority</span>' : ''}<span class="icap d">${esc(hazardPlain(s, k))}.</span></dd></div>`;
+  }).join('');
+  const st = s.wo === 'approved' ? 'Approved' : s.wo === 'rejected' ? 'Rejected' : 'Open';
+  return head + `<div class="istatus" style="color:${C[t]}"><i></i>${ACTION[t]}${t0 === 'red-uncertain' ? ' · the models disagree' : ''}</div>
+    ${s.override && s.override.stop === stop ? `<p class="inote">Overridden to ${esc(TIER_LABEL[s.override.tier])}: “${esc(s.override.reason)}”</p>` : ''}
+    <p class="ilead">${esc(v.lead)}</p>
+    ${v.why || v.what ? `<p class="iwhy">${esc(v.why || '')} ${esc(v.what || '')}</p>` : ''}
+    ${v.act && t !== 'green' ? `<p class="inote warn"><b>${esc(v.act)}</b></p>` : ''}
+    <div class="itrio"><div><b style="color:${C[t]}">${Math.round(score)}</b><span>priority, out of 100</span></div><div><b>${place || '–'}</b><span>of ${ranked.length} on the list</span></div><div><b>${st}</b><span>decision</span></div></div>
+    <div class="ibar"><span class="f" style="width:${Math.min(100, score)}%;background:${C[t]}"></span><span class="mk" style="left:${cfg.tiers.amber}%" data-l="Visit at ${cfg.tiers.amber}"></span><span class="mk" style="left:${cfg.tiers.red}%" data-l="Inspect at ${cfg.tiers.red}"></span></div>
+    <h2 class="ih2">Decide</h2>
+    <div class="idecide">${actionsHTML(s, false)}</div>
+    <h2 class="ih2">Each hazard, scored 0 to 100</h2>
+    <dl class="ifacts">${rows}<div><dt class="k">How sure</dt><dd>${esc(SURE[r.agreement] || '–')}</dd></div></dl>
+    <h2 class="ih2">Priority over time</h2>
+    ${trendSVG(STOPS.map((k) => s.risk[k].score), { lines: [[cfg.tiers.red, 'Inspect', C.red], [cfg.tiers.amber, 'Visit', C.amber]], col: C[t] })}
+    <details class="ieng"><summary>Details for engineers</summary>${explainHTML(s, r)}${horizonHTML(s)}<p class="icap"><button type="button" class="ilink u" data-go="segment/${esc(s.id)}">Open the full report</button></p></details>`;
+}
+function triageWhole(ranked, attn) {
+  const by = at() === 'y0' ? 'Today' : 'By ' + STOP_LABEL[at()];
+  const hi = ranked.filter((s) => triTier(s) === 'red').length, md = ranked.filter((s) => triTier(s) === 'amber').length;
+  const open = ranked.filter((s) => attn(s) && !s.wo).length, done = ranked.filter((s) => s.wo).length;
+  const F = { attn: ['Needs attention', attn], high: ['Inspect first', (s) => triTier(s) === 'red'], pending: ['Undecided', (s) => attn(s) && !s.wo], decided: ['Decided', (s) => !!s.wo], all: ['All', () => true] };
+  if (!F[filter]) filter = 'attn';
+  const rows = ranked.filter(F[filter][1]);
+  const lead = hi || md ? `${by}, inspect ${kmOf(hi)} km first and plan visits to ${kmOf(md)} more.` : `${by}, no kilometre stands out. Routine checks are enough.`;
+  return `<div class="iwhere">${esc(lineName())}</div><h1 class="ih1 t">Where to look first<span class="sub">${kmOf(segs.length)} km · ${at() === 'y0' ? 'today' : STOP_LABEL[at()]}${hazardFilter === 'all' ? '' : ' · ' + HF[hazardFilter].toLowerCase()}</span></h1>
+    <p class="ilead">${esc(lead)}</p>
+    <p class="iwhy">${done ? `${done} decided so far. ` : ''}${open ? `${open} still need a decision: approve an inspection or reject it with a reason.` : 'Nothing is waiting for a decision.'}</p>
+    <div class="itrio"><div><b style="color:${C.red}">${kmOf(hi)}</b><span>km to inspect first</span></div><div><b style="color:${C.amber}">${kmOf(md)}</b><span>km to visit</span></div><div><b>${open}</b><span>waiting for a decision</span></div></div>
+    <div class="ichips">${Object.entries(F).map(([k, [l, f]]) => `<button type="button" data-f="${k}" aria-pressed="${k === filter}">${l} <small>${ranked.filter(f).length}</small></button>`).join('')}</div>
+    ${rows.length ? rows.slice(0, 60).map((s) => { const t = triTier(s), v = triScore(s); return `<button type="button" class="ipath" data-sel="${esc(s.id)}"><i style="background:${C[t]}"></i><b>${esc(segmentLabel(s))}</b><span>${esc(ACTION[t])}: ${esc(triReason(s))}${s.wo ? ` <small class="ist ${s.wo}">${s.wo === 'approved' ? 'Approved' : 'Rejected'}</small>` : ''}</span><em>${Math.round(v)}</em></button>`; }).join('') : '<p class="icap" style="margin-top:12px">Nothing here.</p>'}
+    <h2 class="ih2">How to read this</h2>
+    <p class="iwhy">Each kilometre gets four scores from 0 to 100: slides and washouts, the river crossing, wildfire and drought. The worst one sets its priority. ${cfg.tiers.red} or more: inspect first. ${cfg.tiers.amber} to ${cfg.tiers.red - 1}: plan a visit.</p>
+    <p class="icap">Approving ${API ? 'records an inspection work order in n8n' : 'saves an inspection work order in this browser (local demo)'}, and every decision is logged.</p>`;
 }
 
 function renderCard(el, mode) {
@@ -2033,15 +2107,24 @@ function wire() {
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('./sw.js').catch(() => {});
 
 (async () => {
+  // Moving between pages should not wait on n8n each time: keep the last answer for this tab for 15 minutes
+  // (Class changes fetches it ahead too), show it at once, and refresh it quietly for the next page.
+  const CACHE_KEY = 'tc-data:' + CORRIDOR_ID;
+  const keep = (d) => { try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d })); } catch (e) {} };
+  const cached = (() => { try { const c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null'); return c && Date.now() - c.t < 15 * 60e3 && c.d && Array.isArray(c.d.segments) && c.d.segments.length && c.d.meta && c.d.meta.corridorId === CORRIDOR_ID ? c.d : null; } catch (e) { return null; } })();
   if (window.TC_DATA) D = window.TC_DATA;
-  else {
+  else if (cached && API) {
+    D = cached;
+    fetch(DATA_URL).then((r) => (r.ok ? r.json() : null)).then((d) => { if (d && Array.isArray(d.segments) && d.segments.length && d.meta && d.meta.corridorId === CORRIDOR_ID) keep(d); }).catch(() => {});
+  } else {
     try {
-      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
       const res = await fetch(DATA_URL, { signal: ctl.signal }); clearTimeout(timer);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       D = await res.json();
       if (!D || !Array.isArray(D.segments) || !D.segments.length) throw new Error('No stored assessment for this corridor');
       if (D.meta?.corridorId !== CORRIDOR_ID) throw new Error('API returned a different corridor');
+      if (API) keep(D);
     } catch (e) {
       offlineReason = e.message;
       // No n8n, no network: run on the saved copy of the last real n8n run. Actions become local-only and say so.
