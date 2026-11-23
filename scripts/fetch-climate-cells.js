@@ -28,13 +28,15 @@ const { seriesMetrics, ratio, HORIZONS, MODELS } = new Function('$', helper + '\
 const args = process.argv.slice(2);
 const corridorFlag = args.indexOf('--corridor');
 const corridorId = corridorFlag >= 0 ? args[corridorFlag + 1] : 'ab-strathcona-demo';
-if (!['ab-strathcona-demo','bc-coquihalla'].includes(corridorId)) throw new Error('Unknown corridor ID');
+if (!['ab-strathcona-demo','bc-coquihalla','ngtl-ab-osm'].includes(corridorId)) throw new Error('Unknown corridor ID');
 if (corridorFlag >= 0) args.splice(corridorFlag, 2);
-const CELL_FILE = corridorId === 'bc-coquihalla' ? path.join(ROOT, 'data/corridors/bc-coquihalla/climate-cells.json') : path.join(ROOT, 'data', 'cache', 'cells', 'trans-northern-cells.json');
+const CELL_FILE = corridorId === 'bc-coquihalla' ? path.join(ROOT, 'data/corridors/bc-coquihalla/climate-cells.json') : corridorId === 'ngtl-ab-osm' ? path.join(ROOT, 'data/ngtl/climate-cells.json') : path.join(ROOT, 'data', 'cache', 'cells', 'trans-northern-cells.json');
 const saved = fs.existsSync(CELL_FILE) ? JSON.parse(fs.readFileSync(CELL_FILE, 'utf8')) : [];
 const wanted = args;
 // The four 10 km cells the live 22 km corridor crosses (W2 "Select Batch Segments" rounds each segment centroid to 0.1 degree).
-const CORRIDOR_CELLS = corridorId === 'bc-coquihalla' ? ['49.40_-121.30'] : ['53.30_-113.50', '53.40_-113.50', '53.40_-113.40', '53.50_-113.40'];
+// NGTL: the 55 cells its 508 segments fall in, listed in data/ngtl/cells.json, busiest first so a
+// rate-limited run (Open-Meteo allows about 5 cells a day per IP) covers the most kilometres.
+const CORRIDOR_CELLS = corridorId === 'bc-coquihalla' ? ['49.40_-121.30'] : corridorId === 'ngtl-ab-osm' ? JSON.parse(fs.readFileSync(path.join(ROOT, 'data/ngtl/cells.json'), 'utf8')).cells.slice().sort((a, b) => b.segments - a.segments).map((c) => c.cell_key) : ['53.30_-113.50', '53.40_-113.50', '53.40_-113.40', '53.50_-113.40'];
 const CELLS = (wanted.length ? wanted : [...new Set(CORRIDOR_CELLS.concat(saved.map((r) => r.cell_key)))]).map((k) => ({ cell_key: k, lat: Number(k.split('_')[0]), lon: Number(k.split('_')[1]) }));
 const SLEEP_MS = Number(process.env.SLEEP_MS || 65000);
 const OUT_DIR = process.env.OUT_DIR || path.join(ROOT, 'work', 'climate-seed');

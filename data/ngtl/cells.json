@@ -1,0 +1,226 @@
+{
+ "source": "NGTL API feed terracorridor-ngtl/corridor, 2026-11-23T04:37:47.460Z (W1 segments; cell = segment centre rounded to 0.1 degree by W2)",
+ "segments": 508,
+ "cells": [
+  {
+   "cell_key": "53.80_-113.00",
+   "segments": 3
+  },
+  {
+   "cell_key": "53.80_-113.10",
+   "segments": 3
+  },
+  {
+   "cell_key": "53.90_-113.00",
+   "segments": 14
+  },
+  {
+   "cell_key": "54.00_-112.90",
+   "segments": 12
+  },
+  {
+   "cell_key": "54.10_-112.90",
+   "segments": 11
+  },
+  {
+   "cell_key": "54.20_-112.90",
+   "segments": 11
+  },
+  {
+   "cell_key": "54.30_-112.90",
+   "segments": 12
+  },
+  {
+   "cell_key": "54.40_-112.50",
+   "segments": 2
+  },
+  {
+   "cell_key": "54.40_-112.60",
+   "segments": 6
+  },
+  {
+   "cell_key": "54.40_-112.90",
+   "segments": 12
+  },
+  {
+   "cell_key": "54.50_-112.60",
+   "segments": 8
+  },
+  {
+   "cell_key": "54.50_-112.70",
+   "segments": 5
+  },
+  {
+   "cell_key": "54.50_-112.80",
+   "segments": 6
+  },
+  {
+   "cell_key": "54.50_-112.90",
+   "segments": 11
+  },
+  {
+   "cell_key": "54.60_-112.70",
+   "segments": 7
+  },
+  {
+   "cell_key": "54.60_-112.80",
+   "segments": 31
+  },
+  {
+   "cell_key": "54.60_-112.90",
+   "segments": 4
+  },
+  {
+   "cell_key": "54.70_-112.70",
+   "segments": 18
+  },
+  {
+   "cell_key": "54.70_-112.80",
+   "segments": 25
+  },
+  {
+   "cell_key": "54.70_-112.90",
+   "segments": 9
+  },
+  {
+   "cell_key": "54.70_-113.00",
+   "segments": 4
+  },
+  {
+   "cell_key": "54.80_-112.60",
+   "segments": 23
+  },
+  {
+   "cell_key": "54.80_-112.70",
+   "segments": 23
+  },
+  {
+   "cell_key": "54.80_-113.00",
+   "segments": 4
+  },
+  {
+   "cell_key": "54.80_-113.10",
+   "segments": 7
+  },
+  {
+   "cell_key": "54.80_-113.20",
+   "segments": 10
+  },
+  {
+   "cell_key": "54.80_-113.30",
+   "segments": 3
+  },
+  {
+   "cell_key": "54.90_-112.50",
+   "segments": 17
+  },
+  {
+   "cell_key": "54.90_-112.60",
+   "segments": 11
+  },
+  {
+   "cell_key": "54.90_-113.20",
+   "segments": 1
+  },
+  {
+   "cell_key": "54.90_-113.30",
+   "segments": 22
+  },
+  {
+   "cell_key": "54.90_-113.40",
+   "segments": 7
+  },
+  {
+   "cell_key": "54.90_-113.50",
+   "segments": 3
+  },
+  {
+   "cell_key": "55.00_-112.50",
+   "segments": 11
+  },
+  {
+   "cell_key": "55.00_-113.30",
+   "segments": 6
+  },
+  {
+   "cell_key": "55.00_-113.40",
+   "segments": 6
+  },
+  {
+   "cell_key": "55.10_-112.50",
+   "segments": 12
+  },
+  {
+   "cell_key": "55.10_-113.40",
+   "segments": 8
+  },
+  {
+   "cell_key": "55.10_-113.50",
+   "segments": 6
+  },
+  {
+   "cell_key": "55.20_-112.40",
+   "segments": 2
+  },
+  {
+   "cell_key": "55.20_-112.50",
+   "segments": 10
+  },
+  {
+   "cell_key": "55.20_-113.50",
+   "segments": 5
+  },
+  {
+   "cell_key": "55.20_-113.60",
+   "segments": 9
+  },
+  {
+   "cell_key": "55.30_-112.50",
+   "segments": 12
+  },
+  {
+   "cell_key": "55.30_-113.60",
+   "segments": 1
+  },
+  {
+   "cell_key": "55.30_-113.70",
+   "segments": 11
+  },
+  {
+   "cell_key": "55.30_-113.80",
+   "segments": 2
+  },
+  {
+   "cell_key": "55.40_-112.40",
+   "segments": 11
+  },
+  {
+   "cell_key": "55.40_-112.50",
+   "segments": 3
+  },
+  {
+   "cell_key": "55.40_-113.80",
+   "segments": 7
+  },
+  {
+   "cell_key": "55.40_-113.90",
+   "segments": 8
+  },
+  {
+   "cell_key": "55.50_-112.30",
+   "segments": 6
+  },
+  {
+   "cell_key": "55.50_-112.40",
+   "segments": 6
+  },
+  {
+   "cell_key": "55.60_-112.30",
+   "segments": 12
+  },
+  {
+   "cell_key": "55.70_-112.30",
+   "segments": 9
+  }
+ ]
+}
