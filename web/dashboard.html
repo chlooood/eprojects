@@ -618,7 +618,9 @@ const CATALOG = window.TC_CATALOG || { default:'ab-strathcona-demo', corridors:[
 const legacyEdmontonLink = /^#\/(?:segment|triage)\/seg_[a-z0-9]+(?:$|[?&])/.test(location.hash);
 const requestedCorridor = urlParam('corridor') || (legacyEdmontonLink ? 'ab-strathcona-demo' : CATALOG.default);
 const CORRIDOR_ID = CATALOG.corridors.some(c => c.id === requestedCorridor) ? requestedCorridor : CATALOG.default;
-const DATA_URL = API ? API + '/corridor?corridor=' + encodeURIComponent(CORRIDOR_ID) : '../data/demo/corridor.json';
+// A catalog entry can name its own feed (the NGTL copy in n8n lives at terracorridor-ngtl).
+const CORRIDOR_API = (CATALOG.corridors.find(c => c.id === CORRIDOR_ID) || {}).api || API;
+const DATA_URL = CORRIDOR_API ? CORRIDOR_API + '/corridor?corridor=' + encodeURIComponent(CORRIDOR_ID) : '../data/demo/corridor.json';
 const STATE_KEY = 'tc-state:' + CORRIDOR_ID;
 const getSavedState = () => localStorage.getItem(STATE_KEY) || (CORRIDOR_ID === 'ab-strathcona-demo' ? localStorage.getItem('tc-state') : null);
 

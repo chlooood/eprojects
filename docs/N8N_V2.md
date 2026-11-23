@@ -42,6 +42,21 @@ Last updated Nov 20, 2026, 23:30. Instance: `chlooood.app.n8n.cloud` (Cloud Pro)
 | v2 · W1, W2, WF3 | geohazard | Drafts, waiting for switch day |
 | v2 · Email handoff | | Archived until approved orders need a real inbox |
 
+## NGTL copies (Nov 22)
+
+A separate set for NGTL lives in the n8n folder **"TerraCorridor NGTL"**. They were copied from the v2 workflows and write **only** to their own `ngtl_*` tables, so they never touch hackathon or v2 rows and don't wait for switch day.
+
+| Workflow | ID | Notes |
+| --- | --- | --- |
+| NGTL · W1: Corridor Setup | `hj7z3Zm0fsYu71bn` | Reads `data/ngtl/ngtl-overpass.json` pinned at commit 5c96a30 from GitHub (no Overpass). Segmenter keeps all six lines (`workflows/ngtl/segment-route.js`, built by `scripts/make-ngtl-w1.js`). No offline fixture: if GitHub is unreachable the batch fails closed. Starts NGTL W2 |
+| NGTL · W2: Long-Range Engine | `znZUJQb6r75IUavf` | Same engine; default corridor `ngtl-ab-osm` |
+| NGTL · WF3 - Near-term watch | `fqZoknjxE98R0aQi` | DRY_RUN stays true: logs what it would draft, never calls WF4 |
+| NGTL · API - Dashboard feed | `QHtI0E4XlA1YKSHb` | GET `terracorridor-ngtl/corridor`. Reads ngtl_* geohazard tables; class, obligations, work orders and build are the shared tables, read only |
+
+Tables: ngtl_segments `xS9ClnujA4OcoBnp`, ngtl_sources `pKGFtBvarPgjHcM2`, ngtl_baselines `ZTaX6AEU5LB1jjMD`, ngtl_climate_cells `7rAbbtFPPAoZJ6jC`, ngtl_predictions `ZI6kdrxJeRhkLi0t`, ngtl_watch `H3ZGRfXhdpFzOzHw`, ngtl_audit `eRaYp9xSdyYLgGKW`.
+
+Corridor `ngtl-ab-osm` is the 505 km of NGTL that OpenStreetMap names (6 lines, Fort Saskatchewan area north to Wandering River and Athabasca; 508 rows of 1 km). The rest of the 24,119 km system is "route not mapped" (see `data/ngtl/README.md`). The dashboard lists it in the corridor picker and reads its own feed (`api` in `data/corridors/catalog.json`).
+
 ## How they connect
 
 ```mermaid

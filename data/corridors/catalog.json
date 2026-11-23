@@ -1,7 +1,21 @@
 {
   "default": "bc-coquihalla",
   "corridors": [
-    { "id": "bc-coquihalla", "name": "Coquihalla · mountain corridor", "snapshot": "data/corridors/bc-coquihalla/assessment.json" },
-    { "id": "ab-strathcona-demo", "name": "Edmonton · reference corridor", "snapshot": "data/snapshot/live-snapshot.json" }
+    {
+      "id": "ngtl-ab-osm",
+      "name": "NGTL · north-central Alberta (505 km mapped)",
+      "api": "https://chlooood.app.n8n.cloud/webhook/terracorridor-ngtl",
+      "note": "Only the 505 km of NGTL that OpenStreetMap names; the rest of the 24,119 km system is route not mapped."
+    },
+    {
+      "id": "bc-coquihalla",
+      "name": "Coquihalla · mountain corridor",
+      "snapshot": "data/corridors/bc-coquihalla/assessment.json"
+    },
+    {
+      "id": "ab-strathcona-demo",
+      "name": "Edmonton · reference corridor",
+      "snapshot": "data/snapshot/live-snapshot.json"
+    }
   ]
 }
