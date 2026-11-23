@@ -2904,13 +2904,13 @@ function mapCaption(s, text, col) {
 }
 // Three points (1995–2025, 2026–30, 2031–35) as a small labelled line chart, with optional threshold lines.
 function trendSVG(vals, { max = 100, lines = [], fmt = (v) => String(Math.round(v)), col = C.ink } = {}) {
-  const W = 376, H = 124, L0 = 30, R = 12, T = 18, B = 24, x = (i) => L0 + i * (W - L0 - R) / 2, y = (v) => T + (H - T - B) * (1 - Math.min(v, max) / max);
+  const W = 376, H = 124, L0 = 30, R = 12, T = 18, B = 24, x = (i) => L0 + 26 + i * (W - L0 - R - 52) / 2, y = (v) => T + (H - T - B) * (1 - Math.min(v, max) / max);
   const pts = vals.map((v, i) => (v == null ? null : [x(i), y(v)])), ok = pts.filter(Boolean), cur = STOPS.indexOf(at());
   return `<svg class="itrend" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(vals.map((v, i) => (i ? STOP_LABEL[STOPS[i]] : '1995–2025') + ' ' + (v == null ? 'no data' : fmt(v))).join(', '))}">
-    ${lines.map(([v, l, c]) => `<line x1="${L0}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-dasharray="3 4" opacity=".7"/><text x="${L0 - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text><text x="${W - R}" y="${y(v) - 5}" text-anchor="end" fill="${c}">${esc(l)}</text>`).join('')}
+    ${lines.map(([v, l, c]) => `<line x1="${L0}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-dasharray="3 4" opacity=".7"/><text x="${L0 - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text><text x="${(x(0) + x(1)) / 2}" y="${y(v) - 5}" text-anchor="middle" fill="${c}">${esc(l)}</text>`).join('')}
     ${ok.length > 1 ? `<polyline points="${ok.map((p) => p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="2"/>` : ''}
     ${pts.map((p, i) => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="${i === cur ? 5.5 : 3.5}" fill="${i === cur ? col : C.bg}" stroke="${col}" stroke-width="2"/><text x="${p[0]}" y="${p[1] - 10}" text-anchor="middle" fill="${C.ink}">${esc(fmt(vals[i]))}</text>` : '').join('')}
-    ${STOPS.map((k, i) => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}"${i === cur ? ` fill="${C.ink}"` : ''}>${k === 'y0' ? '1995–2025' : STOP_LABEL[k]}</text>`).join('')}</svg>`;
+    ${STOPS.map((k, i) => `<text x="${x(i)}" y="${H - 6}" text-anchor="middle"${i === cur ? ` fill="${C.ink}"` : ''}>${k === 'y0' ? '1995–2025' : STOP_LABEL[k]}</text>`).join('')}</svg>`;
 }
 function corridorNote() {
   return D.meta.corridorId === 'bc-coquihalla' ? '12 km of public mapped pipeline near Coquihalla Canyon. The 2021 floods give regional context; this is a screening of the future, not evidence of current pipe damage. Route © OpenStreetMap contributors.'
@@ -2922,7 +2922,7 @@ function renderGround() {
   mapBox.classList.remove('has-card');
   const all = segs.map((s) => ({ s, g: groundOf(s) })), rank = groundRank();
   const hi = all.filter((o) => o.g.tier === 'red'), md = all.filter((o) => o.g.tier === 'amber');
-  const chips = rank.filter((o) => o.g.tier === 'red' || o.g.tier === 'amber').slice(0, 4).map((o) => ({ id: o.s.id, label: segmentLabel(o.s), reason: groundShort(o.s, o.g) }));
+  const chips = rank.filter((o) => o.g.tier === 'red' || o.g.tier === 'amber').slice(0, 3).map((o) => ({ id: o.s.id, label: segmentLabel(o.s), reason: groundShort(o.s, o.g) }));
   const el = $('gStrip');
   el.innerHTML = stripHTML({ when: at() === 'y0' ? 'today' : STOP_LABEL[at()],
     need: hi.length || md.length ? `${kmOf(hi.length)} km to inspect first, ${kmOf(md.length)} to visit. Zoom to each:` : 'Nothing stands out. Routine checks are enough.', chips,
@@ -2998,17 +2998,19 @@ function renderClimate() {
   const ranked = vals.filter((o) => o.m && o.m.change != null).sort((a, b) => b.m.change - a.m.change);
   // When the models give one value for the whole line, there is no "biggest rise" to point at.
   const uniform = ranked.length > 1 && ranked[0].m.change - ranked[ranked.length - 1].m.change < 1;
-  const chips = now || uniform ? [] : ranked.filter((o) => o.m.change >= 10).slice(0, 3).map((o) => ({ id: o.s.id, label: segmentLabel(o.s), reason: `${sign(Math.round(o.m.change))}%` }));
+  const med = ranked.length ? ranked[Math.floor(ranked.length / 2)].m.change : null;
+  const stand = now || uniform ? [] : ranked.filter((o) => o.m.change >= 10 && o.m.change - med >= 5);
+  const chips = stand.slice(0, 3).map((o) => ({ id: o.s.id, label: segmentLabel(o.s), reason: `${sign(Math.round(o.m.change))}%` }));
   const el = $('cStrip');
   el.innerHTML = stripHTML({ when: now ? 'measured 1995–2025' : STOP_LABEL[at()] + ' vs 1995–2025',
-    need: now ? `${mk[1]}: days a year, measured. Pick 2026–30 or 2031–35 to see the change.` : uniform ? `${cap1(changeWords(ranked[0].m.change, mk[2]))} on every kilometre: the climate models give one value for this whole line.` : chips.length ? `Biggest rise in ${mk[2]}:` : `No kilometre sees a big rise in ${mk[2]}.`, chips,
+    need: now ? `${mk[1]}: days a year, measured. Pick 2026–30 or 2031–35 to see the change.` : uniform ? `${cap1(changeWords(ranked[0].m.change, mk[2]))} on every kilometre: the climate models give one value for this whole line.` : chips.length ? `${cap1(changeWords(med, mk[2]))} on most of the line. Rising most:` : `${cap1(changeWords(med, mk[2]))} on most of the line, with no kilometre standing out.`, chips,
     cells: vals.map(({ s, m }) => { const b = now ? (m ? 'same' : 'none') : BUCKET(m && m.change); return { id: s.id, col: bucketCol(b), ink: bucketInk(b),
       text: !m ? '–' : now ? d1(m.base) : sign(Math.round(m.change)), tip: `${segmentLabel(s)}: ${!m ? 'no data' : now ? d1(m.base) + ' ' + mk[2] + ' a year' : d1(m.base) + ' to ' + d1(m.val) + ' ' + mk[2] + ' a year (' + sign(Math.round(m.change)) + '%)'}` }; }),
     key: now ? [['Measured average, 1995–2025', bucketCol('same')], ['No data', bucketCol('none')]] : [['Much more (+25% or more)', bucketCol('much')], ['More (+10 to 24%)', bucketCol('more')], ['About the same', bucketCol('same')], ['Fewer (−10% or less)', bucketCol('less')], ['No data', bucketCol('none')]],
     why: now ? `Each number is ${mk[2]} a year, averaged over 1995–2025.` : `Each number is the change in ${mk[2]} a year, ${STOP_LABEL[at()]} compared with 1995–2025, from the average of three climate models.` });
   wireStrip(el, chips);
   const s = selected && byId(selected), ins = $('cInsp');
-  ins.innerHTML = stepsHTML(s) + (s ? climateKm(s) : climateWhole(ranked, uniform));
+  ins.innerHTML = stepsHTML(s) + (s ? climateKm(s) : climateWhole(stand, uniform));
   wireInsp(ins, null);
   const m = s && measureAt(s, measure);
   mapCaption(s, s && (!m ? 'No data' : now ? `${d1(m.base)} ${mk[2]} a year` : cap1(changeWords(m.change, mk[2]))), s && (now ? C.ink2 : bucketCol(BUCKET(m && m.change))));
@@ -3048,12 +3050,12 @@ function climateWhole(ranked, uniform) {
   const parts = MEASURES.map(([k]) => ({ k, m: lineMeasure(k) })).filter((o) => o.m && o.m.change != null).sort((a, b) => Math.abs(b.m.change) - Math.abs(a.m.change));
   const lead = now ? 'This shows the measured average for 1995–2025. Pick 2026–30 or 2031–35 to see how it changes.'
     : parts.length ? `By ${STOP_LABEL[at()]}, along the line: ${listJoin(parts.map((o) => changeWords(o.m.change, MNOUN[o.k])))}, compared with 1995–2025.` : 'No climate data for this line.';
-  const top = now || uniform ? [] : ranked.slice(0, 6);
+  const top = now || uniform ? [] : ranked.slice(0, 6); // ranked: only the kilometres that stand out
   return `<div class="iwhere">${esc(lineName())}</div><h1 class="ih1 t">The climate along the line<span class="sub">${kmOf(segs.length)} km · ${now ? 'measured 1995–2025' : STOP_LABEL[at()] + ' vs 1995–2025'}</span></h1>
     <p class="ilead">${esc(cap1(lead))}</p>
     <h2 class="ih2">Average along the line</h2>
     ${measureRows((k) => lineMeasure(k))}
-    ${top.length ? `<h2 class="ih2">Where ${esc(MNOUN[measure])} changes most</h2>${top.map((o) => `<button type="button" class="ipath" data-sel="${esc(o.s.id)}"><i style="background:${bucketCol(BUCKET(o.m.change))}"></i><b>${esc(segmentLabel(o.s))}</b><span>${esc(d1(o.m.base))} → ${esc(d1(o.m.val))} ${esc(mk[2])} a year</span><em>${sign(Math.round(o.m.change))}%</em></button>`).join('')}` : ''}
+    ${top.length ? `<h2 class="ih2">Where ${esc(MNOUN[measure])} rises most</h2>${top.map((o) => `<button type="button" class="ipath" data-sel="${esc(o.s.id)}"><i style="background:${bucketCol(BUCKET(o.m.change))}"></i><b>${esc(segmentLabel(o.s))}</b><span>${esc(d1(o.m.base))} → ${esc(d1(o.m.val))} ${esc(mk[2])} a year</span><em>${sign(Math.round(o.m.change))}%</em></button>`).join('')}` : ''}
     ${uniform && !now ? `<p class="inote">Every kilometre gets the same climate numbers here: the climate models give one value for this whole line. What differs from one kilometre to the next is the ground, so see Ground for where to look.</p>` : ''}
     <h2 class="ih2">How to read this</h2>
     <p class="iwhy">Pick a measure at the top of the map. The line and the strip show how much more or less often it happens at each kilometre than in 1995–2025. ${esc(mk[4])}</p>
