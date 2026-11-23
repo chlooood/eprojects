@@ -2927,9 +2927,16 @@ function trendSVG(vals, { max = 100, lines = [], fmt = (v) => String(Math.round(
     ${pts.map((p, i) => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="${i === cur ? 5.5 : 3.5}" fill="${i === cur ? col : C.bg}" stroke="${col}" stroke-width="2"/><text x="${p[0]}" y="${p[1] - 10}" text-anchor="middle" fill="${C.ink}">${esc(fmt(vals[i]))}</text>` : '').join('')}
     ${STOPS.map((k, i) => `<text x="${x(i)}" y="${H - 6}" text-anchor="middle"${i === cur ? ` fill="${C.ink}"` : ''}>${k === 'y0' ? '1995–2025' : STOP_LABEL[k]}</text>`).join('')}</svg>`;
 }
+// Fail closed: a kilometre with no score is unchecked, never "nothing stands out".
+function unscoredNote(missing, total) {
+  if (!missing) return '';
+  return missing === total ? `No scores yet for any of the ${total} km. Treat the whole line as unchecked, not safe.`
+    : `${missing} of ${total} km have no score yet. Treat those as unchecked, not safe; nothing stands out on the rest.`;
+}
 function corridorNote() {
   return D.meta.corridorId === 'bc-coquihalla' ? '12 km of public mapped pipeline near Coquihalla Canyon. The 2021 floods give regional context; this is a screening of the future, not evidence of current pipe damage. Route © OpenStreetMap contributors.'
-    : D.meta.corridorId === 'ab-strathcona-demo' ? 'Edmonton reference corridor: a lower-exposure line, scored with the same thresholds as the BC corridor.' : '';
+    : D.meta.corridorId === 'ab-strathcona-demo' ? 'Edmonton reference corridor: a lower-exposure line, scored with the same thresholds as the BC corridor.'
+    : D.meta.corridorId === 'ngtl-ab-osm' ? 'NGTL: the 505 km that OpenStreetMap names (6 lines, Fort Saskatchewan area north to Wandering River and Athabasca). The rest of the 24,119 km system is not mapped here. Route © OpenStreetMap contributors.' : '';
 }
 
 /* ---------- Ground ---------- */
@@ -2940,7 +2947,7 @@ function renderGround() {
   const chips = rank.filter((o) => o.g.tier === 'red' || o.g.tier === 'amber').slice(0, 3).map((o) => ({ id: o.s.id, label: segmentLabel(o.s), reason: groundChip(o.s, o.g) }));
   const el = $('gStrip');
   el.innerHTML = stripHTML({ when: at() === 'y0' ? 'today' : STOP_LABEL[at()],
-    need: hi.length || md.length ? `${kmOf(hi.length)} km to inspect first, ${kmOf(md.length)} to visit. Zoom to each:` : 'Nothing stands out. Routine checks are enough.', chips,
+    need: hi.length || md.length ? `${kmOf(hi.length)} km to inspect first, ${kmOf(md.length)} to visit. Zoom to each:` : unscoredNote(all.filter((o) => o.g.score == null).length, all.length) || 'Nothing stands out. Routine checks are enough.', chips,
     cells: all.map(({ s, g }) => ({ id: s.id, col: C[g.tier] || C.grey, ink: g.tier === 'amber' ? C.ink : '#fff', text: g.score == null ? '–' : String(Math.round(g.score)), dot: !!(s.crossings && s.crossings.length),
       tip: `${segmentLabel(s)}: ${ACTION[g.tier]}${g.score == null ? '' : ', ' + Math.round(g.score) + ' of 100, ' + groundShort(s, g)}` })),
     key: [[`Inspect first (${cfg.tiers.red}+)`, C.red], [`Plan a visit (${cfg.tiers.amber}–${cfg.tiers.red - 1})`, C.amber], [`Routine checks (under ${cfg.tiers.amber})`, C.green], ['Not enough data', C.grey], ['The pipe crosses a river', null, 'ring']],
@@ -3111,7 +3118,7 @@ function renderTriage() {
   const chips = pending.slice(0, 3).map((s) => ({ id: s.id, label: segmentLabel(s), reason: triReason(s) }));
   const el = $('tStrip'), what = hazardFilter === 'all' ? 'priority' : HF[hazardFilter].toLowerCase() + ' score';
   el.innerHTML = stripHTML({ when: at() === 'y0' ? 'today' : STOP_LABEL[at()],
-    need: pending.length ? `${pending.length} still need a decision. Zoom to each:` : 'Every kilometre that needs attention has a decision.', chips,
+    need: pending.length ? `${pending.length} still need a decision. Zoom to each:` : unscoredNote(segs.length - ranked.length, segs.length) || 'Every kilometre that needs attention has a decision.', chips,
     cells: segs.map((s) => { const v = triScore(s), t = triTier(s); return { id: s.id, col: C[t] || C.grey, ink: t === 'amber' ? C.ink : '#fff', text: (v == null ? '–' : String(Math.round(v))) + decided(s),
       tip: `${segmentLabel(s)}: ${ACTION[t]}${v == null ? '' : ', ' + Math.round(v) + ' of 100, ' + triReason(s)}${s.wo ? ', ' + (s.wo === 'approved' ? 'inspection approved' : 'rejected') : ''}` }; }),
     key: [[`Inspect first (${cfg.tiers.red}+)`, C.red], [`Plan a visit (${cfg.tiers.amber}–${cfg.tiers.red - 1})`, C.amber], [`Routine checks (under ${cfg.tiers.amber})`, C.green], ['Not enough data', C.grey], ['✓ approved · ✕ rejected', null, 'none']],
