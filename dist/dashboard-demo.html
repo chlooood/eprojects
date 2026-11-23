@@ -915,6 +915,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   table.kv td:last-child { text-align:right; font:500 13px var(--mono); white-space:nowrap; padding-left:12px; }
   table.kv tr:last-child td { border-bottom:0; }
   .actions { position:sticky; bottom:0; margin:28px -24px 0; padding:16px 24px 20px; background:linear-gradient(to bottom, rgba(16,18,16,0), var(--s1) 16px); border-top:1px solid var(--line); }
+  .actions.has-wo { position:static; background:none; }
   .doc .actions { margin:32px 0 0; padding:20px 0 0; background:none; position:static; }
   .btnrow { display:flex; gap:8px; }
   .btn { flex:1; display:inline-flex; justify-content:center; align-items:center; gap:8px; padding:11px 14px; border-radius:10px; border:1px solid var(--line-2); background:var(--s1); cursor:pointer; font-size:14px; font-weight:500; text-decoration:none; transition:background .14s var(--ease), border-color .14s var(--ease), transform .08s; }
@@ -2062,6 +2063,7 @@ function onRoute() {
   if (p === 'segment' && !sid) return go('triage');
   const prev = page, selPrev = selected;
   page = p;
+  if (prev !== p && spotLayer) spotLayer.clearLayers();
   selected = ['triage', 'build', 'segment'].includes(p) ? sid : null;
   layer = p === 'build' ? 'build' : 'risk';
   if (prev !== p) {
@@ -2376,10 +2378,11 @@ function readoutFor(id) {
   const s = byId(id), v = scoreAt(s), b = s.build, t = tierOf(s);
   if (page === 'overview') {
     const c = (k) => { const x = climateAt(s, k); return x == null ? '–' : sign(Math.round(x)) + '%'; };
-    readout.innerHTML = `<b>${segmentLabel(s)}</b> · <span style="color:${C[t]};font-weight:600">${TIER_LABEL[t]} ${v == null ? '' : v.toFixed(0)}</span> · heavy rain ${c('rain')} · freeze-thaw ${c('freezeThaw')} · soaked ground ${c('saturation')} · fire weather ${c('fire')} · dry soil ${c('drySoil')} vs the past 30 years${s.crossings && s.crossings.length ? ' · river crossing' : ''}`;
+    readout.innerHTML = `<b>${segmentLabel(s)}</b> · <span style="color:${C[t]};font-weight:600">${ACTION[t.replace('-uncertain', '')] || TIER_LABEL[t]}${v == null ? '' : ' · ' + v.toFixed(0) + ' of 100'}</span> · heavy rain ${c('rain')} · freeze-thaw ${c('freezeThaw')} · soaked ground ${c('saturation')} · fire weather ${c('fire')} · dry soil ${c('drySoil')} vs the past 30 years${s.crossings && s.crossings.length ? ' · river crossing' : ''}`;
     return;
   }
-  readout.innerHTML = `<b>${segmentLabel(s)}</b> · <span style="color:${C[t]};font-weight:600">${TIER_LABEL[t]} ${v == null ? '' : v.toFixed(0)}</span> · slope ${s.slopePct ?? '–'}% · vegetation ${s.ndvi ? sign(s.ndvi.change5yr) : '–'} · ${b && b.mw ? b.mw + ' MW solar' : 'no build'}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
+  readout.innerHTML = page === 'build' ? `<b>${segmentLabel(s)}</b> · <span style="color:${C[t]};font-weight:600">${ACTION[t.replace('-uncertain', '')] || TIER_LABEL[t]}${v == null ? '' : ' · ' + v.toFixed(0) + ' of 100'}</span> · slope ${s.slopePct ?? '–'}% · vegetation ${s.ndvi ? sign(s.ndvi.change5yr) : '–'} · ${b && b.mw ? b.mw + ' MW solar' : 'no build'}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`
+    : `<b>${segmentLabel(s)}</b> · <span style="color:${C[t]};font-weight:600">${ACTION[t.replace('-uncertain', '')] || TIER_LABEL[t]}${v == null ? '' : ' · ' + v.toFixed(0) + ' of 100'}</span>${s.risk[stop].score == null ? '' : ' · ' + esc(plainShort(s))} · slope ${s.slopePct ?? '–'}%`;
 }
 function stripIndex(ev) {
   const r = strip.getBoundingClientRect(), xPx = (ev.clientX - r.left) * (G.W / r.width);
@@ -2525,8 +2528,10 @@ function woHTML(s) {
   </div>`;
 }
 function actionsHTML(s, compact) {
-  return `<div class="actions">
-    ${woHTML(s)}
+  const wo = woHTML(s);
+  // A filled-in work order is long: let it scroll with the card instead of pinning it over the verdict.
+  return `<div class="actions${wo ? ' has-wo' : ''}">
+    ${wo}
     <div class="btnrow">
       <button class="btn primary" data-act="approved" aria-pressed="${s.wo === 'approved'}">${s.wo === 'approved' ? (s.workOrder && s.workOrder.delivery === 'n8n' ? '✓ Approved · recorded in n8n' : s.workOrder && s.workOrder.delivery === 'sending' ? 'Sending to n8n…' : s.workOrder && s.workOrder.delivery === 'failed' ? 'Retry inspection approval' : '✓ Approved · local demo') : 'Approve inspection'}</button>
       <button class="btn" data-act="rejected" aria-pressed="${s.wo === 'rejected'}">${s.wo === 'rejected' ? 'Rejected' : s.wo === 'approved' ? 'Cancel' : 'Reject'}</button>

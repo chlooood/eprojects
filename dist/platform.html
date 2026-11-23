@@ -2086,7 +2086,7 @@ function paintMap() {
   const sr = rec();
   if (sr && !proofMode) {
     const st = statusFor(sr), p = pointAt((sr.kmFrom + sr.kmTo) * 500);
-    L.marker(ll(p.x, p.y), { interactive: false, keyboard: false, zIndexOffset: 1000, icon: L.divIcon({ className: 'seccap', html: `<span style="--c:${st.col}"><b>km ${sr.kmFrom}–${sr.kmTo}</b>${esc(shortLead(sr))}</span>`, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(bandLayer);
+    L.marker(ll(p.x, p.y), { interactive: false, keyboard: false, zIndexOffset: 1000, icon: L.divIcon({ className: 'seccap', html: `<span style="--c:${st.col}"><b>km ${sr.kmFrom}–${sr.kmTo}</b>${esc(sr.openItems.length ? chipReason(sr) : shortLead(sr))}</span>`, iconSize: [0, 0], iconAnchor: [0, 0] }) }).addTo(bandLayer);
   }
   const bins = binsNow();
   // One quiet dot per 200 m: white for homes added since 2019, amber where permits are issued, a ring where only approved.
