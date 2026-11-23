@@ -1064,6 +1064,70 @@ svg.leaflet-image-layer.leaflet-interactive path {
     #sheet { padding:12px 16px; }
     .wf { grid-template-columns:minmax(0,1fr) 80px; } .wf .trk { grid-column:1 / -1; grid-row:2; }
   }
+  /* ---------- Ground and Climate: the segment record's layout ---------- */
+  body.imm header.top { position:absolute; top:0; left:0; right:0; z-index:700; background:linear-gradient(rgba(10,11,10,.8), transparent); border:0; pointer-events:none; padding:12px 22px 18px; }
+  body.imm header.top > * { pointer-events:auto; }
+  body.imm #genAt { display:none; }
+  body.imm nav.pages { gap:18px; }
+  body.imm nav.pages a { background:none !important; border-radius:0; padding:4px 0; border-bottom:1px solid transparent; }
+  body.imm nav.pages a.on { border-color:var(--ink); }
+  .imm { --glass:rgba(10,11,10,.82); --gl:rgba(236,238,230,.12); --i2:#b9bdb2; --i3:#9da296; }
+  .imm .map-slot { position:absolute; inset:0; }
+  .imm #legend, .imm #timeline, .imm #basemap, .imm .leaflet-control-zoom { display:none !important; }
+  .imm .leaflet-tile-pane { filter:saturate(.55) brightness(.8) contrast(1.05); }
+  .imm .leaflet-bottom.leaflet-right { right:452px; }
+  .imm .glass { background:var(--glass); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); border:1px solid var(--gl); }
+  .imm .itop { position:absolute; top:70px; left:22px; right:474px; z-index:650; display:flex; gap:10px; flex-wrap:wrap; pointer-events:none; }
+  .imm .yr { display:flex; gap:2px; padding:3px; border-radius:99px; align-items:center; pointer-events:auto; }
+  .imm .yr button { background:none; border:0; border-radius:99px; padding:4px 11px; font:500 12px var(--sans); font-variant-numeric:tabular-nums; color:var(--i2); cursor:pointer; white-space:nowrap; }
+  .imm .yr button[aria-pressed=true] { background:var(--ink); color:var(--bg); }
+  .imm .yr .yl { padding:0 6px 0 9px; font-size:12px; color:var(--i3); white-space:nowrap; }
+  .imm .yr .iplay { display:grid; place-items:center; width:28px; height:24px; padding:0; color:var(--ink); }
+  .cstrip { position:absolute; left:22px; right:474px; bottom:20px; z-index:600; border-radius:14px; padding:12px 14px 8px; }
+  .cstrip .head { display:flex; align-items:center; gap:12px; margin-bottom:10px; font-size:13px; color:var(--i2); flex-wrap:wrap; } .cstrip .head > b { color:var(--ink); font-weight:500; }
+  .cstrip .need { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .cstrip .tools { margin-left:auto; display:flex; gap:6px; }
+  .cstrip .head button { background:none; border:1px solid var(--gl); border-radius:99px; padding:4px 12px; font-size:13px; cursor:pointer; color:var(--ink); } .cstrip .head button:hover { background:var(--s3); }
+  .cstrip .kmchip { border-color:var(--i2) !important; padding:2px 10px !important; } .cstrip .kmchip.on { background:var(--ink) !important; color:var(--bg) !important; }
+  .cstrip .kmchip b { font-weight:600; margin-right:4px; color:inherit; } .cstrip .kmstep { padding:2px 9px !important; font-size:14px !important; line-height:1; }
+  .cstrip .cells { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px; }
+  .cstrip .cell { height:30px; border-radius:5px; border:0; padding:0; cursor:pointer; font:600 12px var(--sans); font-variant-numeric:tabular-nums; position:relative; transition:transform .15s; background:var(--c); }
+  .cstrip .cell:hover { transform:translateY(-2px); } .cstrip .cell.sel { outline:2px solid var(--ink); outline-offset:2px; }
+  .cstrip .cell.dot::after { content:''; position:absolute; top:-9px; left:50%; width:8px; height:8px; margin-left:-4px; border-radius:50%; background:var(--bg); border:2px solid #5aa9ff; }
+  .cstrip .ruler { margin-top:5px; font:11px var(--sans); font-variant-numeric:tabular-nums; color:var(--i3); } .cstrip .ruler span { text-align:center; }
+  .cstrip .key { display:flex; gap:16px; margin-top:7px; font-size:12px; color:var(--i2); flex-wrap:wrap; align-items:center; } .cstrip .key i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  .cstrip .key i.ring { border-radius:50%; background:var(--bg); border:2px solid #5aa9ff; width:9px; height:9px; }
+  .cstrip .key .why { color:var(--i3); flex-basis:100%; }
+  .insp { position:absolute; top:70px; right:22px; bottom:20px; width:430px; z-index:600; border-radius:16px; overflow-y:auto; padding:22px 26px 40px; scrollbar-width:thin; font-size:15px; line-height:1.55; }
+  .insp .isteps { display:flex; gap:18px; margin-bottom:22px; border-bottom:1px solid var(--gl); } .insp .isteps button { background:none; border:0; padding:0 0 10px; margin-bottom:-1px; color:var(--i3); cursor:pointer; font-size:14px; border-bottom:1.5px solid transparent; } .insp .isteps button[aria-selected=true] { color:var(--ink); border-color:var(--ink); } .insp .isteps button:disabled { cursor:default; } .insp .isteps [data-whole] { margin-left:auto; }
+  .insp .iwhere { font:11px var(--mono); letter-spacing:.06em; color:var(--i3); }
+  .insp .ih1 { font:italic 400 64px/1 var(--serif); margin:6px 0 16px; letter-spacing:-.01em; }
+  .insp .ih1.t { font:600 26px/1.2 var(--sans); letter-spacing:-.01em; margin:2px 0 14px; } .insp .ih1 .sub { display:block; font:400 14px var(--sans); color:var(--i3); margin-top:4px; letter-spacing:0; }
+  .insp .istatus { display:inline-flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:12px; } .insp .istatus i { width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .insp .ilead { font-size:19px; line-height:1.42; margin:0 0 12px; text-wrap:pretty; }
+  .insp .iwhy { color:var(--i2); font-size:14.5px; line-height:1.5; margin:0 0 12px; }
+  .insp .icap { color:var(--i3); font-size:13px; } .insp .icap.d { display:block; margin-top:2px; }
+  .insp .inote { border-left:2px solid var(--gl); padding:1px 0 1px 14px; margin:14px 0; color:var(--i2); font-size:14px; } .insp .inote.warn { border-color:var(--amber); } .insp .inote b { color:var(--ink); font-weight:600; }
+  .insp .itrio { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin:22px 0 14px; } .insp .itrio b { display:block; font:500 34px/1.1 var(--sans); font-variant-numeric:tabular-nums; letter-spacing:-.02em; } .insp .itrio span { font-size:12.5px; color:var(--i3); line-height:1.35; display:block; margin-top:4px; }
+  .insp .ibar { position:relative; height:8px; background:rgba(236,238,230,.1); border-radius:4px; margin:6px 0 30px; } .insp .ibar .f { position:absolute; left:0; top:0; bottom:0; border-radius:4px; }
+  .insp .ibar .mk { position:absolute; width:1px; top:-5px; bottom:-5px; background:var(--i2); } .insp .ibar .mk::after { content:attr(data-l); position:absolute; top:19px; left:-2px; width:110px; font:11px var(--sans); color:var(--i3); }
+  .insp .ih2 { font:500 15px var(--sans); color:var(--ink); margin:28px 0 8px; }
+  .insp .itrend { display:block; width:100%; height:auto; margin:4px 0; } .insp .itrend text { font:11px var(--sans); fill:var(--i3); font-variant-numeric:tabular-nums; }
+  .insp .ifacts { margin:8px 0 0; } .insp .ifacts > div { display:grid; grid-template-columns:132px 1fr; gap:10px; padding:11px 0; border-top:1px solid var(--gl); font-size:14px; } .insp .ifacts dt { color:var(--i3); } .insp .ifacts dd { margin:0; } .insp .ifacts dd b { font-weight:600; }
+  .insp .ifacts > div.on dt .ilink { color:var(--ink); text-decoration:underline; text-underline-offset:3px; }
+  .insp .ilink { background:none; border:0; padding:0; color:var(--i3); cursor:pointer; font:inherit; text-align:left; } .insp .ilink:hover { color:var(--ink); }
+  .insp .ich { font-weight:600; margin-left:4px; }
+  .insp a { color:var(--ink); }
+  .insp .ipath { display:grid; grid-template-columns:10px auto 1fr auto; gap:10px; align-items:baseline; width:100%; text-align:left; background:none; border:0; border-top:1px solid var(--gl); padding:11px 0; color:var(--i2); font:inherit; font-size:14px; cursor:pointer; }
+  .insp .ipath:hover { color:var(--ink); } .insp .ipath i { width:9px; height:9px; border-radius:50%; align-self:center; } .insp .ipath b { color:var(--ink); font-weight:600; white-space:nowrap; } .insp .ipath em { font-style:normal; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .insp .ibtn { background:var(--ink); color:var(--bg); border:0; border-radius:99px; padding:7px 16px; font-weight:600; font-size:14px; cursor:pointer; }
+  .insp details.ieng { margin-top:22px; border-top:1px solid var(--gl); padding-top:12px; } .insp details.ieng summary { cursor:pointer; color:var(--i3); font-size:13px; }
+  @media (max-width:900px) {
+    body.imm header.top { position:static; background:var(--s1); }
+    .imm.view { overflow:auto; } .imm .map-slot { position:relative; height:62vh; } .imm .itop { position:absolute; top:12px; left:12px; right:12px; }
+    .cstrip, .insp { position:static; width:auto; margin:12px; } .imm .leaflet-bottom.leaflet-right { right:0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .cstrip .cell { transition:none; } }
 </style>
 </head>
 <body>
@@ -1074,7 +1138,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
   </a>
   <nav class="pages" id="nav" aria-label="Pages">
     <a href="platform.html" data-p="platform">Segment record</a>
-    <a href="#/" data-p="overview">Ground and climate</a>
+    <a href="#/" data-p="ground">Ground</a>
+    <a href="#/climate" data-p="climate">Climate</a>
     <a href="#/triage" data-p="triage">Where to look first</a>
     <a href="#/log" data-p="log">Work orders <span class="count" id="logCount" data-n="0">0</span></a>
   </nav>
@@ -1087,25 +1152,20 @@ svg.leaflet-image-layer.leaflet-interactive path {
 </header>
 
 <div id="views">
-  <!-- OVERVIEW -->
-  <section class="view ws" id="view-overview" hidden>
-    <div class="ov-grid" id="ovGrid">
-      <section class="ledger" id="ovLedger" aria-label="Climate summary"></section>
-      <div class="ws-map"><div class="map-slot" data-map></div>
-        <div class="ovl about" id="ovPanel">
-          <div class="bl-wrap" id="bottomLine" aria-live="polite"></div>
-        <details id="ovHint">
-          <summary>How to read this map</summary>
-          <div class="about-body">
-            <p id="corridorContext"></p>
-            <p>The line is a <span id="hintKm">demo</span> pipeline, coloured by its worst natural hazard: ground failure (landslide, washout, frost heave), river crossings, wildfire weather and drought. Blue dots are river crossings.</p>
-            <p>The 2026–30 and 2031–35 windows are five-year climate projections for planning, not weather forecasts. Press <b>&#9654;</b> to compare them with the past 30 years. Hover any number for what it means.</p>
-          </div>
-        </details>
-        </div>
-      </div>
-      <div class="ws-strip ov-strip" data-strip="0.55" data-lanes="climate" data-annot="1"></div>
-    </div>
+  <!-- GROUND: where the ground could fail, laid out like the segment record -->
+  <section class="view ws imm" id="view-ground" hidden>
+    <div class="map-slot" data-map></div>
+    <div class="itop"><div class="glass yr" role="group" aria-label="Time window"><span class="yl">When</span><button type="button" data-stop="y0">Today</button><button type="button" data-stop="y5">2026–30</button><button type="button" data-stop="y10">2031–35</button><button type="button" class="iplay" aria-label="Play through the windows"></button></div></div>
+    <div class="glass cstrip" id="gStrip" aria-label="The pipeline, kilometre by kilometre"></div>
+    <aside class="glass insp" id="gInsp" aria-live="polite"></aside>
+  </section>
+
+  <!-- CLIMATE: how the weather along the line changes -->
+  <section class="view ws imm" id="view-climate" hidden>
+    <div class="map-slot" data-map></div>
+    <div class="itop"><div class="glass yr" role="group" aria-label="Time window"><span class="yl">When</span><button type="button" data-stop="y0">1995–2025</button><button type="button" data-stop="y5">2026–30</button><button type="button" data-stop="y10">2031–35</button><button type="button" class="iplay" aria-label="Play through the windows"></button></div><div class="glass yr" id="mPick" role="group" aria-label="Climate measure"></div></div>
+    <div class="glass cstrip" id="cStrip" aria-label="The pipeline, kilometre by kilometre"></div>
+    <aside class="glass insp" id="cInsp" aria-live="polite"></aside>
   </section>
 
   <!-- TRIAGE -->
@@ -1888,7 +1948,7 @@ const STOPS = ['y0', 'y5', 'y10'];
 const STOP_LABEL = { y0:'Today', y5:'2026–30', y10:'2031–35' };
 const STOP_WHEN = { y0:'today', y5:'in 2026–30', y10:'by 2031–35' };
 const DRIVER_WORD = { rain:'heavy rain', freezeThaw:'freeze-thaw', saturation:'soaked ground', vegetation:'plant loss', slope:'slope' };
-const PAGES = ['overview', 'triage', 'segment', 'money', 'build', 'log'];
+const PAGES = ['ground', 'climate', 'triage', 'segment', 'money', 'build', 'log'];
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 1.5v11l9.5-5.5z" fill="currentColor"/></svg>';
 const ICON_PAUSE = '<svg width="14" height="14" viewBox="0 0 14 14"><rect x="2.5" y="1.5" width="3.2" height="11" rx="1" fill="currentColor"/><rect x="8.3" y="1.5" width="3.2" height="11" rx="1" fill="currentColor"/></svg>';
@@ -2010,6 +2070,8 @@ function tierOf(s) {
 const isHigh = (s) => tierOf(s).startsWith('red');
 function mapColor(s) {
   if (layer === 'build') { const t = s.build ? s.build.tier : 'unverified'; return t === 'green' ? C.build : t === 'amber' ? C.buildDim : C[t] || C.grey; }
+  if (layer === 'ground') return C[groundOf(s).tier] || C.grey;
+  if (layer === 'climate') { const m = measureAt(s, measure); return bucketCol(at() === 'y0' ? (m ? 'same' : 'none') : BUCKET(m && m.change)); }
   return C[tierOf(s)] || C.grey;
 }
 
@@ -2046,16 +2108,17 @@ function refresh() {
   paint(); renderLegend(); drawStrip(); updateTimeline(); renderPage(); updateAnnotations();
 }
 function renderPage() {
-  ({ overview: renderOverview, triage: renderTriage, segment: renderSegment, money: renderMoney, build: renderBuild, log: renderLog })[page]();
+  ({ ground: renderGround, climate: renderClimate, triage: renderTriage, segment: renderSegment, money: renderMoney, build: renderBuild, log: renderLog })[page]();
 }
 
 /* ---------- router ---------- */
 function parse() {
   const [p, id] = location.hash.replace(/^#\/?/, '').split('/');
   // The Money and Build (solar) pages were cut on 2026-11-16: score-to-probability money was not defensible and solar does not fit the right-of-way. Old links land on the overview.
-  return { p: PAGES.includes(p) && p !== 'money' && p !== 'build' ? p : 'overview', id: id || null };
+  // "overview" was the combined Ground and climate page until 2026-11-22; old links land on Ground.
+  return { p: PAGES.includes(p) && p !== 'money' && p !== 'build' ? p : 'ground', id: id || null };
 }
-const go = (p, id) => { location.hash = '#/' + (p === 'overview' ? '' : p) + (id ? '/' + id : ''); };
+const go = (p, id) => { location.hash = '#/' + (p === 'ground' && !id ? '' : p) + (id ? '/' + id : ''); };
 
 function onRoute() {
   const { p, id } = parse();
@@ -2064,8 +2127,9 @@ function onRoute() {
   const prev = page, selPrev = selected;
   page = p;
   if (prev !== p && spotLayer) spotLayer.clearLayers();
-  selected = ['triage', 'build', 'segment'].includes(p) ? sid : null;
-  layer = p === 'build' ? 'build' : 'risk';
+  selected = ['triage', 'build', 'segment', 'ground', 'climate'].includes(p) ? sid : null;
+  layer = p === 'build' ? 'build' : p === 'ground' || p === 'climate' ? p : 'risk';
+  document.body.classList.toggle('imm', p === 'ground' || p === 'climate');
   if (prev !== p) {
     for (const v of PAGES) $('view-' + v).hidden = v !== p;
     document.querySelectorAll('#nav a').forEach((a) => a.classList.toggle('on', a.dataset.p === p || (p === 'segment' && a.dataset.p === 'triage')));
@@ -2142,17 +2206,25 @@ function initMap() {
 }
 function fitAll(animate) {
   // Overview sits back a little so the corridor reads in its landscape; workspaces fit tighter.
-  const pad = page === 'overview' ? D.bounds.pad(.12) : D.bounds;
-  map.fitBounds(pad, { paddingTopLeft: [48, 48], paddingBottomRight: [48, 120], animate: !!animate });
+  if (IMM()) { map.fitBounds(D.bounds.pad(.06), { ...immPad(), animate: !!animate }); return; }
+  map.fitBounds(D.bounds, { paddingTopLeft: [48, 48], paddingBottomRight: [48, 120], animate: !!animate });
 }
-function cardPad() { return window.innerWidth > 860 && page !== 'overview' ? 440 : 0; }
+function cardPad() { return window.innerWidth > 860 ? 440 : 0; }
+// Ground and Climate: leave room for the header and time pills, the panel on the right and the strip below.
+function immPad() {
+  if (window.innerWidth <= 900) return { padding: [24, 24] };
+  const st = document.querySelector('#view-' + page + ' .cstrip');
+  return { paddingTopLeft: [40, 120], paddingBottomRight: [470, (st ? st.offsetHeight : 150) + 50] };
+}
 function flyTo(id, instant) {
   const s = byId(id); if (!s || !mapMounted()) return;
   const b = L.latLngBounds(s.studyPolygon.map((p) => [p[1], p[0]])).pad(1.6);
-  const opts = { paddingTopLeft: [40, 40], paddingBottomRight: [cardPad() + 40, 120], maxZoom: 14 };
+  const opts = IMM() ? { ...immPad(), maxZoom: 15 } : { paddingTopLeft: [40, 40], paddingBottomRight: [cardPad() + 40, 120], maxZoom: 14 };
   if (instant || REDUCED) map.fitBounds(b, { ...opts, animate: false }); else map.flyToBounds(b, { ...opts, duration: .8 });
 }
 function tipText(s) {
+  if (layer === 'ground') { const g = groundOf(s); return `<b>${segmentLabel(s)}</b> · ${ACTION[g.tier]}${g.score == null ? '' : ' · ' + Math.round(g.score) + ' of 100 · ' + esc(groundShort(s, g))}`; }
+  if (layer === 'climate') { const m = measureAt(s, measure), mk = Mk(measure); return `<b>${segmentLabel(s)}</b> · ${!m ? 'no data' : at() === 'y0' ? d1(m.base) + ' ' + mk[2] + ' a year' : d1(m.val) + ' ' + mk[2] + ' a year (' + sign(Math.round(m.change)) + '%)'}`; }
   if (layer === 'build') return `<b>${segmentLabel(s)}</b> · ${TIER_LABEL[s.build.tier] === 'Low' ? 'Build-ready' : s.build.tier === 'green' ? 'Build-ready' : TIER_LABEL[s.build.tier] || s.build.tier}${s.build.mw ? ' · ' + s.build.mw + ' MW' : ''}${s.irradiance != null ? ' · sun ' + s.irradiance.toFixed(2) + ' kWh/m²/day' : ''}`;
   const v = scoreAt(s);
   const r = s.risk[stop];
@@ -2173,9 +2245,10 @@ function paint() {
   for (const { s, m } of crossMarkers) {
     const h = (s.risk[anim ? anim.to : stop].hazards || {}).crossing;
     m.setStyle({ color: h ? C[h.tier] : C.bg, weight: 3, fillColor: C.river });
-    if (layer === 'risk') m.bringToFront();
+    if (layer === 'risk' || layer === 'ground') m.bringToFront();
   }
-  if (crossLayer) { if (layer === 'risk' && !map.hasLayer(crossLayer)) crossLayer.addTo(map); if (layer !== 'risk' && map.hasLayer(crossLayer)) map.removeLayer(crossLayer); }
+  const showX = layer === 'risk' || layer === 'ground';
+  if (crossLayer) { if (showX && !map.hasLayer(crossLayer)) crossLayer.addTo(map); if (!showX && map.hasLayer(crossLayer)) map.removeLayer(crossLayer); }
 }
 function renderLegend() {
   const rows = layer === 'build'
@@ -2215,6 +2288,7 @@ function updateTimeline() {
     b.setAttribute('aria-pressed', b.dataset.stop === cur);
   });
   bPlay.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+  document.querySelectorAll('.iplay').forEach((b) => { b.innerHTML = playing ? ICON_PAUSE : ICON_PLAY; b.setAttribute('aria-label', playing ? 'Pause' : 'Play through the windows'); });
   bPlay.setAttribute('aria-label', playing ? 'Pause' : 'Play the projection');
 }
 function transitionTo(to, done) {
@@ -2395,7 +2469,7 @@ function setHover(id) {
   document.querySelectorAll('.qrow').forEach((r) => r.classList.toggle('hov', r.dataset.id === id));
 }
 function select(id) {
-  const target = page === 'overview' || page === 'money' || page === 'log' ? 'triage' : page;
+  const target = page === 'money' || page === 'log' ? 'triage' : page;
   go(target, id);
 }
 
@@ -2660,47 +2734,6 @@ const HELP = {
   agree: 'We use three independent climate models. When all three point the same way, the projection is more trustworthy.',
   hot: 'The longest run of high-risk kilometres. Click to open it in Triage.',
 };
-// Overview: observed and projected climate only. No money, no build.
-function renderOverview() {
-  corridorContext.textContent = D.meta.corridorId === 'bc-coquihalla' ? '12 km of public mapped pipeline near Coquihalla Canyon. The 2021 floods provide regional context; this is a future screening assessment, not evidence of current pipe damage. Terrain profile and vegetation sampling limitations are disclosed in each report.' : 'Edmonton reference corridor: the preserved lower-exposure assessment. All applicable hazards are evaluated with the same thresholds as the BC corridor.';
-  if (D.meta.corridorId === 'bc-coquihalla') corridorContext.insertAdjacentHTML('beforeend', ' <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Mapped route © OpenStreetMap contributors</a>.');
-  mapBox.classList.remove("has-card");
-  const t = D.live.tiers, hi = (t.red || 0) + (t['red-uncertain'] || 0), mod = t.amber || 0, unv = t.unverified || 0;
-  const hw = (cfg.horizons || {})[stop] || [];
-  const when = stop === 'y0' ? 'observed 1995–2025' : `${hw[0] || 2026}–${hw[1] || ''} vs 1995–2025`;
-  if (!ovLedger.children.length) {
-    ovLedger.innerHTML = ['risk', 'rain', 'freezeThaw', 'fire', 'drought', 'crossing'].map((k) =>
-      `<a class="cell" href="#/triage" data-k="${k}" title="${esc(HELP[k])}"><div class="e"></div><div class="v"></div><div class="s"></div>${k === 'risk' ? '<div class="stack"></div>' : ''}</a>`).join('');
-  }
-  const cell = (k) => ovLedger.querySelector(`[data-k="${k}"]`);
-  const set = (k, e, v, s) => { const c = cell(k); c.querySelector('.e').innerHTML = esc(e) + ' <i aria-hidden="true">?</i>'; c.querySelector('.s').textContent = s; if (typeof v === 'function') v(c.querySelector('.v')); else c.querySelector('.v').innerHTML = v; };
-
-  set('risk', `Km to inspect first / visit`, `${kmOf(hi)}<small>/</small>${kmOf(mod)}`, `of ${kmOf(segs.length)} km${unv ? ', ' + unv + ' without enough data' : ''}`);
-  cell('risk').querySelector('.stack').innerHTML = [['red', hi], ['amber', mod], ['green', t.green || 0], ['unverified', unv]]
-    .map(([k, v]) => `<span style="flex-grow:${v};background:${C[k]}" title="${TIER_LABEL[k]}: ${v}"></span>`).join('');
-
-  for (const [k, e] of [['rain', 'Heavy-rain days a year'], ['freezeThaw', 'Freeze-thaw days a year']]) {
-    const c = corridorClimate(k);
-    if (!c) { set(k, e, '–', 'no data'); continue; }
-    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? `average along the line, past 30 years` : `${c.change > 0 ? sign(c.change) + '% more' : c.change < 0 ? sign(c.change) + '% fewer' : 'no change'} than 1995–2025`);
-    const v = cell(k).querySelector('.v'); v.style.color = stop !== 'y0' && c.change > 5 ? C[k === 'rain' ? 'rain' : k === 'freezeThaw' ? 'freeze' : 'wet'] : '';
-  }
-
-  for (const [k, hk, field, e, col] of [['fire', 'wildfire', 'fireWeatherDaysPerYr', 'Wildfire-weather days a year', C.fire], ['drought', 'drought', 'drySoilDaysPerYr', 'Very dry soil days a year', C.dry]]) {
-    const c = corridorHazard(hk, field);
-    if (!c) { set(k, e, '–', 'no humidity or soil data'); continue; }
-    set(k, e, (el) => { tween(el, c.proj, (v) => v.toFixed(1)); }, stop === 'y0' ? `past 30 years${c.n < segs.length ? `, ${c.n} of ${segs.length} km` : ''}` : `${c.change > 0 ? sign(c.change) + '% more' : c.change < 0 ? sign(c.change) + '% fewer' : 'no change'} than 1995–2025${c.n < segs.length ? `, ${c.n} of ${segs.length} km` : ''}`);
-    cell(k).querySelector('.v').style.color = stop !== 'y0' && c.change > 5 ? col : '';
-  }
-
-  const xs = segs.filter((s) => s.crossings && s.crossings.length);
-  const xHigh = xs.filter((s) => { const h = (s.risk[stop].hazards || {}).crossing; return h && h.score >= cfg.tiers.red; }).length;
-  const xMed = xs.filter((s) => { const h = (s.risk[stop].hazards || {}).crossing; return h && h.score >= cfg.tiers.amber && h.score < cfg.tiers.red; }).length;
-  set('crossing', 'River crossings: inspect / visit', `${xHigh}<small>/</small>${xMed}`, `of ${xs.length} km where the pipe crosses water`);
-  renderBottomLine(hi, mod, unv);
-}
-
-
 /* ---------- plain verdicts: what is likely, why, how sure, what to do ---------- */
 // The hazard behind a level, in one sentence a member of the public can follow, with its number.
 function plainWhy(s, r) {
@@ -2744,45 +2777,287 @@ function verdictHTML(s, r, t) {
     ${v.why ? `<p class="vwhy">${esc(v.why)}</p>` : ''}${v.what ? `<p class="vwhat"><b>Why that matters:</b> ${esc(v.what)}</p>` : ''}
     ${v.act ? `<p class="vact">${esc(v.act)}</p>` : ''}${v.sure ? `<p class="vsure">${esc(v.sure)}</p>` : ''}</div>`;
 }
-// The overview's bottom line, and the list of sections to zoom into.
-function renderBottomLine(hi, mod, unv) {
-  const el = $('bottomLine'); if (!el) return;
-  if (spotLayer) spotLayer.clearLayers();
-  const cl = clusters(), byHaz = {};
-  for (const x of segs) if (hi ? isHigh(x) : tierOf(x) === 'amber') { const k = x.risk[stop].hazard || 'ground'; byHaz[k] = (byHaz[k] || 0) + 1; }
-  const top = Object.entries(byHaz).sort((a, b) => b[1] - a[1])[0];
-  const rain = corridorClimate('rain'), when = STOP_WHEN[stop];
-  const by = stop === 'y0' ? 'Today' : 'By ' + STOP_LABEL[stop], km = (n) => `${kmOf(n)} km`;
-  const lead = hi && mod ? `${by}, inspect ${km(hi)} first and plan visits to ${km(mod)} more, out of ${kmOf(segs.length)} km.`
-    : hi ? `${by}, inspect ${km(hi)} first, out of ${kmOf(segs.length)} km. The rest can stay on routine checks.`
-    : mod ? `${by}, nothing needs inspecting urgently. Plan a visit to ${km(mod)} of the ${kmOf(segs.length)} km.`
-    : `${by}, no kilometre stands out. Routine checks are enough.`;
-  const why = top ? `Most of the risk is ${top[0] === 'crossing' ? 'where the pipe crosses rivers' : top[0] === 'ground' ? 'unstable ground' : HAZ[top[0]].toLowerCase()}${rain && stop !== 'y0' && rain.change ? `, and heavy rain is expected on ${Math.abs(rain.change)}% ${rain.change > 0 ? 'more' : 'fewer'} days ${when} than in 1995–2025` : ''}.` : '';
-  // Sections to look at: runs of high-priority km first, then single medium km, highest first.
-  const spots = [...cl.map((c) => { const w = segs.slice(c.from, c.to + 1).filter(isHigh).sort((a, b) => b.risk[stop].score - a.risk[stop].score)[0];
-      return { id: w.id, from: c.from, to: c.to, label: kpRange(c), text: `${c.n > 1 ? kmOf(c.n) + ' km, ' : ''}${plainShort(w)}`, col: C.red, word: 'Inspect first' }; }),
-    ...segs.map((x, i) => ({ x, i })).filter(({ x }) => tierOf(x) === 'amber').sort((a, b) => b.x.risk[stop].score - a.x.risk[stop].score).slice(0, Math.max(0, 4 - cl.length))
-      .map(({ x, i }) => ({ id: x.id, from: i, to: i, label: segmentLabel(x), text: plainShort(x), col: C.amber, word: 'Plan a visit' }))];
-  el.innerHTML = `<p class="bl">${esc(lead)}</p>${why ? `<p class="blw">${esc(why)}</p>` : ''}
-    ${spots.length ? `<div class="spots"><div class="sh">Zoom to each section</div>${spots.map((p, i) => `<button type="button" class="spot" data-i="${i}"><i style="background:${p.col}"></i><b>${esc(p.label)}</b><span>${esc(p.word)}: ${esc(p.text)}</span></button>`).join('')}
-      <button type="button" class="spot all" id="spotAll">Whole line</button></div>` : ''}`;
-  el.querySelectorAll('.spot[data-i]').forEach((b) => b.onclick = () => zoomSpot(spots[+b.dataset.i], b));
-  if ($('spotAll')) $('spotAll').onclick = () => { el.querySelectorAll('.spot').forEach((x) => x.classList.remove('on')); spotLayer.clearLayers(); fitAll(true); };
+/* ---------- Ground and Climate: laid out like the segment record ----------
+   The map is the page. One panel on the right tells one kilometre's story (or the whole line's),
+   one strip of kilometre cells along the bottom is the line. */
+// The line's name as people say it (the catalog name), not its id.
+const lineName = () => ((CATALOG.corridors.find((c) => c.id === CORRIDOR_ID) || {}).name || D.meta.name || '').replace(' · ', ' ');
+const IMM = () => page === 'ground' || page === 'climate';
+let measure = 'rain';
+// key, short name, what is counted, colour, why it matters for a buried pipe
+const MEASURES = [
+  ['rain', 'Heavy rain', 'heavy-rain days', C.rain, 'Heavy rain soaks slopes and swells rivers, the two main ways the ground moves around a buried pipe.'],
+  ['freezeThaw', 'Freeze-thaw', 'freeze-thaw days', C.freeze, 'The ground freezes overnight and thaws by day. Repeated cycles loosen the soil and push pipe supports out of line.'],
+  ['saturation', 'Soaked ground', 'soaked-ground days', C.wet, 'The topsoil is close to fully soaked. Soaked slopes slide more easily.'],
+  ['fire', 'Wildfire weather', 'wildfire-weather days', C.fire, 'Hot, dry days with no rain let wildfire spread. Fire threatens valve sites and leaves burnt slopes that slide.'],
+  ['drySoil', 'Very dry soil', 'very-dry-soil days', C.dry, 'The topsoil is drier than the driest tenth of 1995–2025. Drying clay cracks and settles along the trench.'],
+];
+const MNOUN = { rain: 'heavy rain', freezeThaw: 'freeze-thaw', saturation: 'soaked ground', fire: 'wildfire weather', drySoil: 'very dry soil' };
+const Mk = (k) => MEASURES.find((m) => m[0] === k);
+const cap1 = (t) => t ? t[0].toUpperCase() + t.slice(1) : t;
+const d1 = (v) => v == null ? '–' : v >= 10 ? String(Math.round(v)) : (+v).toFixed(1);
+const at = () => (anim ? anim.to : stop);
+
+// A climate measure at one kilometre: the 1995–2025 average, the value in a window, and the change in %.
+function measureAt(s, k, st = at()) {
+  const r = s.risk[st], r10 = s.risk.y10;
+  if (k === 'fire' || k === 'drySoil') {
+    const hk = k === 'fire' ? 'wildfire' : 'drought', f = k === 'fire' ? 'fireWeatherDaysPerYr' : 'drySoilDaysPerYr', ck = k === 'fire' ? 'fireDays' : 'drySoil';
+    const h10 = (r10.hazards || {})[hk]; if (!h10 || !h10.base || h10.base[f] == null) return null;
+    if (st === 'y0') return { base: h10.base[f], val: h10.base[f], change: 0 };
+    const h = (r.hazards || {})[hk]; if (!h || !h.proj || h.proj[f] == null) return null;
+    const ch = h.change && h.change[ck] != null ? h.change[ck] : h10.base[f] ? Math.round((h.proj[f] / h10.base[f] - 1) * 100) : null;
+    return { base: h10.base[f], val: h.proj[f], change: ch };
+  }
+  const d10 = (r10.drivers || []).find((x) => x.key === k); if (!d10 || d10.base == null) return null;
+  if (st === 'y0') return { base: d10.base, val: d10.base, change: 0 };
+  const d = (r.drivers || []).find((x) => x.key === k); if (!d || d.proj == null) return null;
+  return { base: d10.base, val: d.proj, change: d.change };
 }
-function zoomSpot(p, btn) {
-  if (!mapMounted()) return;
-  $('bottomLine').querySelectorAll('.spot').forEach((x) => x.classList.toggle('on', x === btn));
-  const pts = segs.slice(p.from, p.to + 1).flatMap((x) => (x.studyPolygon || x.centreline || []).map((q) => [q[1], q[0]]));
-  if (!pts.length) return;
-  // Mark the stretch on the map and say what it is, so the zoom lands somewhere readable.
+// The same measure averaged along the whole line.
+function lineMeasure(k, st = at()) {
+  let b = 0, v = 0, n = 0;
+  for (const s of segs) { const m = measureAt(s, k, st); if (!m) continue; b += m.base; v += m.val; n++; }
+  return n ? { base: b / n, val: v / n, change: b ? Math.round((v / b - 1) * 100) : null, n } : null;
+}
+const BUCKET = (ch) => ch == null ? 'none' : ch >= 25 ? 'much' : ch >= 10 ? 'more' : ch > -10 ? 'same' : 'less';
+function mixHex(a, b, t) { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+function bucketCol(b, k = measure) {
+  const c = Mk(k)[3];
+  return { much: c, more: mixHex('#5d625a', c, .55), same: '#4b5049', less: '#2f3a44', none: '#2a2d29' }[b];
+}
+const bucketInk = (b) => (b === 'much' || b === 'more' ? C.bg : C.ink);
+function changeWords(ch, noun) {
+  if (ch == null) return 'no data';
+  const a = Math.abs(Math.round(ch));
+  return a < 1 ? `about the same ${noun}` : `${a}% ${ch > 0 ? 'more' : 'fewer'} ${noun}`;
+}
+
+// The ground at one kilometre: the worse of "slides and washouts" and "the river crossing".
+function groundOf(s, st = at()) {
+  const hz = (s.risk[st] && s.risk[st].hazards) || {}, g = hz.ground, x = hz.crossing;
+  const c = [g, x].filter((h) => h && h.score != null);
+  if (!c.length) return { score: null, tier: 'unverified', k: null, g, x };
+  const w = c.reduce((a, h) => (h.score > a.score ? h : a));
+  const t = w.tier || (w.score >= cfg.tiers.red ? 'red' : w.score >= cfg.tiers.amber ? 'amber' : 'green');
+  return { score: w.score, tier: t === 'red-uncertain' ? 'red' : t, k: w === x ? 'crossing' : 'ground', g, x };
+}
+const groundRank = () => segs.map((s) => ({ s, g: groundOf(s) })).filter((o) => o.g.score != null).sort((a, b) => b.g.score - a.g.score);
+// A few plain words on why the ground at a kilometre matters.
+function groundShort(s, g = groundOf(s)) {
+  if (g.k === 'crossing') return `crosses ${riverName(s) || 'a river'}`;
+  const d = (s.risk[at()].drivers || [])[0], when = at() === 'y0' ? '' : ' ' + STOP_WHEN[at()];
+  if (!d || d.change == null) return 'unstable ground';
+  if (d.key === 'slope') return `steep ground, ${d.change}% grade`;
+  if (d.key === 'vegetation') return d.change < 0 ? 'plants holding the soil have thinned' : 'plant cover has changed';
+  if (at() === 'y0') return `${DRIVER_WORD[d.key] || d.label}, ${d1(d.base)} days a year`;
+  return `${changeWords(d.change, (DRIVER_WORD[d.key] || d.label) + ' days')}${when}`;
+}
+function groundWhy(s, g) {
+  if (g.k === 'crossing') {
+    const rain = measureAt(s, 'rain'), h = g.x, flow = h && h.crossings ? h.crossings.map((c) => c.peakFlowM3s).filter((v) => v != null) : [];
+    return `The pipe crosses ${riverName(s) || 'a river or stream'} here${flow.length ? `, which carries about ${Math.round(Math.max(...flow))} m³ of water a second at its yearly peak` : ''}.${rain && at() !== 'y0' && rain.change ? ` Heavy rain is expected on ${changeWords(rain.change, 'days')} ${STOP_WHEN[at()]} than in 1995–2025.` : ''}`;
+  }
+  const d = (s.risk[at()].drivers || [])[0];
+  if (!d || d.change == null) return 'The ground is the main concern here.';
+  if (d.key === 'slope') return `The ground is steep here, a ${d.change}% grade, so loose soil can slide onto or away from the pipe.`;
+  if (d.key === 'vegetation') return d.change < 0 ? 'Plants that hold the soil in place have thinned here over the last five years.' : 'Plant cover here has changed over the last five years.';
+  const w = DRIVER_WORD[d.key] || d.label;
+  return at() === 'y0' ? `${cap1(w)} is the main factor: ${d1(d.base)} days a year, measured over 1995–2025.` : `${cap1(w)} days are expected to be ${Math.abs(d.change)}% ${d.change >= 0 ? 'more' : 'less'} common ${STOP_WHEN[at()]} than in 1995–2025.`;
+}
+const deadline = () => at() === 'y0' ? 'the next wet season' : ((cfg.horizons || {})[at()] || [])[0] || 'then';
+
+/* shared pieces */
+function stripHTML(o) {
+  return `<div class="head"><b>${esc(lineName())}</b><span>${kmOf(segs.length)} km · ${esc(o.when)}</span>
+      <span class="need">${esc(o.need)}${o.chips.map((c) => ` <button type="button" class="kmchip${c.id === selected ? ' on' : ''}" data-id="${esc(c.id)}"><b>${esc(c.label)}</b> ${esc(c.reason)}</button>`).join('')}${o.chips.length > 1 ? ` <button type="button" class="kmstep" data-step="-1" aria-label="Previous section">‹</button><button type="button" class="kmstep" data-step="1" aria-label="Next section">›</button>` : ''}</span>
+      <span class="tools"><button type="button" data-whole>Whole line</button></span></div>
+    <div class="cells">${o.cells.map((c) => `<button type="button" class="cell${c.id === selected ? ' sel' : ''}${c.dot ? ' dot' : ''}" data-id="${esc(c.id)}" style="--c:${c.col};color:${c.ink || C.bg}" title="${esc(c.tip)}" aria-label="${esc(c.tip)}">${esc(c.text)}</button>`).join('')}</div>
+    <div class="cells ruler">${segs.map((x) => `<span>${x.kmFrom % 2 === 0 ? x.kmFrom : ''}</span>`).join('')}</div>
+    <div class="key">${o.key.map(([l, c, cls]) => `<span><i class="${cls || ''}" style="${c ? 'background:' + c : ''}"></i>${esc(l)}</span>`).join('')}<span class="why">${esc(o.why)}</span></div>`;
+}
+function wireStrip(el, chips) {
+  el.querySelectorAll('[data-id]').forEach((b) => b.onclick = () => select(b.dataset.id));
+  el.querySelectorAll('[data-step]').forEach((b) => b.onclick = () => {
+    const i = chips.findIndex((c) => c.id === selected);
+    select(chips[i < 0 ? 0 : (i + +b.dataset.step + chips.length) % chips.length].id);
+  });
+  el.querySelector('[data-whole]').onclick = () => go(page);
+}
+function stepsHTML(s) {
+  return `<div class="isteps" role="tablist"><button type="button" role="tab" aria-selected="${!!s}" ${s ? '' : 'disabled title="Click any kilometre on the map or the strip"'}>${s ? 'This kilometre' : 'Pick a kilometre'}</button><button type="button" role="tab" aria-selected="${!s}" data-whole>Whole line</button></div>`;
+}
+function wireInsp(el, s) {
+  el.querySelectorAll('[data-whole]').forEach((b) => b.onclick = () => go(page));
+  el.querySelectorAll('[data-sel]').forEach((b) => b.onclick = () => select(b.dataset.sel));
+  el.querySelectorAll('[data-m]').forEach((b) => b.onclick = () => setMeasure(b.dataset.m));
+  if (s) wireActions(el, s);
+}
+// A caption on the map at the selected kilometre, saying what it is in plain words.
+function mapCaption(s, text, col) {
+  if (!spotLayer) return;
   spotLayer.clearLayers();
-  const run = segs.slice(p.from, p.to + 1);
-  for (const x of run) L.polyline(x.centreline.map((q) => [q[1], q[0]]), { color: '#fff', weight: 16, opacity: .28, lineCap: 'round', interactive: false }).addTo(spotLayer);
-  const mid = run[Math.floor(run.length / 2)].centreline, m = mid[Math.floor(mid.length / 2)];
+  if (!s || !text) return;
+  const cl = s.centreline, m = s.mid || cl[Math.floor(cl.length / 2)];
   L.tooltip({ permanent: true, direction: 'top', offset: [0, -14], className: 'anno spotcap', interactive: false })
-    .setLatLng([m[1], m[0]]).setContent(`<b>${esc(p.label)}</b><i style="background:${p.col}"></i>${esc(p.word)}: ${esc(p.text)}`).addTo(spotLayer);
-  const b = L.latLngBounds(pts).pad(p.from === p.to ? 1.4 : 0.6), opts = { paddingTopLeft: [220, 40], paddingBottomRight: [380, 140], maxZoom: 15 };
-  if (REDUCED) map.fitBounds(b, { ...opts, animate: false }); else map.flyToBounds(b, { ...opts, duration: 0.8 });
+    .setLatLng([m[1], m[0]]).setContent(`<b>${esc(segmentLabel(s))}</b><i style="background:${col}"></i>${esc(text)}`).addTo(spotLayer);
+}
+// Three points (1995–2025, 2026–30, 2031–35) as a small labelled line chart, with optional threshold lines.
+function trendSVG(vals, { max = 100, lines = [], fmt = (v) => String(Math.round(v)), col = C.ink } = {}) {
+  const W = 376, H = 124, L0 = 30, R = 12, T = 18, B = 24, x = (i) => L0 + i * (W - L0 - R) / 2, y = (v) => T + (H - T - B) * (1 - Math.min(v, max) / max);
+  const pts = vals.map((v, i) => (v == null ? null : [x(i), y(v)])), ok = pts.filter(Boolean), cur = STOPS.indexOf(at());
+  return `<svg class="itrend" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(vals.map((v, i) => (i ? STOP_LABEL[STOPS[i]] : '1995–2025') + ' ' + (v == null ? 'no data' : fmt(v))).join(', '))}">
+    ${lines.map(([v, l, c]) => `<line x1="${L0}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-dasharray="3 4" opacity=".7"/><text x="${L0 - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text><text x="${W - R}" y="${y(v) - 5}" text-anchor="end" fill="${c}">${esc(l)}</text>`).join('')}
+    ${ok.length > 1 ? `<polyline points="${ok.map((p) => p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="2"/>` : ''}
+    ${pts.map((p, i) => p ? `<circle cx="${p[0]}" cy="${p[1]}" r="${i === cur ? 5.5 : 3.5}" fill="${i === cur ? col : C.bg}" stroke="${col}" stroke-width="2"/><text x="${p[0]}" y="${p[1] - 10}" text-anchor="middle" fill="${C.ink}">${esc(fmt(vals[i]))}</text>` : '').join('')}
+    ${STOPS.map((k, i) => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}"${i === cur ? ` fill="${C.ink}"` : ''}>${k === 'y0' ? '1995–2025' : STOP_LABEL[k]}</text>`).join('')}</svg>`;
+}
+function corridorNote() {
+  return D.meta.corridorId === 'bc-coquihalla' ? '12 km of public mapped pipeline near Coquihalla Canyon. The 2021 floods give regional context; this is a screening of the future, not evidence of current pipe damage. Route © OpenStreetMap contributors.'
+    : D.meta.corridorId === 'ab-strathcona-demo' ? 'Edmonton reference corridor: a lower-exposure line, scored with the same thresholds as the BC corridor.' : '';
+}
+
+/* ---------- Ground ---------- */
+function renderGround() {
+  mapBox.classList.remove('has-card');
+  const all = segs.map((s) => ({ s, g: groundOf(s) })), rank = groundRank();
+  const hi = all.filter((o) => o.g.tier === 'red'), md = all.filter((o) => o.g.tier === 'amber');
+  const chips = rank.filter((o) => o.g.tier === 'red' || o.g.tier === 'amber').slice(0, 4).map((o) => ({ id: o.s.id, label: segmentLabel(o.s), reason: groundShort(o.s, o.g) }));
+  const el = $('gStrip');
+  el.innerHTML = stripHTML({ when: at() === 'y0' ? 'today' : STOP_LABEL[at()],
+    need: hi.length || md.length ? `${kmOf(hi.length)} km to inspect first, ${kmOf(md.length)} to visit. Zoom to each:` : 'Nothing stands out. Routine checks are enough.', chips,
+    cells: all.map(({ s, g }) => ({ id: s.id, col: C[g.tier] || C.grey, ink: g.tier === 'unverified' ? C.ink2 : C.bg, text: g.score == null ? '–' : String(Math.round(g.score)), dot: !!(s.crossings && s.crossings.length),
+      tip: `${segmentLabel(s)}: ${ACTION[g.tier]}${g.score == null ? '' : ', ' + Math.round(g.score) + ' of 100, ' + groundShort(s, g)}` })),
+    key: [[`Inspect first (${cfg.tiers.red}+)`, C.red], [`Plan a visit (${cfg.tiers.amber}–${cfg.tiers.red - 1})`, C.amber], [`Routine checks (under ${cfg.tiers.amber})`, C.green], ['Not enough data', C.grey], ['The pipe crosses a river', null, 'ring']],
+    why: `Each number is the ground priority out of 100 ${STOP_WHEN[at()]}: how likely the ground is to slide, wash out or heave there, or a flood to scour where the pipe crosses a river.` });
+  wireStrip(el, chips);
+  const s = selected && byId(selected), ins = $('gInsp');
+  ins.innerHTML = stepsHTML(s) + (s ? groundKm(s, rank) : groundWhole(all, rank, hi, md));
+  wireInsp(ins, s);
+  const g = s && groundOf(s);
+  mapCaption(s, s && (g.score == null ? 'Not enough data' : `${ACTION[g.tier]}: ${groundShort(s, g)}`), s && C[g.tier]);
+}
+function groundKm(s, rank) {
+  const g = groundOf(s), r = s.risk[at()], t = g.tier, n = rank.length, place = rank.findIndex((o) => o.s === s) + 1;
+  const head = `<div class="iwhere">${esc(lineName())}</div><h1 class="ih1">${esc(segmentLabel(s))}</h1>`;
+  if (g.score == null) return head + `<div class="istatus" style="color:${C.grey}"><i></i>Not enough data</div><p class="ilead">There is not enough data to judge the ground here.</p><p class="iwhy">Missing data is never treated as safe.${(r.missing || []).length ? ' Missing: ' + esc(r.missing.join(', ')) + '.' : ''}</p>`;
+  const lead = { red: 'Inspect this kilometre first.', amber: 'Plan a visit to this kilometre.', green: 'Routine checks are enough here.' }[t] + (t === 'green' ? '' : ` The main risk is ${RISK_NAME[g.k]}.`);
+  const act = t === 'red' ? `Send a crew to check the ${g.k === 'crossing' ? 'crossing and the cover over the pipe at both banks' : 'slope and the cover over the pipe'} before ${deadline()}.` : t === 'amber' ? 'Add it to the next inspection round.' : '';
+  const rain = measureAt(s, 'rain'), slope = s.slopePct == null ? null : Math.round(s.slopePct * 10) / 10, ndvi = s.ndvi ? s.ndvi.change5yr : null;
+  const plantWord = ndvi == null ? 'No data' : ndvi < -0.03 ? 'Thinner than five years ago' : ndvi > 0.03 ? 'Thicker than five years ago' : 'About the same as five years ago';
+  const tn = (h) => (h.tier === 'red-uncertain' ? 'red' : h.tier);
+  const hz = (h, none) => h && h.score != null ? `<b style="color:${C[tn(h)]}">${ACTION[tn(h)]}</b> · ${Math.round(h.score)} of 100` : `<span class="icap">${none}</span>`;
+  const xs = [...new Set((s.crossings || []).map((x) => x.name || (x.kind ? 'a ' + x.kind : '')).filter(Boolean))];
+  const wo = s.wo === 'approved' && s.workOrder && s.workOrder.status !== 'cancelled' ? s.workOrder : null;
+  return head + `<div class="istatus" style="color:${C[t]}"><i></i>${ACTION[t]}</div>
+    <p class="ilead">${esc(lead)}</p>
+    <p class="iwhy">${esc(groundWhy(s, g))} ${esc(PLAIN[g.k] || '')}</p>
+    ${act ? `<p class="inote warn"><b>${esc(act)}</b> <span class="icap">Number ${place} of ${n} on the ground list.</span></p>` : ''}
+    <div class="itrio"><div><b style="color:${C[t]}">${Math.round(g.score)}</b><span>ground priority, out of 100</span></div>
+      <div><b>${rain ? (at() === 'y0' ? d1(rain.base) : sign(Math.round(rain.change)) + '%') : '–'}</b><span>${at() === 'y0' ? 'heavy-rain days a year' : 'heavy-rain days vs 1995–2025'}</span></div>
+      <div><b>${slope == null ? '–' : slope + '%'}</b><span>slope (grade)</span></div></div>
+    <div class="ibar"><span class="f" style="width:${Math.min(100, g.score)}%;background:${C[t]}"></span><span class="mk" style="left:${cfg.tiers.amber}%" data-l="Visit at ${cfg.tiers.amber}"></span><span class="mk" style="left:${cfg.tiers.red}%" data-l="Inspect at ${cfg.tiers.red}"></span></div>
+    <h2 class="ih2">Ground priority over time</h2>
+    ${trendSVG(STOPS.map((k) => groundOf(s, k).score), { lines: [[cfg.tiers.red, 'Inspect first', C.red], [cfg.tiers.amber, 'Plan a visit', C.amber]], col: C[t] })}
+    <h2 class="ih2">What could go wrong here</h2>
+    <dl class="ifacts">
+      <div><dt class="k">Slides and washouts</dt><dd>${hz(g.g, 'No data')}${g.g && g.g.score != null ? `<span class="icap d">${esc(cap1(groundShort(s, { ...g, k: 'ground' })))}.</span>` : ''}</dd></div>
+      <div><dt class="k">River crossing</dt><dd>${hz(g.x, 'No river crosses this kilometre.')}${g.x ? `<span class="icap d">Crosses ${esc(listJoin(xs) || 'a stream')}.</span>` : ''}</dd></div>
+      <div><dt class="k">Slope</dt><dd>${slope == null ? 'No data' : slope + '% grade' + (slope < 3 ? ', nearly flat' : slope < 10 ? ', gentle' : ', steep')}</dd></div>
+      <div><dt class="k">Plant cover</dt><dd>${plantWord}</dd></div>
+      <div><dt class="k">How sure</dt><dd>${esc(SURE[r.agreement] || '–')}</dd></div>
+      <div><dt class="k">Inspection</dt><dd>${wo ? `<b>Approved</b> · ${esc(wo.priority)}, due ${esc(fmtDate(wo.dueBy))}. <a href="#/log">See work orders</a>` : t === 'green' ? '<span class="icap">Not needed beyond routine checks.</span>' : `<button type="button" class="ibtn" data-act="approved">Approve an inspection</button><span class="icap d">Creates a work order with a checklist for the crew.</span>`}</dd></div>
+    </dl>
+    <details class="ieng"><summary>Details for engineers</summary>${explainHTML(s, r)}${horizonHTML(s)}</details>`;
+}
+function groundWhole(all, rank, hi, md) {
+  const by = at() === 'y0' ? 'Today' : 'By ' + STOP_LABEL[at()], gr = all.filter((o) => o.g.tier === 'green').length;
+  const lead = hi.length && md.length ? `${by}, inspect ${kmOf(hi.length)} km first and plan visits to ${kmOf(md.length)} more.` : hi.length ? `${by}, inspect ${kmOf(hi.length)} km first. The rest can stay on routine checks.` : md.length ? `${by}, nothing needs inspecting urgently. Plan visits to ${kmOf(md.length)} km.` : `${by}, no kilometre stands out. Routine checks are enough.`;
+  const flagged = [...hi, ...md], nx = flagged.filter((o) => o.g.k === 'crossing').length, rain = lineMeasure('rain');
+  const why = !flagged.length ? '' : nx >= flagged.length / 2 ? `Most of it is where the pipe crosses rivers, where a flood can scour away the riverbed that covers it.${rain && at() !== 'y0' && rain.change ? ` Heavy rain is expected on ${changeWords(rain.change, 'days')} than in 1995–2025.` : ''}` : 'Most of it is unstable ground: steep slopes, thinning plants, and soil that is soaked or freezes and thaws more often.';
+  const list = rank.filter((o) => o.g.tier === 'red' || o.g.tier === 'amber').slice(0, 8);
+  return `<div class="iwhere">${esc(lineName())}</div><h1 class="ih1 t">The ground along the line<span class="sub">${kmOf(segs.length)} km · ${at() === 'y0' ? 'today' : STOP_LABEL[at()]}</span></h1>
+    <p class="ilead">${esc(lead)}</p>${why ? `<p class="iwhy">${esc(why)}</p>` : ''}
+    <div class="itrio"><div><b style="color:${C.red}">${kmOf(hi.length)}</b><span>km to inspect first</span></div><div><b style="color:${C.amber}">${kmOf(md.length)}</b><span>km to visit</span></div><div><b style="color:${C.green}">${kmOf(gr)}</b><span>km on routine checks</span></div></div>
+    ${list.length ? `<h2 class="ih2">Where to look</h2>${list.map((o) => `<button type="button" class="ipath" data-sel="${esc(o.s.id)}"><i style="background:${C[o.g.tier]}"></i><b>${esc(segmentLabel(o.s))}</b><span>${esc(ACTION[o.g.tier])}: ${esc(groundShort(o.s, o.g))}</span><em>${Math.round(o.g.score)}</em></button>`).join('')}` : ''}
+    <h2 class="ih2">How to read this</h2>
+    <p class="iwhy">Each kilometre gets a ground priority from 0 to 100. It weighs how steep the ground is, whether plants still hold the soil, and how often heavy rain, soaked ground and freeze-thaw are expected. Where the pipe crosses a river, flood scour is scored too, and the higher of the two counts.</p>
+    <p class="iwhy">${cfg.tiers.red} or more: inspect first. ${cfg.tiers.amber} to ${cfg.tiers.red - 1}: plan a visit. Under ${cfg.tiers.amber}: routine checks.</p>
+    <p class="icap">${esc(corridorNote())} The 2026–30 and 2031–35 windows are five-year averages from three climate models, for planning. They are not weather forecasts.</p>`;
+}
+
+/* ---------- Climate ---------- */
+function setMeasure(k) { if (!Mk(k)) return; measure = k; paint(); renderPage(); }
+const lessCol = '#8fb4cf';
+function renderClimate() {
+  mapBox.classList.remove('has-card');
+  const mk = Mk(measure), now = at() === 'y0';
+  $('mPick').innerHTML = `<span class="yl">Measure</span>` + MEASURES.map((m) => `<button type="button" data-m="${m[0]}" aria-pressed="${m[0] === measure}">${m[1]}</button>`).join('');
+  $('mPick').querySelectorAll('[data-m]').forEach((b) => b.onclick = () => setMeasure(b.dataset.m));
+  const vals = segs.map((s) => ({ s, m: measureAt(s, measure) }));
+  const ranked = vals.filter((o) => o.m && o.m.change != null).sort((a, b) => b.m.change - a.m.change);
+  // When the models give one value for the whole line, there is no "biggest rise" to point at.
+  const uniform = ranked.length > 1 && ranked[0].m.change - ranked[ranked.length - 1].m.change < 1;
+  const chips = now || uniform ? [] : ranked.filter((o) => o.m.change >= 10).slice(0, 3).map((o) => ({ id: o.s.id, label: segmentLabel(o.s), reason: `${sign(Math.round(o.m.change))}%` }));
+  const el = $('cStrip');
+  el.innerHTML = stripHTML({ when: now ? 'measured 1995–2025' : STOP_LABEL[at()] + ' vs 1995–2025',
+    need: now ? `${mk[1]}: days a year, measured. Pick 2026–30 or 2031–35 to see the change.` : uniform ? `${cap1(changeWords(ranked[0].m.change, mk[2]))} on every kilometre: the climate models give one value for this whole line.` : chips.length ? `Biggest rise in ${mk[2]}:` : `No kilometre sees a big rise in ${mk[2]}.`, chips,
+    cells: vals.map(({ s, m }) => { const b = now ? (m ? 'same' : 'none') : BUCKET(m && m.change); return { id: s.id, col: bucketCol(b), ink: bucketInk(b),
+      text: !m ? '–' : now ? d1(m.base) : sign(Math.round(m.change)), tip: `${segmentLabel(s)}: ${!m ? 'no data' : now ? d1(m.base) + ' ' + mk[2] + ' a year' : d1(m.base) + ' to ' + d1(m.val) + ' ' + mk[2] + ' a year (' + sign(Math.round(m.change)) + '%)'}` }; }),
+    key: now ? [['Measured average, 1995–2025', bucketCol('same')], ['No data', bucketCol('none')]] : [['Much more (+25% or more)', bucketCol('much')], ['More (+10 to 24%)', bucketCol('more')], ['About the same', bucketCol('same')], ['Fewer (−10% or less)', bucketCol('less')], ['No data', bucketCol('none')]],
+    why: now ? `Each number is ${mk[2]} a year, averaged over 1995–2025.` : `Each number is the change in ${mk[2]} a year, ${STOP_LABEL[at()]} compared with 1995–2025, from the average of three climate models.` });
+  wireStrip(el, chips);
+  const s = selected && byId(selected), ins = $('cInsp');
+  ins.innerHTML = stepsHTML(s) + (s ? climateKm(s) : climateWhole(ranked, uniform));
+  wireInsp(ins, null);
+  const m = s && measureAt(s, measure);
+  mapCaption(s, s && (!m ? 'No data' : now ? `${d1(m.base)} ${mk[2]} a year` : cap1(changeWords(m.change, mk[2]))), s && (now ? C.ink2 : bucketCol(BUCKET(m && m.change))));
+}
+function measureRows(get) {
+  return `<dl class="ifacts">${MEASURES.map(([k, name]) => { const m = get(k), b = at() === 'y0' ? 'same' : BUCKET(m && m.change);
+    return `<div class="${k === measure ? 'on' : ''}"><dt class="k"><button type="button" class="ilink" data-m="${k}">${name}</button></dt><dd>${!m ? '<span class="icap">No data</span>' : at() === 'y0' ? `${d1(m.base)} days a year` : `${d1(m.base)} → <b>${d1(m.val)}</b> days a year <span class="ich" style="color:${b === 'same' ? C.ink2 : b === 'less' ? lessCol : Mk(k)[3]}">${sign(Math.round(m.change))}%</span>`}</dd></div>`; }).join('')}</dl>`;
+}
+function climateKm(s) {
+  const mk = Mk(measure), m = measureAt(s, measure), now = at() === 'y0', noun = MNOUN[measure], r = s.risk[at()];
+  const b = now ? 'same' : BUCKET(m && m.change), col = b === 'same' || b === 'none' ? C.ink2 : b === 'less' ? lessCol : mk[3];
+  const status = !m ? 'No data' : now ? 'Measured, 1995–2025' : { much: `Much more ${noun}`, more: `More ${noun}`, same: `About the same ${noun}`, less: `Less ${noun}` }[b];
+  const lead = !m ? `There is no ${noun} data for this kilometre.` : now ? `${cap1(mk[2])}: ${d1(m.base)} a year, on average over 1995–2025.`
+    : `${cap1(mk[2])}: ${d1(m.val)} a year ${STOP_WHEN[at()]}, ${Math.abs(m.change) < 1 ? 'the same as' : (m.change > 0 ? 'up' : 'down') + ' from ' + d1(m.base) + ' in'} 1995–2025.`;
+  const tn = (h) => (h.tier === 'red-uncertain' ? 'red' : h.tier);
+  const hz = (k) => { const h = (r.hazards || {})[k]; return h && h.score != null ? `<b style="color:${C[tn(h)]}">${TIER_LABEL[tn(h)]} risk</b> · ${Math.round(h.score)} of 100` : '<span class="icap">No data</span>'; };
+  const g = groundOf(s), series = STOPS.map((k) => { const x = measureAt(s, measure, k); return x ? x.val : null; });
+  return `<div class="iwhere">${esc(lineName())}</div><h1 class="ih1">${esc(segmentLabel(s))}</h1>
+    <div class="istatus" style="color:${col}"><i></i>${esc(status)}</div>
+    <p class="ilead">${esc(lead)}</p>
+    <p class="iwhy">${esc(mk[4])}</p>
+    <h2 class="ih2">${esc(mk[1])}, days a year</h2>
+    ${trendSVG(series, { max: Math.max(1, ...series.filter((v) => v != null)) * 1.3, fmt: d1, col: mk[3] })}
+    <h2 class="ih2">${now ? 'Every measure here, 1995–2025 average' : `Every measure here, ${STOP_LABEL[at()]} vs 1995–2025`}</h2>
+    ${measureRows((k) => measureAt(s, k))}
+    <h2 class="ih2">What it means for the pipe</h2>
+    <dl class="ifacts">
+      <div><dt class="k">Wildfire</dt><dd>${hz('wildfire')}</dd></div>
+      <div><dt class="k">Drought</dt><dd>${hz('drought')}</dd></div>
+      <div><dt class="k">The ground</dt><dd>${g.score == null ? '<span class="icap">No data</span>' : `<b style="color:${C[g.tier]}">${ACTION[g.tier]}</b> · ${Math.round(g.score)} of 100`}. <a href="#/ground/${esc(s.id)}">See Ground</a></dd></div>
+      <div><dt class="k">How sure</dt><dd>${esc(SURE[r.agreement] || '–')}</dd></div>
+    </dl>
+    <p class="icap">Five-year averages from three climate models, for planning. They are not weather forecasts.</p>`;
+}
+function climateWhole(ranked, uniform) {
+  const now = at() === 'y0', mk = Mk(measure);
+  const parts = MEASURES.map(([k]) => ({ k, m: lineMeasure(k) })).filter((o) => o.m && o.m.change != null).sort((a, b) => Math.abs(b.m.change) - Math.abs(a.m.change));
+  const lead = now ? 'This shows the measured average for 1995–2025. Pick 2026–30 or 2031–35 to see how it changes.'
+    : parts.length ? `By ${STOP_LABEL[at()]}, along the line: ${listJoin(parts.map((o) => changeWords(o.m.change, MNOUN[o.k])))}, compared with 1995–2025.` : 'No climate data for this line.';
+  const top = now || uniform ? [] : ranked.slice(0, 6);
+  return `<div class="iwhere">${esc(lineName())}</div><h1 class="ih1 t">The climate along the line<span class="sub">${kmOf(segs.length)} km · ${now ? 'measured 1995–2025' : STOP_LABEL[at()] + ' vs 1995–2025'}</span></h1>
+    <p class="ilead">${esc(cap1(lead))}</p>
+    <h2 class="ih2">Average along the line</h2>
+    ${measureRows((k) => lineMeasure(k))}
+    ${top.length ? `<h2 class="ih2">Where ${esc(MNOUN[measure])} changes most</h2>${top.map((o) => `<button type="button" class="ipath" data-sel="${esc(o.s.id)}"><i style="background:${bucketCol(BUCKET(o.m.change))}"></i><b>${esc(segmentLabel(o.s))}</b><span>${esc(d1(o.m.base))} → ${esc(d1(o.m.val))} ${esc(mk[2])} a year</span><em>${sign(Math.round(o.m.change))}%</em></button>`).join('')}` : ''}
+    ${uniform && !now ? `<p class="inote">Every kilometre gets the same climate numbers here: the climate models give one value for this whole line. What differs from one kilometre to the next is the ground, so see Ground for where to look.</p>` : ''}
+    <h2 class="ih2">How to read this</h2>
+    <p class="iwhy">Pick a measure at the top of the map. The line and the strip show how much more or less often it happens at each kilometre than in 1995–2025. ${esc(mk[4])}</p>
+    <p class="icap">The 2026–30 and 2031–35 windows are five-year averages from three climate models, each adjusted so its past matches what was measured. They are for planning, not weather forecasts. ${esc(corridorNote())}</p>`;
 }
 
 function renderTriage() {
@@ -3006,7 +3281,7 @@ async function act(s, action, details) {
 function stepSel(d) {
   const i = selected ? segs.findIndex((s) => s.id === selected) : (d > 0 ? -1 : segs.length);
   const j = Math.max(0, Math.min(segs.length - 1, i + d));
-  go(['triage', 'build', 'segment'].includes(page) ? page : 'triage', segs[j].id);
+  go(['triage', 'build', 'segment', 'ground', 'climate'].includes(page) ? page : 'triage', segs[j].id);
 }
 function wire() {
   corridorSelect.innerHTML = CATALOG.corridors.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
@@ -3020,8 +3295,7 @@ function wire() {
   addEventListener('hashchange', onRoute);
   document.addEventListener('click', (e) => { const b = e.target instanceof Element && e.target.closest('[data-stop]'); if (b) setStop(b.dataset.stop); });
   bPlay.onclick = play;
-  ovHint.open = false; // the bottom line leads; the reading guide is one click away
-  ovHint.addEventListener('toggle', () => { if (!ovHint.open) try { localStorage.setItem('tc-hint', '1'); } catch (e) {} });
+  document.querySelectorAll('.iplay').forEach((b) => b.onclick = play);
   basemap.querySelectorAll('button').forEach((b) => b.onclick = () => {
     basemap.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
     for (const [k, l] of Object.entries(baseLayers)) k === b.dataset.bm ? l.addTo(map) : map.removeLayer(l);
@@ -3042,7 +3316,7 @@ function wire() {
     else if (k === 't') setStop(STOPS[(STOPS.indexOf(stop) + 1) % STOPS.length]);
     else if (k === 'a' && selected) decide(byId(selected), 'approved');
     else if (k === 'r' && selected) decide(byId(selected), 'rejected');
-    else if ('12345'.includes(k) && k) go(['overview', 'triage', 'money', 'build', 'log'][+k - 1]);
+    else if ('1234'.includes(k) && k) go(['ground', 'climate', 'triage', 'log'][+k - 1]);
   });
 }
 
