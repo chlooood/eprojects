@@ -672,7 +672,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <style>
   /* Design rules: .claude/skills/frontend-design/SKILL.md, "Segment record page".
      The imagery is the page. Chrome sits at the edges, one panel tells one kilometre's story, one strip is the line. */
-  :root { --bg:#0a0b0a; --glass:rgba(10,11,10,.82); --s2:#161916; --s3:#1d211d; --line:rgba(236,238,230,.12); --ink:#eceee6; --ink-2:#b4b8ad; --ink-3:#858a80;
+  :root { --bg:#0a0b0a; --glass:rgba(10,11,10,.82); --s2:#161916; --s3:#1d211d; --line:rgba(236,238,230,.12); --ink:#eceee6; --ink-2:#b9bdb2; --ink-3:#9da296;
     --green:#6fd08f; --amber:#f2a93b; --red:#ff5d4f; --grey:#5d625a; --sub:#82c8ff;
     --sans:'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; --serif:'Instrument Serif', Georgia, serif; --mono:'JetBrains Mono', ui-monospace, Consolas, monospace; color-scheme:dark; }
   * { box-sizing:border-box; }
@@ -685,6 +685,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
   main { position:fixed; inset:0; }
   #mapBox, #map { position:absolute; inset:0; } #map { background:#10140f; }
   .leaflet-container { font:12px var(--sans); background:#10140f; }
+  /* Imagery is context: toned down so the line, the status colours and the forecast carry the map. */
+  .leaflet-tile-pane, .leaflet-after-pane { filter:saturate(.55) brightness(.8) contrast(1.05); }
   .leaflet-tooltip.tc { background:var(--glass); color:var(--ink); border:1px solid var(--line); border-radius:8px; box-shadow:none; font:13px var(--sans); padding:7px 10px; } .leaflet-tooltip.tc::before { display:none; }
   .leaflet-control-attribution { background:transparent !important; color:var(--ink-3) !important; font-size:10.5px; } .leaflet-control-attribution a { color:var(--ink-2) !important; }
   .leaflet-bottom.leaflet-right { right:452px; }
@@ -699,23 +701,38 @@ svg.leaflet-image-layer.leaflet-interactive path {
   #drag { position:absolute; top:0; bottom:0; width:48px; margin-left:-24px; z-index:460; cursor:ew-resize; touch-action:none; }
   #grip { position:absolute; top:46%; left:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:var(--ink); color:var(--bg); display:grid; place-items:center; font:15px var(--mono); box-shadow:0 4px 18px rgba(0,0,0,.45); }
   .side { position:absolute; top:74px; z-index:455; font:11px var(--mono); letter-spacing:.06em; padding:5px 10px; border-radius:99px; white-space:nowrap; pointer-events:none; }
-  .yr { position:absolute; top:70px; z-index:470; display:flex; gap:2px; padding:3px; border-radius:99px; } .yr button { background:none; border:0; border-radius:99px; padding:4px 11px; font:11.5px var(--mono); color:var(--ink-2); cursor:pointer; white-space:nowrap; } .yr button[aria-pressed=true] { background:var(--ink); color:var(--bg); } #ahead button.fut[aria-pressed=true] { background:var(--amber); } .yr .yl { align-self:center; padding:0 6px 0 9px; font:11px var(--mono); color:var(--ink-3); white-space:nowrap; } #aheadNote { position:absolute; top:106px; z-index:470; max-width:300px; padding:6px 10px; border-radius:10px; font-size:12px; color:var(--ink-2); pointer-events:none; }
-  .plus { font:500 11.5px/20px var(--mono); color:var(--bg); background:var(--amber); border-radius:99px; padding:0 9px; white-space:nowrap; width:auto !important; transform-origin:left; box-shadow:0 2px 8px rgba(0,0,0,.4); } .plus.maybe { background:#d9c48c; }
+  .yr { position:absolute; top:70px; z-index:470; display:flex; gap:2px; padding:3px; border-radius:99px; } .yr button { background:none; border:0; border-radius:99px; padding:4px 11px; font:500 12px var(--sans); font-variant-numeric:tabular-nums; color:var(--ink-2); cursor:pointer; white-space:nowrap; } .yr button[aria-pressed=true] { background:var(--ink); color:var(--bg); } #ahead button.fut[aria-pressed=true] { background:var(--amber); } .yr .yl { align-self:center; padding:0 6px 0 9px; font:12px var(--sans); color:var(--ink-3); white-space:nowrap; } #aheadNote { position:absolute; top:106px; z-index:470; max-width:300px; padding:6px 10px; border-radius:10px; font-size:12px; color:var(--ink-2); pointer-events:none; }
+  .plus { font:600 12px/22px var(--sans); font-variant-numeric:tabular-nums; color:var(--bg); background:var(--amber); border-radius:99px; padding:0 10px; white-space:nowrap; width:auto !important; transform-origin:left; box-shadow:0 2px 8px rgba(0,0,0,.4); } .plus.maybe { background:#d9c48c; }
   /* the line, as a strip */
   #strip { position:absolute; left:22px; right:474px; bottom:20px; z-index:600; border-radius:14px; padding:12px 14px 8px; }
-  #strip .head { display:flex; align-items:baseline; gap:14px; margin-bottom:9px; font-size:13px; color:var(--ink-2); } #strip .head b { color:var(--ink); font-weight:500; }
-  #strip .head button { margin-left:auto; background:none; border:1px solid var(--line); border-radius:99px; padding:4px 12px; font-size:13px; cursor:pointer; } #strip .head button:hover { background:var(--s3); }
+  #strip .head { display:flex; align-items:center; gap:12px; margin-bottom:10px; font-size:13px; color:var(--ink-2); flex-wrap:wrap; } #strip .head b { color:var(--ink); font-weight:500; }
+  #strip .head .need { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  #strip .head .tools { margin-left:auto; display:flex; gap:6px; }
+  #strip .head button { background:none; border:1px solid var(--line); border-radius:99px; padding:4px 12px; font-size:13px; cursor:pointer; } #strip .head button:hover { background:var(--s3); }
+  #strip .head .kmchip { border-color:var(--ink-2); padding:2px 10px; } #strip .head .kmchip.on { background:var(--ink); color:var(--bg); }
+  #strip .head .hi { background:var(--ink); color:var(--bg); border-color:var(--ink); font-weight:600; } #strip .head .hi:hover { background:#fff; }
   #strip .cells { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px; }
-  #strip .cell { height:30px; border-radius:5px; border:0; padding:0; cursor:pointer; font:500 12px var(--mono); color:var(--bg); position:relative; transition:transform .15s; }
+  #strip .cell { height:30px; border-radius:5px; border:0; padding:0; cursor:pointer; font:600 12px var(--sans); font-variant-numeric:tabular-nums; color:var(--bg); position:relative; transition:transform .15s; background:var(--c); }
+  #strip .cell.st-watch { background:repeating-linear-gradient(135deg, var(--c), var(--c) 4px, #a8975f 4px, #a8975f 8px); }
+  #strip .cell.st-nodata { color:var(--ink-2); }
   #strip .cell:hover { transform:translateY(-2px); } #strip .cell.sel { outline:2px solid var(--ink); outline-offset:2px; }
-  #strip .cell.open::after { content:''; position:absolute; top:-7px; left:50%; width:5px; height:5px; margin-left:-2.5px; border-radius:50%; background:var(--ink); }
-  #strip .ruler { margin-top:5px; font:10.5px var(--mono); color:var(--ink-3); } #strip .ruler span { text-align:center; }
-  #strip .key { display:flex; gap:16px; margin-top:6px; font-size:12px; color:var(--ink-3); flex-wrap:wrap; } #strip .key i { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  #strip .cell.open::after { content:''; position:absolute; top:-9px; left:50%; width:8px; height:8px; margin-left:-4px; border-radius:50%; background:var(--bg); border:2px solid var(--ink); }
+  #strip .ruler { margin-top:5px; font:11px var(--sans); font-variant-numeric:tabular-nums; color:var(--ink-3); } #strip .ruler span { text-align:center; }
+  #strip .key { display:flex; gap:16px; margin-top:7px; font-size:12px; color:var(--ink-2); flex-wrap:wrap; align-items:center; } #strip .key i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  #strip .key i.hatch { background:repeating-linear-gradient(135deg, #d9c48c, #d9c48c 2px, #a8975f 2px, #a8975f 4px); } #strip .key i.ring { border-radius:50%; background:var(--bg); border:2px solid var(--ink); width:9px; height:9px; }
+  #strip .key .why { color:var(--ink-3); flex-basis:100%; }
   /* one kilometre's story */
   #inspector { position:absolute; top:70px; right:22px; bottom:20px; width:430px; z-index:600; border-radius:16px; overflow-y:auto; padding:22px 26px 40px; scrollbar-width:thin; }
   .steps { display:flex; gap:18px; margin-bottom:22px; border-bottom:1px solid var(--line); } .steps button { background:none; border:0; padding:0 0 10px; margin-bottom:-1px; color:var(--ink-3); cursor:pointer; font-size:14px; border-bottom:1.5px solid transparent; } .steps button[aria-selected=true] { color:var(--ink); border-color:var(--ink); } .steps .corr { margin-left:auto; }
   .where { font:11px var(--mono); letter-spacing:.08em; color:var(--ink-3); }
   h1 { font:italic 400 64px/1 var(--serif); margin:6px 0 16px; letter-spacing:-.01em; }
+  h1.t { font:600 26px/1.2 var(--sans); letter-spacing:-.01em; margin:2px 0 12px; } h1 .sub { display:block; font:400 14px var(--sans); color:var(--ink-3); margin-top:4px; letter-spacing:0; }
+  .why { color:var(--ink-2); font-size:14.5px; line-height:1.5; }
+  .bignum { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; align-items:center; margin:18px 0; padding:14px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .bignum b { font:500 40px/1 var(--sans); font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--amber); white-space:nowrap; } .bignum span { font-size:13px; color:var(--ink-2); line-height:1.45; }
+  .photos { display:flex; gap:4px; flex-wrap:wrap; margin:6px 0 8px; } .photos button { background:none; border:1px solid var(--line); border-radius:99px; padding:5px 12px; font-size:13px; cursor:pointer; } .photos button[aria-pressed=true] { background:var(--ink); color:var(--bg); border-color:var(--ink); } .photos .play { margin-left:auto; border-color:var(--ink-2); }
+  .proofchart, .spark { display:block; width:100%; height:auto; color:var(--ink); margin:6px 0 4px; } .proofchart text, .spark text { font:11px var(--sans); fill:var(--ink-3); font-variant-numeric:tabular-nums; }
+  .facts .wide { display:block; } .facts .wide .k { display:block; margin-bottom:2px; }
   h2 { font:500 15px var(--sans); color:var(--ink); margin:28px 0 8px; }
   p { margin:0 0 12px; } .lead { font-size:19px; line-height:1.42; text-wrap:pretty; } .cap { color:var(--ink-3); font-size:13px; } .mono { font-family:var(--mono); font-variant-numeric:tabular-nums; }
   .status { display:inline-flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:12px; } .status i { width:9px; height:9px; border-radius:50%; background:currentColor; }
@@ -725,13 +742,18 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .years { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:6px; height:84px; margin:18px 0 6px; align-items:end; }
   .years div { display:flex; flex-direction:column; justify-content:flex-end; height:100%; gap:5px; } .years i { display:block; background:rgba(217,196,140,.45); border-radius:2px 2px 0 0; min-height:1px; } .years i.on { background:var(--amber); }
   .years span { font:500 11px/1 var(--mono); color:var(--ink-3); text-align:center; }
-  .trio { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin:22px 0 14px; } .trio b { display:block; font:500 34px/1.1 var(--mono); letter-spacing:-.04em; } .trio span { font-size:12.5px; color:var(--ink-3); line-height:1.35; display:block; margin-top:4px; }
+  .trio { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin:22px 0 14px; } .trio b { display:block; font:500 34px/1.1 var(--sans); font-variant-numeric:tabular-nums; letter-spacing:-.02em; } .trio span { font-size:12.5px; color:var(--ink-3); line-height:1.35; display:block; margin-top:4px; }
   .bar { position:relative; height:8px; background:rgba(236,238,230,.1); border-radius:4px; margin:6px 0 30px; } .bar span { position:absolute; top:0; bottom:0; } .bar .ex { background:var(--ink); border-radius:4px 0 0 4px; } .bar .co { background:var(--amber); } .bar .po { background:repeating-linear-gradient(45deg, var(--amber), var(--amber) 2px, transparent 2px, transparent 5px); }
-  .bar .mk { width:1px; top:-5px; bottom:-5px; background:var(--ink-2); } .bar .mk::after { content:attr(data-l); position:absolute; top:19px; left:-2px; width:110px; font:10.5px var(--mono); color:var(--ink-3); }
+  .bar .mk { width:1px; top:-5px; bottom:-5px; background:var(--ink-2); } .bar .mk::after { content:attr(data-l); position:absolute; top:19px; left:-2px; width:110px; font:11px var(--sans); color:var(--ink-3); }
   .note { border-left:2px solid var(--line); padding:1px 0 1px 14px; margin:14px 0; color:var(--ink-2); font-size:14px; } .note.warn { border-color:var(--amber); } .note.bad { border-color:var(--red); color:var(--ink); }
   .facts { margin:8px 0 0; } .facts div { display:grid; grid-template-columns:112px 1fr; gap:10px; padding:11px 0; border-top:1px solid var(--line); font-size:14px; } .facts dt, .facts .k { color:var(--ink-3); }
   ul { margin:6px 0; padding-left:18px; } li { margin:5px 0; }
-  .path { display:grid; grid-template-columns:22px 1fr auto; gap:4px 10px; padding:13px 0; border-top:1px solid var(--line); align-items:start; } .path.off { color:var(--ink-3); } .path .n { font:500 15px var(--mono); text-align:right; white-space:nowrap; } .path .cap { grid-column:2 / span 2; }
+  .path { display:grid; grid-template-columns:22px 1fr auto; gap:4px 10px; padding:13px 0; border-top:1px solid var(--line); align-items:start; } .path.off { color:var(--ink-3); } .path .n { font:500 15px var(--sans); font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; } .path .cap { grid-column:2 / span 2; }
+  .path .dl { grid-column:2 / span 2; position:relative; height:6px; margin:6px 0 2px; background:rgba(236,238,230,.08); border-radius:3px; } .path .dl i { position:absolute; left:0; top:0; bottom:0; border-radius:3px; opacity:.85; } .path .dl b { position:absolute; top:-4px; bottom:-4px; width:0; border-left:1.5px dashed var(--ink-2); }
+  .tagbest { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:99px; background:var(--green); color:var(--bg); font-size:11.5px; font-weight:600; vertical-align:1px; }
+  .path.best { background:linear-gradient(90deg, rgba(111,208,143,.07), transparent 70%); }
+  .dlkey i { display:inline-block; width:0; height:12px; border-left:1.5px dashed var(--ink-2); margin-right:8px; vertical-align:-2px; }
+  details.off { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); } details.off p { margin:8px 0 0; }
   .btn { background:var(--ink); color:var(--bg); border:0; border-radius:99px; padding:9px 18px; font-weight:600; cursor:pointer; } .btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); font-weight:500; } .btn.ghost:hover { background:var(--s3); }
   .btnrow { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; align-items:center; } label.f { display:block; font-size:12.5px; color:var(--ink-3); margin:12px 0 4px; } .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   select, input[type=text], input[type=number], input:not([type]) { background:rgba(236,238,230,.06); border:1px solid var(--line); border-radius:8px; padding:8px 10px; width:100%; }
@@ -756,8 +778,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <input class="sr" id="swipe" type="range" min="2" max="98" value="26" aria-label="Move the compare line. Older imagery is on the left, today on the right.">
   </div>
   <header class="top">
-    <a class="mark" href="index.html">Terra<em>Corridor</em></a>
-    <nav aria-label="Pages"><a href="index.html?corridor=ab-strathcona-demo">Geohazard map</a><a class="on" href="platform.html" aria-current="page">Segment record</a><a href="index.html?corridor=ab-strathcona-demo#/log">Work orders</a></nav>
+    <a class="mark" href="platform.html">Terra<em>Corridor</em></a>
+    <nav aria-label="Pages"><a class="on" href="platform.html" aria-current="page">Segment record</a><a href="index.html?corridor=ab-strathcona-demo">Ground and climate</a><a href="index.html?corridor=ab-strathcona-demo#/log">Work orders</a></nav>
     <span style="flex:1"></span>
     <label class="cap glass rules">Rules <select id="jur" aria-label="Regulator"><option value="CA">Canada, CER</option><option value="US">United States, PHMSA</option></select></label>
   </header>
@@ -1885,7 +1907,7 @@ let store = { ledger: [], findings: [], orders: [], assumptions: {}, jurisdictio
 try { store = { ...store, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { /* storage unavailable: state stays in memory */ }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* in memory only */ } };
 let built = null, selected = null, step = 'changed', chosen = {}, swipe = 0.26;
-let map, beforeLayer, lines = {}, bandLayer, dotLayer, futureLayer;
+let map, beforeLayer, lines = {}, bandLayer, dotLayer, futureLayer, fitAll = () => {}, proofMode = false, playTimer = null;
 // Looking ahead to 2035 with a growth model run 1000 times (src/growth.js, precomputed at build): land goes
 // planned -> building -> built in stages, each stage timed from City of Edmonton records. The page shows
 // chances and ranges, never one date.
@@ -1903,13 +1925,49 @@ function ahead(r, year = store.ahead) {
   return { s, to: s.next, p: s.byYear[year] ? s.byYear[year][s.next] : 0, c: s.cross[s.next] };
 }
 const band = (p) => (p >= 0.7 ? 'red' : p >= 0.3 ? 'amber' : p >= 0.05 ? 'sand' : 'green');
-const tone = (r) => { const o = ahead(r); return o && !o.top ? band(o.p) : statusOf(r)[0]; };
+// One status vocabulary for the whole page: the strip, the line on the map, the panel and the corridor list.
+//   Coming: building permits already push it over a class line, or 30%+ of the simulated futures cross it.
+//   Watch: 5 to 30% of futures, or approved homes with no building permit yet.
+//   Changed since 2019: more homes now than the 2019 roof survey had for that class (the proof stretch).
+//   Stable: nothing on file moves it. No data: no dwelling data for the stretch.
+const DONE = '#aab6c4';
+const ST = { changed: 'Changed, plan clock running', coming: 'Coming', watch: 'Watch', done: 'Changed since 2019', stable: 'Stable', nodata: 'No data' };
+const horizon = () => store.ahead || '2035';
+function statusFor(r) {
+  const c = r.classLocation;
+  if (!c || c.status === 'unverified') return { k: 'nodata', col: C.grey };
+  if (c.status === 'changed') return { k: 'changed', col: C.red };
+  if (c.status === 'change_committed') return { k: 'coming', col: C.red, firm: true };
+  const o = ahead(r, horizon()), live = o && !o.top ? o : null;
+  if (live && live.p >= 0.3) return { k: 'coming', col: live.p >= 0.7 ? C.red : C.amber, o: live };
+  if ((live && live.p >= 0.05) || c.status === 'change_possible') return { k: 'watch', col: C.sand, o: live && live.p >= 0.05 ? live : null };
+  const base = CLASS.classOf(c.units.roofsAtBaseline || 0, CLASS.DEFAULTS);
+  if (c.class.now > base) return { k: 'done', col: DONE, from: base, to: c.class.now };
+  return { k: 'stable', col: C.green };
+}
+const stLabel = (st) => ST[st.k];
+function cellText(r, st) {
+  const c = r.classLocation;
+  if (!c || st.k === 'nodata') return '–';
+  if (st.k === 'changed') return `${c.change.from}→${c.change.to}`;
+  if (st.k === 'coming' || st.k === 'watch') return `${c.class.now}→${st.o ? st.o.to : c.change ? c.change.to : c.class.possible}${st.k === 'watch' ? '?' : ''}`;
+  if (st.k === 'done') return `${st.to} ✓`;
+  return String(c.class.now);
+}
+const tipOf = (st) => stLabel(st) + (st.o ? `: ${pct(st.o.p)} chance of Class ${st.o.to} by ${horizon()}` : '');
 const addedBy = (year) => { const b = FUT && FUT.bins.find((x) => x.year === +year); return b ? b.added : []; };
-// A small line of the chance by year, 2026 to 2035.
+// The chance by year, 2026 to 2035, with the years and the 0, 50 and 100% lines labelled.
 function spark(s, cls) {
-  const ys = FUT.years, w = 180, h = 34, x = (i) => (i / (ys.length - 1)) * w, y = (p) => h - 2 - p * (h - 4);
+  const ys = FUT.years, w = 300, h = 104, L = 36, B = 20, T = 8, R = 8;
+  const x = (i) => L + (i / (ys.length - 1)) * (w - L - R), y = (p) => T + (1 - p) * (h - T - B);
   const pts = ys.map((yr, i) => `${x(i).toFixed(1)},${y(s.byYear[yr][cls]).toFixed(1)}`).join(' ');
-  return `<svg class="spark" viewBox="-2 -2 ${w + 4} ${h + 4}" width="${w}" height="${h}" role="img" aria-label="Chance of Class ${cls} by year"><line x1="0" x2="${w}" y1="${y(0.5)}" y2="${y(0.5)}" stroke="currentColor" stroke-opacity=".18" stroke-dasharray="2 3"/><polyline points="${pts}" fill="none" stroke="${C.amber}" stroke-width="1.8"/>${ys.map((yr, i) => String(yr) === store.ahead ? `<circle cx="${x(i)}" cy="${y(s.byYear[yr][cls])}" r="3.2" fill="${C.amber}"/>` : '').join('')}</svg><span class="cap spark-k">${ys[0]} to ${ys[ys.length - 1]}, dashed line at 50%</span>`;
+  const sel = ys.indexOf(+horizon()), mid = Math.floor((ys.length - 1) / 2);
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="Chance of Class ${cls} by year, ${ys[0]} to ${ys[ys.length - 1]}">`
+    + [0, 0.5, 1].map((p) => `<line x1="${L}" x2="${w - R}" y1="${y(p)}" y2="${y(p)}" stroke="currentColor" stroke-opacity="${p === 0.5 ? 0.4 : 0.14}"${p === 0.5 ? ' stroke-dasharray="3 3"' : ''}/><text x="${L - 7}" y="${y(p) + 4}" text-anchor="end">${p * 100}%</text>`).join('')
+    + `<polyline points="${pts}" fill="none" stroke="${C.amber}" stroke-width="2.2" stroke-linejoin="round"/>`
+    + (sel >= 0 ? `<circle cx="${x(sel)}" cy="${y(s.byYear[ys[sel]][cls])}" r="4.5" fill="${C.amber}" stroke="${C.bg}" stroke-width="1.5"/>` : '')
+    + [0, mid, ys.length - 1].map((i) => `<text x="${x(i)}" y="${h - 4}" text-anchor="${i === 0 ? 'start' : i === ys.length - 1 ? 'end' : 'middle'}">${ys[i]}</text>`).join('')
+    + `</svg>`;
 }
 const today = () => new Date().toISOString().slice(0, 10);
 const index = SEG.buildIndex(DATA.segments);
@@ -1954,12 +2012,14 @@ function initMap() {
   for (const s of DATA.segments) { const pts = s.centreline.map((p) => [p[1], p[0]]); all.push(...pts); L.polyline(pts, { color: C.bg, weight: 9, opacity: 0.9, interactive: false }).addTo(map); }
   for (const s of DATA.segments) {
     lines[s.id] = L.polyline(s.centreline.map((p) => [p[1], p[0]]), { color: C.grey, weight: 5, lineCap: 'butt' }).addTo(map).on('click', () => select(s.id))
-      .bindTooltip(() => { const r = built.records.find((x) => x.id === s.id); return `<b>km ${r.kmFrom}–${r.kmTo}</b> · ${esc(statusOf(r)[1])}`; }, { sticky: true, className: 'tc', direction: 'top', offset: [0, -8] });
+      .bindTooltip(() => { const r = built.records.find((x) => x.id === s.id); return `<b>km ${r.kmFrom}–${r.kmTo}</b> · ${esc(tipOf(statusFor(r)))}`; }, { sticky: true, className: 'tc', direction: 'top', offset: [0, -8] });
   }
-  const fitAll = () => map.fitBounds(L.latLngBounds(all), pad());
-  fitAll(); requestAnimationFrame(() => { map.invalidateSize(); fitAll(); clip(); });
+  fitAll = () => map.fitBounds(L.latLngBounds(all), pad());
+  const frame = () => { const r = rec(), c = r.classLocation, rg = SEG.rangeOf(index, r.id); map.fitBounds(L.latLngBounds(bandOf((c ? c.window.kmFrom * 1000 : rg.fromM) - 1500, (c ? c.window.kmTo * 1000 : rg.toM) + 1500, 900)), { ...pad(), maxZoom: 15 }); };
+  frame(); requestAnimationFrame(() => { map.invalidateSize(); frame(); clip(); });
   map.on('move zoom resize', clip);
-  map.on('zoomend', paintFuture);
+  // Zoomed out, the per-200 m dots pile up on top of each other: show them from street scale in.
+  map.on('zoomend', () => { if (map.getZoom() < 13) map.removeLayer(dotLayer); else if (!map.hasLayer(dotLayer)) dotLayer.addTo(map); paintFuture(); });
   new ResizeObserver(() => { map.invalidateSize(); clip(); }).observe($('mapBox'));
   $('swipe').oninput = (e) => { swipe = e.target.value / 100; clip(); };
   // Drag anywhere on the line. The hidden range input keeps it usable from the keyboard.
@@ -1969,12 +2029,18 @@ function initMap() {
   drag.addEventListener('pointermove', (e) => { if (dragging) move(e); });
   const end = () => { dragging = false; map.dragging.enable(); };
   drag.addEventListener('pointerup', end); drag.addEventListener('pointercancel', end);
-  $('years').innerHTML = `<span class="yl">Photo from</span>` + WAYBACK.map((w) => `<button type="button" data-y="${w.year}" aria-pressed="${w.year === store.before}">${w.year}</button>`).join('');
-  for (const b of $('years').querySelectorAll('button')) b.onclick = () => { store.before = b.dataset.y; save(); beforeLayer.setUrl(tileUrl(WAYBACK.find((w) => w.year === store.before).id)); for (const x of $('years').querySelectorAll('button')) x.setAttribute('aria-pressed', x === b); clip(); };
+  $('years').innerHTML = `<span class="yl">Left: photo from</span>` + WAYBACK.map((w) => `<button type="button" data-y="${w.year}" aria-pressed="${w.year === store.before}">${w.year}</button>`).join('');
+  for (const b of $('years').querySelectorAll('button')) b.onclick = () => setBefore(b.dataset.y);
   $('ahead').innerHTML = `<span class="yl">Forecast</span><button type="button" data-y="">Off</button>` + AHEAD.map((y) => `<button type="button" class="fut" data-y="${y}">${y}</button>`).join('');
   for (const b of $('ahead').querySelectorAll('button')) b.onclick = () => { store.ahead = b.dataset.y; save(); render(); };
   clip();
 }
+function setBefore(y) {
+  store.before = y; save(); beforeLayer.setUrl(tileUrl(WAYBACK.find((w) => w.year === y).id));
+  for (const x of $('years').querySelectorAll('button')) x.setAttribute('aria-pressed', x.dataset.y === y);
+  clip();
+}
+function setSwipe(v) { swipe = v; $('swipe').value = v * 100; clip(); }
 // Left of the divider shows the older imagery, right of it shows today.
 function clip() {
   const size = map.getSize(), nw = map.containerPointToLayerPoint([0, 0]), x = nw.x + size.x * swipe;
@@ -2000,10 +2066,10 @@ function binsNow() {
 }
 // Dwellings added since the 2019 roof survey, drawn on the line at the nearest 200 m (true positions are within 200 m of it).
 function paintMap() {
-  for (const r of built.records) lines[r.id].setStyle({ color: C[tone(r)], weight: r.id === selected ? 8 : 5 });
+  for (const r of built.records) lines[r.id].setStyle({ color: statusFor(r).col, weight: r.id === selected ? 8 : 5 });
   dotLayer.clearLayers(); bandLayer.clearLayers(); futureLayer.clearLayers();
   for (const b of $('ahead').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.y === store.ahead);
-  $('aheadNote').textContent = store.ahead ? `Right: today's photo. Shaded where homes are expected by ${store.ahead} (average of ${(FUT ? FUT.runs : 1000).toLocaleString('en-CA')} simulated futures).` : "Right: today's photo.";
+  $('aheadNote').textContent = proofMode ? "Right: today's photo." : store.ahead ? `Right: today's photo. Shaded where homes are expected by ${store.ahead} (average of ${(FUT ? FUT.runs : 1000).toLocaleString('en-CA')} simulated futures).` : "Right: today's photo.";
   const bins = binsNow();
   // One quiet dot per 200 m: white for homes added since 2019, amber where permits are issued, a ring where only approved.
   const rad = (u) => 2.5 + Math.sqrt(u) * 0.9;
@@ -2013,6 +2079,7 @@ function paintMap() {
     if (b.approved) dot({ radius: rad(b.approved + b.built + b.permit) + 4, color: C.amber, weight: 1.2, fill: false, opacity: 0.9 });
     if (b.built + b.permit) dot({ radius: rad(b.built + b.permit), stroke: false, fillColor: b.permit ? C.amber : C.ink, fillOpacity: 0.92 });
   }
+  if (map.getZoom() < 13) map.removeLayer(dotLayer);
   paintFuture();
   const r = rec(), c = r.classLocation, range = SEG.rangeOf(index, r.id);
   const from = c ? c.window.kmFrom * 1000 : range.fromM, to = c ? c.window.kmTo * 1000 : range.toM;
@@ -2023,44 +2090,83 @@ function paintMap() {
 // all of them, per 200 m. Zoomed out, one label per neighbourhood plan; zoomed in, one per 400 m.
 function paintFuture() {
   futureLayer.clearLayers();
-  if (!store.ahead || !FUT) return;
+  if (!store.ahead || !FUT || proofMode) return;
   const added = addedBy(store.ahead);
-  const label = (x, y, n, anchorLeft) => L.marker(ll(x, y), { pane: 'future', interactive: false, icon: L.divIcon({ className: 'plus maybe', html: n, iconSize: [null, 20], iconAnchor: anchorLeft ? [0, 10] : undefined }) }).addTo(futureLayer);
+  const tag = (at, n, anchorLeft) => L.marker(at, { pane: 'future', interactive: false, icon: L.divIcon({ className: 'plus maybe', html: n, iconSize: [null, 22], iconAnchor: anchorLeft ? [0, 11] : undefined }) }).addTo(futureLayer);
   added.forEach((n, k) => {
     if (n < 0.5) return;
-    L.polygon(bandOf(k * 200, (k + 1) * 200, 200), { pane: 'future', color: C.sand, weight: 0.8, dashArray: '3 4', fillColor: C.amber, fillOpacity: Math.min(0.6, 0.1 + n / 90), interactive: false }).addTo(futureLayer);
+    L.polygon(bandOf(k * 200, (k + 1) * 200, 200), { pane: 'future', color: C.sand, weight: 0.8, dashArray: '3 4', fillColor: C.amber, fillOpacity: Math.min(0.55, 0.1 + n / 90), interactive: false }).addTo(futureLayer);
   });
-  if (map.getZoom() >= 14) for (let k = 0; k < added.length; k += 2) {
-    const n = Math.round((added[k] || 0) + (added[k + 1] || 0));
-    if (n >= 10) { const p = pointAt((k + 1) * 200); label(p.x + p.nx * 280, p.y + p.ny * 280, '~+' + n); }
+  if (map.getZoom() >= 14) {
+    for (let k = 0; k < added.length; k += 2) {
+      const n = Math.round((added[k] || 0) + (added[k + 1] || 0));
+      if (n >= 10) { const p = pointAt((k + 1) * 200); tag(ll(p.x + p.nx * 280, p.y + p.ny * 280), `~${n} homes`); }
+    }
+    return;
   }
-  if (map.getZoom() < 14) for (const pl of DATA.permits.plans.rows.filter((q) => q.residential && / NSP$/.test(q.name))) {
-    const n = Math.round(pl.bins.reduce((t, k) => t + (added[k] || 0), 0));
-    if (n < 10) continue;
-    const p = pointAt(((pl.bins[0] + pl.bins[pl.bins.length - 1]) / 2 + 0.5) * 200);
-    label(p.x + 450, p.y, `${esc(pl.name.replace(/ NSP$/, ''))} ~+${n}`, true);
+  // Zoomed out: one label per neighbourhood plan, stacked in a column beside the line so none overlap,
+  // each tied to its stretch by a thin leader line.
+  const items = DATA.permits.plans.rows.filter((q) => q.residential && / NSP$/.test(q.name)).map((pl) => {
+    const n = Math.round(pl.bins.reduce((t, k) => t + (added[k] || 0), 0)), p = pointAt(((pl.bins[0] + pl.bins[pl.bins.length - 1]) / 2 + 0.5) * 200);
+    return { n, at: ll(p.x, p.y), text: `${esc(pl.name.replace(/ NSP$/, ''))}: ~${n} homes` };
+  }).filter((x) => x.n >= 10).map((x) => ({ ...x, pt: map.latLngToContainerPoint(x.at) })).sort((a, b) => a.pt.y - b.pt.y);
+  if (!items.length) return;
+  const colX = Math.max(...items.map((q) => q.pt.x)) + 90;
+  let lastY = -Infinity;
+  for (const q of items) {
+    const yy = Math.max(q.pt.y, lastY + 30); lastY = yy;
+    const at = map.containerPointToLatLng([colX, yy]);
+    L.polyline([q.at, at], { pane: 'future', color: C.sand, weight: 1, opacity: 0.85, interactive: false }).addTo(futureLayer);
+    L.circleMarker(q.at, { pane: 'future', radius: 3, stroke: false, fillColor: C.sand, fillOpacity: 1, interactive: false }).addTo(futureLayer);
+    tag(at, q.text, true);
   }
 }
 function select(id, fly = true) {
-  selected = id; if (step === 'corridor') step = 'changed'; render();
+  selected = id; if (step === 'corridor' || step === 'proof') step = 'changed'; leaveProof(); render();
   if (!fly) return;
   const r = rec(), c = r.classLocation, range = SEG.rangeOf(index, id);
-  map.flyToBounds(L.latLngBounds(bandOf(c ? c.window.kmFrom * 1000 : range.fromM, c ? c.window.kmTo * 1000 : range.toM, 320)), { ...pad(), duration: 0.9 });
+  map.flyToBounds(L.latLngBounds(bandOf(c ? c.window.kmFrom * 1000 : range.fromM, c ? c.window.kmTo * 1000 : range.toM, 320)), { ...pad(), duration: 0.9, maxZoom: 16 });
 }
 
 /* ---------- strip and queue ---------- */
 function renderStrip() {
-  const recs = [...built.records].sort((x, y) => x.kmFrom - y.kmFrom), u = urgent(), r = rec();
-  const next = u.find((x) => x.id !== selected) || null;
-  $('strip').innerHTML = `<div class="head"><b>${esc(DATA.meta.name)}</b><span>${recs.length} km. ${u.length} need a decision.${store.ahead ? ` Looking ahead to ${store.ahead}.` : ''}</span>${next ? `<button type="button" id="next">Next: km ${next.kmFrom}–${next.kmTo}</button>` : ''}</div>
-    <div class="cells">${recs.map((x) => { const c = x.classLocation, o = ahead(x), tip = o && !o.top ? `${pct(o.p)} chance of Class ${o.to} by ${store.ahead}` : statusOf(x)[1]; return `<button type="button" class="cell${x.id === selected ? ' sel' : ''}${x.openItems.length ? ' open' : ''}" data-id="${esc(x.id)}" style="background:${tone(x) === 'sand' ? 'repeating-linear-gradient(135deg,#d9c48c,#d9c48c 4px,#a8975f 4px,#a8975f 8px)' : C[tone(x)]}" aria-label="km ${x.kmFrom} to ${x.kmTo}, ${esc(tip)}" title="km ${x.kmFrom}–${x.kmTo}: ${esc(tip)}">${o && !o.top ? o.s.classNow + (o.p >= 0.05 ? '→' + o.to : '') : c ? c.class.now + (c.change ? '→' + c.change.to : '') : ''}</button>`; }).join('')}</div>
+  const recs = [...built.records].sort((x, y) => x.kmFrom - y.kmFrom), u = urgent(), pr = proofRecord();
+  $('strip').innerHTML = `<div class="head"><b>${esc(DATA.meta.name)}</b><span>${recs.length} km</span>
+      <span class="need">${u.length ? `${u.length} need${u.length === 1 ? 's' : ''} a decision:${u.map((x) => ` <button type="button" class="kmchip${x.id === selected ? ' on' : ''}" data-id="${esc(x.id)}">km ${x.kmFrom}–${x.kmTo}</button>`).join('')}` : 'Nothing needs a decision'}</span>
+      <span class="tools">${pr ? `<button type="button" id="proofBtn" class="hi">See it happen: km ${pr.kmFrom}–${pr.kmTo}</button>` : ''}<button type="button" id="wholeLine">Whole line</button></span></div>
+    <div class="cells">${recs.map((x) => { const st = statusFor(x), tip = tipOf(st); return `<button type="button" class="cell st-${st.k}${x.id === selected ? ' sel' : ''}${x.openItems.length ? ' open' : ''}" data-id="${esc(x.id)}" style="--c:${st.col}" aria-label="km ${x.kmFrom} to ${x.kmTo}, ${esc(tip)}${x.openItems.length ? ', needs a decision' : ''}" title="km ${x.kmFrom}–${x.kmTo}: ${esc(tip)}">${esc(cellText(x, st))}</button>`; }).join('')}</div>
     <div class="cells ruler">${recs.map((x) => `<span>${x.kmFrom % 2 === 0 ? x.kmFrom : ''}</span>`).join('')}</div>
-    <div class="key">${store.ahead ? `<span>Colour: chance this km moves to a stricter class by ${store.ahead}, out of ${FUT.runs.toLocaleString('en-CA')} simulated futures.</span><span><i style="background:${C.red}"></i>70% or more</span><span><i style="background:${C.amber}"></i>30 to 70%</span><span><i style="background:${C.sand}"></i>5 to 30%</span><span><i style="background:${C.green}"></i>Under 5%, or already Class 3</span>` : `<span>Number: class today. Colour: what city records show now.</span><span><i style="background:${C.green}"></i>No change</span><span><i style="background:${C.red}"></i>Permits issued</span><span><i style="background:${C.amber}"></i>Approved</span>`}<span><i style="background:${C.ink}"></i>Dot above: needs a decision</span></div>`;
-  for (const b of $('strip').querySelectorAll('button.cell')) b.onclick = () => select(b.dataset.id);
-  if ($('next')) $('next').onclick = () => select(next.id);
+    <div class="key"><span><i style="background:${C.red}"></i>Coming</span><span><i class="hatch"></i>Watch</span><span><i style="background:${DONE}"></i>Changed since 2019 ✓</span><span><i style="background:${C.green}"></i>Stable</span><span><i class="ring"></i>Needs a decision</span>
+      <span class="why">Coming: building permits issued, or 30%+ of ${FUT ? FUT.runs.toLocaleString('en-CA') : ''} simulated futures by ${horizon()}. Watch: 5 to 30%.</span></div>`;
+  for (const b of $('strip').querySelectorAll('[data-id]')) b.onclick = () => select(b.dataset.id);
+  if ($('proofBtn')) $('proofBtn').onclick = openProof;
+  $('wholeLine').onclick = () => fitAll();
 }
 /* ---------- inspector: one kilometre, one step at a time ---------- */
 const STEPS = [['changed', "What's coming"], ['options', 'Options'], ['decide', 'Decide'], ['record', 'Record']];
+// The pipe-order date in one line, for the lead. Uses every simulated change date (decision.orderSignal).
+function orderSig(r) {
+  const o = ahead(r, '2035');
+  if (!o || o.top || !o.c.samples || !o.c.samples.length) return null;
+  const a = (k) => (store.assumptions[k] != null ? store.assumptions[k] : DECISION.DEFAULTS.assumptions[k].value);
+  const lead = a('pipeLeadMonths'), build = a('replaceMonths'), clock = store.jurisdiction === 'US' ? 24 : 6, thr = store.orderAt != null ? store.orderAt : 50;
+  return { o, lead, build, clock, thr, sig: DECISION.orderSignal(o.c.samples, FUT.runs, { now: decimalYear(today()), leadMonths: lead, buildMonths: build, clockMonths: clock, threshold: thr / 100 }) };
+}
+function headline(r, st) {
+  const c = r.classLocation, y = horizon();
+  if (!c || st.k === 'nodata') return { lead: 'There is no dwelling data for this stretch.' };
+  if (st.k === 'changed') return { lead: sentence(r) };
+  if (st.k === 'coming' && st.firm) return { lead: `Class ${c.change.from} to Class ${c.change.to} around ${c.change.date}.`, why: 'Building permits already issued push the count over the line.' };
+  if (st.o) {
+    const o = st.o, range = `8 in 10 of those futures land between ${when(o.c.q10)} and ${when(o.c.q90)}`;
+    const why = `${pct(o.p)} chance by ${y}, out of ${FUT.runs.toLocaleString('en-CA')} simulated futures. ${c.units.possible ? `${c.units.possible} homes are approved nearby with no building permit yet, so the date is a range: ` : 'No building permits yet, so the date is a range: '}${range}.`;
+    const os = orderSig(r), act = !os || !os.sig.needed ? null : os.sig.orderNow ? 'If replacing the pipe is the answer, order it now.' : os.sig.orderBy != null ? `If replacing the pipe is the answer, order it by ${when(os.sig.orderBy)}.` : null;
+    return { lead: st.k === 'coming' ? `Likely Class ${o.to} by ${when(o.c.q50)}.` : `Could reach Class ${o.to}. Worth watching.`, why, act };
+  }
+  if (st.k === 'watch') return { lead: `Could reach Class ${c.class.possible} if the approved homes are built.`, why: 'No building permits yet, so there is no date.' };
+  if (st.k === 'done') return { lead: `Went from Class ${st.from} to Class ${st.to} since 2019.`, why: 'Building permits showed it months before people moved in.', proof: true };
+  return { lead: `Class ${c.class.now}. Nothing on file changes that.` };
+}
 function sentence(r) {
   const c = r.classLocation;
   if (!c) return 'Class location is not assessed on this kilometre.';
@@ -2070,7 +2176,7 @@ function sentence(r) {
     : c.status === 'unverified' ? 'There is no dwelling data for this stretch.' : `Class ${c.class.now}, and nothing on file changes that.`;
 }
 function changedStep(r) {
-  const c = r.classLocation, g = TIER[r.geohazard.tier] || TIER.unverified, st = statusOf(r);
+  const c = r.classLocation, g = TIER[r.geohazard.tier] || TIER.unverified, st = statusFor(r), hl = headline(r, st);
   let body = '';
   if (c) {
     const t = CLASS.DEFAULTS.thresholds, total = c.units.existing + c.units.committed + c.units.possible, max = Math.max(60, total * 1.15), pct = (n) => (100 * n / max).toFixed(2) + '%';
@@ -2081,15 +2187,13 @@ function changedStep(r) {
       ${max > 250 ? `<p class="cap" style="margin-top:-18px">Far past the Class 3 line of ${t.class3} dwellings.</p>` : ''}
       ${c.clock ? `<p class="note ${c.clock.running ? 'bad' : 'warn'}"><b>${c.clock.running ? 'Plan due' : 'Plan would be due'} ${esc(c.clock.due)}</b>, ${c.clock.monthsLeft} month${c.clock.monthsLeft === 1 ? '' : 's'} from now.</p>` : ''}`;
   }
-  return `<div class="where">KM ${r.kmFrom} TO ${r.kmTo}</div><h1>km ${r.kmFrom}–${r.kmTo}</h1>
-    <div class="status c-${st[0]}"><i></i>${esc(st[1])}</div><p class="lead">${esc(sentence(r))}</p>${body}
+  return `<h1>km ${r.kmFrom}–${r.kmTo}</h1>
+    <div class="status" style="color:${st.col}"><i></i>${esc(stLabel(st))}</div><p class="lead">${esc(hl.lead)}</p>${hl.why ? `<p class="why">${esc(hl.why)}</p>` : ''}${hl.act ? `<p class="note warn"><b>${esc(hl.act)}</b> <span class="cap">Details under Options.</span></p>` : ''}${hl.proof ? `<div class="btnrow"><button class="btn" id="proofBtn2">See it happen</button></div>` : ''}${body}
     <div class="facts">
-      ${(() => { const y = store.ahead || '2035', o = ahead(r, y); if (!o) return '';
+      ${(() => { const y = horizon(), o = ahead(r, y); if (!o) return '';
         if (o.top) return `<div><span class="k">By ${y}</span><span>Already Class ${o.s.classNow}, the highest.</span></div>`;
-        if (!o.c.p) return `<div><span class="k">By ${y}</span><span>None of ${FUT.runs} simulated futures reach Class ${o.to} by ${FUT.years[FUT.years.length - 1]}. <span class="cap">No planned land close enough to fill the window.</span></span></div>`;
-        return `<div><span class="k">By ${y}</span><span><b class="c-${band(o.p)}">${pct(o.p)}</b> chance of Class ${o.to}${o.s.cross[3] && !o.s.cross[3].already && o.to === 2 ? `, ${pct(o.s.byYear[y][3])} of Class 3` : ''}.
-          In the futures where it happens, most likely ${when(o.c.q50)}; 8 in 10 fall between ${when(o.c.q10)} and ${when(o.c.q90)}.
-          ${spark(o.s, o.to)}</span></div>`; })()}
+        if (!o.c.p) return `<div><span class="k">By ${y}</span><span>None of ${FUT.runs.toLocaleString('en-CA')} simulated futures reach Class ${o.to} by ${FUT.years[FUT.years.length - 1]}. <span class="cap">No planned land close enough to fill the window.</span></span></div>`;
+        return `<div class="wide"><span class="k">Chance of Class ${o.to}, by year${o.s.cross[3] && !o.s.cross[3].already && o.to === 2 ? ` <span class="cap">(Class 3: ${pct(o.s.byYear[y][3])} by ${y})</span>` : ''}</span>${spark(o.s, o.to)}</div>`; })()}
       <div><span class="k">Ground, 2031–35</span><span><span class="c-${g[0]}">${esc(g[1])}</span>, ${esc(r.geohazard.hazard || 'no score on file')}. <span class="cap">${esc(r.geohazard.why || '')}</span></span></div>
       <div><span class="k">Land terms</span><span>${r.obligations.length ? `${r.obligations.length} on this kilometre${r.obligations.some((o) => !o.verified) ? ', not all verified' : ''}` : 'None on file'}</span></div>
       <div><span class="k">Digging nearby</span><span>${r.encroachment.length ? `${r.encroachment.length} report${r.encroachment.length === 1 ? '' : 's'} inside 30 m` : 'Nothing reported'}</span></div>
@@ -2100,11 +2204,9 @@ function changedStep(r) {
 // When to order pipe: the chance the class changes within the window that still leaves time to get pipe and
 // replace before the regulator's deadline. Uses every simulated date, not just the median.
 function orderStep(r) {
-  const o = ahead(r, '2035');
-  if (!o || o.top || !o.c.samples || !o.c.samples.length) return '';
-  const a = (k) => (store.assumptions[k] != null ? store.assumptions[k] : DECISION.DEFAULTS.assumptions[k].value);
-  const lead = a('pipeLeadMonths'), build = a('replaceMonths'), clock = store.jurisdiction === 'US' ? 24 : 6, thr = store.orderAt != null ? store.orderAt : 50;
-  const sig = DECISION.orderSignal(o.c.samples, FUT.runs, { now: decimalYear(today()), leadMonths: lead, buildMonths: build, clockMonths: clock, threshold: thr / 100 });
+  const os = orderSig(r);
+  if (!os) return '';
+  const { o, lead, build, clock, thr, sig } = os;
   const rule = `Order when the chance of Class ${o.to} within ${sig.windowMonths} months is ${thr}% or more`;
   const verdict = !sig.needed ? `<p class="note">${esc(sig.note)}</p>`
     : sig.orderNow ? `<p class="note bad"><b>Order pipe now.</b> ${pct(sig.pWithin)} chance of Class ${o.to} within ${sig.windowMonths} months.</p>`
@@ -2115,20 +2217,31 @@ function orderStep(r) {
     ${verdict}
     <div class="grid2"><div><label class="f" for="thr">Order at this chance or above</label><input id="thr" type="number" min="5" max="95" step="5" value="${thr}"></div><div><span class="cap" style="display:block;padding-top:24px">${esc(rule)}. Lower it to order earlier and risk buying pipe for a change that does not come.</span></div></div>`;
 }
+// Options as a choice: the ones that fit inside the regulator's plan window first, cheapest first, the best one
+// tagged; each with a bar of how long it takes against the plan deadline; options that do not apply folded away.
 function optionsStep(r) {
   const d = r.decision;
-  if (!d) return `<h1>Options</h1><p class="lead">Nothing to choose on this kilometre yet. Nothing on file changes the class today.</p>${orderStep(r)}`;
-  const pick = chosen[r.id] || (d.lowestCost && d.lowestCost.key);
-  return `<div class="where">CLASS ${d.change.from} TO CLASS ${d.change.to}</div><h1>Options</h1>
+  if (!d) return `<h1 class="t">Options</h1><p class="lead">Nothing to choose on this kilometre yet. Nothing on file changes the class today.</p>${orderStep(r)}`;
+  const clock = store.jurisdiction === 'US' ? 24 : 6, reg = store.jurisdiction === 'US' ? 'PHMSA' : 'CER';
+  const fits = (p) => (p.meetsDeadline != null ? p.meetsDeadline : p.months <= clock);
+  const ok = d.paths.filter((p) => p.eligible).sort((a, b) => (fits(b) - fits(a)) || (a.total - b.total)), off = d.paths.filter((p) => !p.eligible);
+  const best = ok.find(fits) || ok[0], pick = chosen[r.id] || (best && best.key);
+  const maxM = Math.max(clock, ...ok.map((p) => p.months)) * 1.08, X = (m) => (100 * m / maxM).toFixed(1) + '%';
+  return `<h1 class="t">Options <span class="sub">Class ${d.change.from} to Class ${d.change.to}</span></h1>
+    <p class="cap">Sorted: done inside the ${clock}-month ${reg} plan window first, then cheapest.</p>
     ${d.pricedWithPlaceholders ? '<p class="note warn">Costs are placeholders, not operator figures. Change them under Corridor.</p>' : ''}
-    ${d.paths.map((p) => `<label class="path ${p.eligible ? '' : 'off'}">${p.eligible ? `<input type="radio" name="path" value="${p.key}" ${p.key === pick ? 'checked' : ''}>` : '<span></span>'}<span>${esc(p.label)}</span>
-      <span class="n">${p.eligible ? money(p.total) : 'n/a'}</span><span class="cap">${p.eligible ? `About ${p.months} month${p.months === 1 ? '' : 's'}${p.meetsDeadline == null ? '' : p.meetsDeadline ? ', in time' : ', <b class="c-red">misses the deadline</b>'}. ` : ''}${esc(p.why)}${p.materials && p.materials.note ? ' ' + esc(p.materials.note) : ''}${p.obligations.length ? ` Breaks ground, so ${p.obligations.length} land term${p.obligations.length === 1 ? ' applies' : 's apply'}.` : ''}</span></label>`).join('')}
+    ${ok.map((p) => `<label class="path${p === best ? ' best' : ''}"><input type="radio" name="path" value="${p.key}" ${p.key === pick ? 'checked' : ''}><span>${esc(p.label)}${p === best ? ' <span class="tagbest">Best fit</span>' : ''}</span>
+      <span class="n">${money(p.total)}</span>
+      <span class="dl" role="img" aria-label="About ${p.months} months, ${fits(p) ? 'inside' : 'longer than'} the ${clock}-month plan window"><i style="width:${X(p.months)};background:${fits(p) ? C.green : C.red}"></i><b style="left:${X(clock)}"></b></span>
+      <span class="cap">About ${p.months} month${p.months === 1 ? '' : 's'}${fits(p) ? '' : ', <b class="c-red">longer than the plan window</b>'}. ${esc(p.why)}${p.materials && p.materials.note ? ' ' + esc(p.materials.note) : ''}${p.obligations.length ? ` Breaks ground, so ${p.obligations.length} land term${p.obligations.length === 1 ? ' applies' : 's apply'}.` : ''}</span></label>`).join('')}
+    <p class="dlkey cap"><i></i>Plan due ${clock} months after the change. Bars show how long each option takes.</p>
+    ${off.length ? `<details class="off"><summary>Not available here (${off.length})</summary>${off.map((p) => `<p class="cap"><b>${esc(p.label)}.</b> ${esc(p.why)}</p>`).join('')}</details>` : ''}
     <p class="cap" style="margin-top:14px">Cost over ${d.horizonYears} years.${d.hingesOn.length ? ` The cheapest answer flips if ${d.hingesOn.map((h) => `${esc(h.unit)} were ${esc(Math.round(h.at).toLocaleString('en-US'))}`).join(', or if ')}.` : ''}</p>
     ${d.unknowns.length ? `<p class="cap">Still needed from the operator: ${esc(d.unknowns.join('; '))}.</p>` : ''}${orderStep(r)}`;
 }
 function decideStep(r) {
   const orders = store.orders.filter((o) => o.segment === r.id);
-  return `<div class="where">KM ${r.kmFrom} TO ${r.kmTo}</div><h1>Decide</h1>
+  return `<h1 class="t">Decide <span class="sub">km ${r.kmFrom}–${r.kmTo}</span></h1>
     ${r.drafts.length ? `<p>The system only drafts. A named person decides, and the decision is chained into the record.</p>
       <div class="grid2"><div><label class="f" for="who">Your name</label><input id="who" autocomplete="name"></div><div><label class="f" for="why">Reason, needed to reject</label><input id="why"></div></div>
       ${r.drafts.map((d, i) => { const s = LEDGER.statusOf(store.ledger, d); return `<div class="btnrow" style="border-top:1px solid var(--line);padding-top:12px"><span style="flex:1">${esc(({ class_location: 'Class location', geohazard: 'Ground', land_obligations: 'Land terms', encroachment: 'Digging nearby' })[d.module])}<br><span class="cap">${esc(d.kind.replace(/_/g, ' '))}</span></span>${s === 'draft' ? `<button class="btn" data-act="approve" data-i="${i}">Approve</button><button class="btn ghost" data-act="reject" data-i="${i}">Reject</button>` : `<span class="status c-${s === 'approved' ? 'green' : 'grey'}" style="margin:0"><i></i>${esc(s)}</span>`}</div>`; }).join('')}` : '<p class="lead">Nothing is waiting for a decision here.</p>'}
@@ -2140,15 +2253,18 @@ function decideStep(r) {
 }
 function recordStep(r) {
   const record = LEDGER.decisionRecord(store.ledger, r.id);
-  return `<div class="where">KM ${r.kmFrom} TO ${r.kmTo}</div><h1>Record</h1>
+  return `<h1 class="t">Record <span class="sub">km ${r.kmFrom}–${r.kmTo}</span></h1>
     ${record.length ? `<table><tbody>${record.map((e) => `<tr><td class="mono cap">${e.seq}</td><td>${esc(e.what)}${e.value != null ? ': ' + esc(e.value) : ''}${e.estimate != null ? ', estimate ' + money(e.estimate) : ''}<div class="cap">${esc(e.by)}, ${esc(e.at.slice(0, 16).replace('T', ' '))}${e.reason ? ', ' + esc(e.reason) : ''}</div></td><td class="mono cap" title="${esc(e.hash)}">${esc(e.hash.slice(0, 8))}</td></tr>`).join('')}</tbody></table>` : '<p class="lead">Nothing decided or found here yet.</p>'}
     <p class="cap">Every entry is chained to the one before it with SHA-256, so an edit made afterwards shows.</p>
     <div class="btnrow"><button class="btn ghost" id="xPack">Evidence pack PDF</button>${r.classLocation && r.classLocation.change ? '<button class="btn ghost" id="xFiling">Draft plan PDF</button>' : ''}</div>`;
 }
 function corridorStep() {
   const s = built.classSummary || {}, open = built.records.reduce((a, r) => a + r.openItems.length, 0), chain = LEDGER.verify(store.ledger), L = DATA.meta.labels, base = DECISION.DEFAULTS.assumptions;
-  return `<div class="where">CORRIDOR</div><h1 style="font-size:44px">${esc(DATA.meta.name)}</h1>
-    <div class="trio"><div><b>${(s.changed || 0) + (s.changeCommitted || 0)}</b><span>class changes with a date</span></div><div><b>${s.changePossible || 0}</b><span>possible, no date yet</span></div><div><b>${open}</b><span>open items</span></div></div>
+  const sts = built.records.map(statusFor), cnt = (k) => sts.filter((x) => x.k === k).length, pr = proofRecord();
+  return `<h1 class="t">${esc(DATA.meta.name)} <span class="sub">${built.records.length} km</span></h1>
+    <div class="trio"><div><b>${cnt('coming') + cnt('changed')}</b><span>coming by ${horizon()}</span></div><div><b>${cnt('watch')}</b><span>to watch</span></div><div><b>${cnt('done')}</b><span>changed since 2019</span></div></div>
+    <p class="cap">${open} open item${open === 1 ? '' : 's'} across the line.</p>
+    ${pr ? `<h2>Did the permits warn us?</h2><p>Yes, on km ${pr.kmFrom}–${pr.kmTo}: building permits crossed the class lines months before people moved in.</p><div class="btnrow"><button class="btn" id="proofBtn3">See it happen</button></div>` : ''}
     ${FUT ? (() => { const y = store.ahead || '2035', added = addedBy(y), total = Math.round(added.reduce((a, n) => a + n, 0)), f = FUT.fit;
       const byPlan = DATA.permits.plans.rows.filter((p) => p.residential && / NSP$/.test(p.name)).map((p) => ({ p, n: Math.round(p.bins.reduce((a, k) => a + (added[k] || 0), 0)) })).filter((x) => x.n >= 1).sort((a, b) => b.n - a.n);
       const perYear = FUT.years.slice(1).map((yr) => ({ yr, n: Math.round(addedBy(yr).reduce((a, n) => a + n, 0)) })), top = Math.max(1, ...perYear.map((x) => x.n));
@@ -2171,21 +2287,92 @@ function corridorStep() {
         <div><span class="k">Per block</span><span>${HIND.blocks.planned} planned blocks; it expected ${HIND.blocks.expectedStarts} to start and ${HIND.blocks.startedSince} did. Brier ${HIND.blocks.brier}, against ${HIND.blocks.baselineBrier} for one flat rate.</span></div></div>
       <p class="note warn">Which kilometre changes, it called well. Which block starts first, it does no better than a flat rate yet. One line and one hindcast is a small test.</p>` : ''}
       <p class="cap">${esc(FUT.note)}</p>`; })() : ''}
-    ${BT ? `<h2>Would permits have warned us?</h2><p>${BT.changes} class change${BT.changes === 1 ? '' : 's'} on this line since ${esc(BT.from.slice(0, 4))}. Issued permits added up to the higher class ${esc(BT.medianLeadMonths)} months before the homes were estimated to be lived in.</p><p class="note warn">${esc(BT.caveat)}</p><p class="cap">Pick 2019 and drag the line over km 7 to 8 to see it happen.</p>` : ''}
     <h2>Take it with you</h2><div class="btnrow"><button class="btn ghost" id="xCsv">Work orders CSV</button><button class="btn ghost" id="xGeo">GeoJSON for Esri</button><button class="btn ghost" id="xLabels">Prediction vs field</button></div>
     <h2>What is real here</h2><div class="facts">${Object.entries(L).map(([k, v]) => `<div><span class="k">${esc(k.replace(/([A-Z])/g, ' $1').replace(/^./, (x) => x.toUpperCase()))}</span><span>${esc(v)}</span></div>`).join('')}<div><span class="k">Imagery</span><span>Esri World Imagery Wayback. Years are when Esri published each release; the photos can be older.</span></div><div><span class="k">Route</span><span>${esc(DATA.meta.route)}</span></div><div><span class="k">Record</span><span>${store.ledger.length} entries, chain ${chain.ok ? 'intact' : 'BROKEN at entry ' + chain.brokenAt}</span></div></div>
     <details style="margin-top:18px"><summary>Cost assumptions</summary><div class="grid2">${Object.entries(base).map(([k, a]) => `<div><label class="f" for="a-${k}">${esc(a.unit)}</label><input id="a-${k}" data-k="${k}" type="number" min="0" value="${esc(store.assumptions[k] != null ? store.assumptions[k] : a.value)}"></div>`).join('')}</div><div class="btnrow"><button class="btn ghost" id="resetAssume">Reset to placeholders</button></div></details>`;
 }
+/* ---------- proof: the permits saw it first ---------- */
+// The stretch that went up a class since the 2019 roof survey, and the building permits that got it there.
+function proofRecord() {
+  const done = built.records.filter((r) => statusFor(r).k === 'done');
+  return done.sort((a, b) => (b.classLocation.units.builtSinceBaseline || 0) - (a.classLocation.units.builtSinceBaseline || 0))[0] || null;
+}
+function proofSeries(r) {
+  const c = r.classLocation, st = CLASS.normalize(DATA.permits, index), base = st.baseline ? st.baseline.date : '2019-12-31', t = CLASS.DEFAULTS.thresholds;
+  const from = c.window.kmFrom * 1000, to = c.window.kmTo * 1000;
+  const ev = st.events.filter((e) => e.kind === 'building_permit' && e.chainageM >= from && e.chainageM < to && e.issued > base).sort((a, b) => a.issued.localeCompare(b.issued));
+  let n = c.units.roofsAtBaseline || 0; const pts = [{ t: '2019-06-26', n }], cross = {};
+  for (const e of ev) { const before = n; n += e.units; pts.push({ t: e.issued, n }); if (before < t.class2 && n >= t.class2 && !cross[2]) cross[2] = e.issued; if (before < t.class3 && n >= t.class3 && !cross[3]) cross[3] = e.issued; }
+  return { pts, cross, total: n, base, t };
+}
+const monthYear = (iso) => when(decimalYear(iso));
+const PHOTOS = [{ k: '2019', label: '2019 photo', date: '2019-06-26' }, { k: '2022', label: '2022 photo', date: '2022-06-29' }, { k: '2024', label: '2024 photo', date: '2024-06-27' }, { k: 'now', label: 'Today', date: '2026-10-29' }];
+// Homes with a building permit in the counting window, by issue date, against the two class lines and the photo dates.
+function proofChart(ps, at) {
+  const w = 360, h = 190, L = 34, R = 10, T = 10, B = 24, t0 = decimalYear('2019-01-01'), t1 = decimalYear('2027-01-01');
+  const ymax = Math.max(60, Math.min(ps.total, 120)), x = (iso) => L + (decimalYear(iso) - t0) / (t1 - t0) * (w - L - R), y = (n) => T + (1 - Math.min(n, ymax) / ymax) * (h - T - B);
+  let d = `M${x(ps.pts[0].t).toFixed(1)},${y(ps.pts[0].n).toFixed(1)}`;
+  for (let i = 1; i < ps.pts.length; i++) d += `H${x(ps.pts[i].t).toFixed(1)}V${y(ps.pts[i].n).toFixed(1)}`;
+  d += `H${x('2026-11-22').toFixed(1)}`;
+  const line = (n, l) => `<line x1="${L}" x2="${w - R}" y1="${y(n)}" y2="${y(n)}" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="3 3"/><text x="${w - R}" y="${y(n) - 5}" text-anchor="end">${l}</text>`;
+  const cross = (k, col) => (ps.cross[k] ? `<circle cx="${x(ps.cross[k])}" cy="${y(k === 2 ? ps.t.class2 : ps.t.class3)}" r="4.5" fill="${col}" stroke="${C.bg}" stroke-width="1.5"/>` : '');
+  return `<svg class="proofchart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Homes with a building permit near km ${ps.label}, 2019 to 2026, crossing the Class 2 line in ${ps.cross[2] ? monthYear(ps.cross[2]) : 'no date'} and the Class 3 line in ${ps.cross[3] ? monthYear(ps.cross[3]) : 'no date'}">`
+    + PHOTOS.map((p) => `<line x1="${x(p.date)}" x2="${x(p.date)}" y1="${T}" y2="${h - B}" stroke="${p.k === at ? C.ink : 'currentColor'}" stroke-opacity="${p.k === at ? 0.9 : 0.15}" stroke-width="${p.k === at ? 1.5 : 1}"/>`).join('')
+    + line(ps.t.class2, `Class 2 at ${ps.t.class2}`) + line(ps.t.class3, `Class 3 at ${ps.t.class3}`)
+    + `<path d="${d}" fill="none" stroke="${C.amber}" stroke-width="2.2"/>` + cross(2, C.amber) + cross(3, C.red)
+    + (ps.total > ymax ? `<text x="${w - R}" y="${T + 10}" text-anchor="end">${ps.total} by 2026, off the top</text>` : '')
+    + [0, ymax].map((n) => `<text x="${L - 6}" y="${y(n) + 4}" text-anchor="end">${n}</text>`).join('')
+    + ['2019', '2021', '2023', '2025'].map((yr) => `<text x="${x(yr + '-01-01')}" y="${h - 6}" text-anchor="middle">${yr}</text>`).join('')
+    + `</svg>`;
+}
+let proofAt = '2019';
+function showPhoto(k) {
+  proofAt = k;
+  if (k === 'now') setSwipe(0.02); else { setBefore(k); setSwipe(0.98); }
+  if (step === 'proof') renderInspector();
+}
+function openProof() {
+  const r = proofRecord(); if (!r) return;
+  selected = r.id; step = 'proof'; proofMode = true; render();
+  const c = r.classLocation;
+  map.flyToBounds(L.latLngBounds(bandOf(c.window.kmFrom * 1000 - 300, c.window.kmTo * 1000 + 300, 450)), { ...pad(), duration: 0.9, maxZoom: 16 });
+  showPhoto('2019');
+}
+function leaveProof() { if (playTimer) { clearTimeout(playTimer); playTimer = null; } if (proofMode) { proofMode = false; setSwipe(0.26); } }
+function playProof() {
+  const seq = ['2019', '2022', '2024', 'now']; let i = 0;
+  const tick = () => { showPhoto(seq[i]); i += 1; playTimer = i < seq.length ? setTimeout(tick, 1800) : null; };
+  if (playTimer) clearTimeout(playTimer); tick();
+}
+function proofStep() {
+  const r = proofRecord(); if (!r) return '<p class="lead">No stretch on this line has changed class since 2019.</p>';
+  const c = r.classLocation, ps = proofSeries(r); ps.label = `${c.window.kmFrom} to ${c.window.kmTo}`;
+  const lag = FUT && FUT.fit ? FUT.fit.moveInMedianMonths : null;
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return `<h1 class="t">Permits saw it first <span class="sub">km ${r.kmFrom}–${r.kmTo}, homes counted from km ${c.window.kmFrom} to ${c.window.kmTo}</span></h1>
+    <p class="lead">In 2019 this stretch had ${c.units.roofsAtBaseline ? c.units.roofsAtBaseline + ' homes' : 'no homes'} within 200 m of the line. It is Class ${c.class.now} today${c.units.existing ? `, with about ${c.units.existing} homes` : ''}.</p>
+    ${lag != null ? `<div class="bignum"><b>${String(lag).replace('.5', '½')} months</b><span>of warning: the median wait from building permit to move-in, measured across Edmonton. The class changes when people move in; the permits are public months before.</span></div>` : ''}
+    <div class="photos" role="group" aria-label="Show the photo from">${PHOTOS.map((p) => `<button type="button" data-photo="${p.k}" aria-pressed="${p.k === proofAt}">${p.label}</button>`).join('')}${reduced ? '' : '<button type="button" id="playProof" class="play">Play</button>'}</div>
+    ${proofChart(ps, proofAt)}
+    <div class="facts">
+      ${ps.cross[2] ? `<div><span class="k">Class 2 line</span><span>Crossed by building permits in <b>${monthYear(ps.cross[2])}</b>.</span></div>` : ''}
+      ${ps.cross[3] ? `<div><span class="k">Class 3 line</span><span>Crossed by building permits in <b>${monthYear(ps.cross[3])}</b>.</span></div>` : ''}
+      <div><span class="k">Photos</span><span>Esri releases of ${PHOTOS.slice(0, 3).map((p) => p.k).join(', ')} and today. The release date can be later than the photo.</span></div>
+    </div>
+    <p class="note warn">Permit dates are real City of Edmonton records, grouped by quarter. Move-in dates on this stretch are estimated from the city-wide median, not observed one by one.</p>
+    <div class="btnrow"><button type="button" class="btn ghost" data-go="${esc(r.id)}">Back to km ${r.kmFrom}–${r.kmTo}</button></div>`;
+}
 function renderInspector() {
-  const r = rec(), view = { changed: changedStep, options: optionsStep, decide: decideStep, record: recordStep }[step];
+  const r = rec(), view = { changed: changedStep, options: optionsStep, decide: decideStep, record: recordStep, proof: proofStep }[step];
   $('inspector').innerHTML = `<div class="steps" role="tablist">${STEPS.map(([k, l]) => `<button role="tab" aria-selected="${step === k}" data-step="${k}">${l}</button>`).join('')}<button role="tab" class="corr" aria-selected="${step === 'corridor'}" data-step="corridor">Corridor</button></div>` + (view ? view(r) : corridorStep());
-  const q = (s) => $('inspector').querySelectorAll(s);
-  for (const b of q('[data-step]')) b.onclick = () => { step = b.dataset.step; renderInspector(); $('inspector').scrollTop = 0; };
+  const q = (s) => $('inspector').querySelectorAll(s), on = (id, fn) => { if ($(id)) $(id).onclick = fn; };
+  for (const b of q('[data-step]')) b.onclick = () => { step = b.dataset.step; if (proofMode) { leaveProof(); paintMap(); } renderInspector(); $('inspector').scrollTop = 0; };
+  for (const b of q('[data-photo]')) b.onclick = () => { if (playTimer) { clearTimeout(playTimer); playTimer = null; } showPhoto(b.dataset.photo); };
+  on('playProof', playProof); on('proofBtn2', openProof); on('proofBtn3', openProof);
   for (const b of q('[data-go]')) b.onclick = () => select(b.dataset.go);
   for (const el of q('input[name=path]')) el.onchange = () => { chosen[r.id] = el.value; };
   for (const b of q('button[data-act]')) b.onclick = () => decide(r, r.drafts[+b.dataset.i], b.dataset.act);
   for (const el of q('input[data-k]')) el.onchange = () => { const v = +el.value; if (v >= 0) { store.assumptions[el.dataset.k] = v; save(); render(); } };
-  const on = (id, fn) => { if ($(id)) $(id).onclick = fn; };
   on('addFinding', () => addFinding(r));
   if ($('thr')) $('thr').onchange = () => { const v = +$('thr').value; if (v >= 5 && v <= 95) { store.orderAt = v; save(); renderInspector(); } };
   on('xPack', () => download(`evidence-${r.id}.pdf`, EXPORT.pdf('TerraCorridor evidence pack', EXPORT.evidenceLines(LEDGER.evidencePack(r, store.ledger, DATA.sources))), 'application/pdf'));

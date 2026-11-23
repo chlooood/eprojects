@@ -8,3 +8,10 @@
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+# The segment record is the home page; the ground and climate dashboard stays at /index.html.
+[[redirects]]
+  from = "/"
+  to = "/platform.html"
+  status = 200
+  force = true
