@@ -1,5 +1,5 @@
 // Cache only the application shell. API responses and POST decisions always use the network.
-const CACHE = 'terracorridor-015f2947ed539029';
+const CACHE = 'terracorridor-9bff0bbf76482cca';
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.add(new URL('./', self.registration.scope).href)));
   self.skipWaiting();

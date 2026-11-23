@@ -1115,6 +1115,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .insp .itrend { display:block; width:100%; height:auto; margin:4px 0; } .insp .itrend text { font:11px var(--sans); fill:var(--i3); font-variant-numeric:tabular-nums; }
   .insp .ifacts { margin:8px 0 0; } .insp .ifacts > div { display:grid; grid-template-columns:132px 1fr; gap:10px; padding:11px 0; border-top:1px solid var(--gl); font-size:14px; } .insp .ifacts dt { color:var(--i3); } .insp .ifacts dd { margin:0; } .insp .ifacts dd b { font-weight:600; }
   .insp .ifacts > div.on dt .ilink { color:var(--ink); text-decoration:underline; text-underline-offset:3px; }
+  .insp .ilink.u { color:var(--ink); text-decoration:underline; text-underline-offset:3px; margin-left:4px; }
   .insp .ilink { background:none; border:0; padding:0; color:var(--i3); cursor:pointer; font:inherit; text-align:left; } .insp .ilink:hover { color:var(--ink); }
   .insp .ich { font-weight:600; margin-left:4px; }
   .insp a { color:var(--ink); }
@@ -2891,6 +2892,8 @@ function wireInsp(el, s) {
   el.querySelectorAll('[data-whole]').forEach((b) => b.onclick = () => go(page));
   el.querySelectorAll('[data-sel]').forEach((b) => b.onclick = () => select(b.dataset.sel));
   el.querySelectorAll('[data-m]').forEach((b) => b.onclick = () => setMeasure(b.dataset.m));
+  // In-panel links are buttons: some preview hosts rewrite #links in a page.
+  el.querySelectorAll('[data-go]').forEach((b) => b.onclick = () => { const [p, id] = b.dataset.go.split('/'); go(p, id); });
   if (s) wireActions(el, s);
 }
 // A caption on the map at the selected kilometre, saying what it is in plain words.
@@ -2966,7 +2969,7 @@ function groundKm(s, rank) {
       <div><dt class="k">Slope</dt><dd>${slope == null ? 'No data' : slope + '% grade' + (slope < 3 ? ', nearly flat' : slope < 10 ? ', gentle' : ', steep')}</dd></div>
       <div><dt class="k">Plant cover</dt><dd>${plantWord}</dd></div>
       <div><dt class="k">How sure</dt><dd>${esc(SURE[r.agreement] || '–')}</dd></div>
-      <div><dt class="k">Inspection</dt><dd>${wo ? `<b>Approved</b> · ${esc(wo.priority)}, due ${esc(fmtDate(wo.dueBy))}. <a href="#/log">See work orders</a>` : t === 'green' ? '<span class="icap">Not needed beyond routine checks.</span>' : `<button type="button" class="ibtn" data-act="approved">Approve an inspection</button><span class="icap d">Creates a work order with a checklist for the crew.</span>`}</dd></div>
+      <div><dt class="k">Inspection</dt><dd>${wo ? `<b>Approved</b> · ${esc(wo.priority)}, due ${esc(fmtDate(wo.dueBy))}. <button type="button" class="ilink u" data-go="log">See work orders</button>` : t === 'green' ? '<span class="icap">Not needed beyond routine checks.</span>' : `<button type="button" class="ibtn" data-act="approved">Approve an inspection</button><span class="icap d">Creates a work order with a checklist for the crew.</span>`}</dd></div>
     </dl>
     <details class="ieng"><summary>Details for engineers</summary>${explainHTML(s, r)}${horizonHTML(s)}</details>`;
 }
@@ -3040,7 +3043,7 @@ function climateKm(s) {
     <dl class="ifacts">
       <div><dt class="k">Wildfire</dt><dd>${hz('wildfire')}</dd></div>
       <div><dt class="k">Drought</dt><dd>${hz('drought')}</dd></div>
-      <div><dt class="k">The ground</dt><dd>${g.score == null ? '<span class="icap">No data</span>' : `<b style="color:${C[g.tier]}">${ACTION[g.tier]}</b> · ${Math.round(g.score)} of 100`}. <a href="#/ground/${esc(s.id)}">See Ground</a></dd></div>
+      <div><dt class="k">The ground</dt><dd>${g.score == null ? '<span class="icap">No data</span>' : `<b style="color:${C[g.tier]}">${ACTION[g.tier]}</b> · ${Math.round(g.score)} of 100`}. <button type="button" class="ilink u" data-go="ground/${esc(s.id)}">See Ground</button></dd></div>
       <div><dt class="k">How sure</dt><dd>${esc(SURE[r.agreement] || '–')}</dd></div>
     </dl>
     <p class="icap">Five-year averages from three climate models, for planning. They are not weather forecasts.</p>`;
@@ -3298,6 +3301,12 @@ function wire() {
   document.addEventListener('click', (e) => { const b = e.target instanceof Element && e.target.closest('[data-stop]'); if (b) setStop(b.dataset.stop); });
   bPlay.onclick = play;
   document.querySelectorAll('.iplay').forEach((b) => b.onclick = play);
+  // In-page #links: set the hash directly. Preview hosts that add a <base> would otherwise send them to another page.
+  document.addEventListener('click', (e) => {
+    const a = e.target instanceof Element && e.target.closest('a[href^="#"]');
+    if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    e.preventDefault(); location.hash = a.getAttribute('href');
+  });
   basemap.querySelectorAll('button').forEach((b) => b.onclick = () => {
     basemap.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
     for (const [k, l] of Object.entries(baseLayers)) k === b.dataset.bm ? l.addTo(map) : map.removeLayer(l);
