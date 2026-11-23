@@ -1,0 +1,78 @@
+{
+ "file": "alberta-261121.osm.pbf",
+ "pipelineWays": 2331,
+ "pipelineRelations": 5,
+ "km": 10615.6,
+ "byOperator": {
+  "(no operator)": 5988,
+  "Enbridge": 1737.5,
+  "Nova Gas": 328.2,
+  "TC Energy Corporation": 300.9,
+  "Trans Mountain Corporation": 288.1,
+  "Alliance Pipeline": 248.9,
+  "Plains Midstream Canada": 247.1,
+  "Pembina Pipeline Corporation": 191.9,
+  "ATCO Pipelines": 167.8,
+  "Access Pipeline": 165,
+  "NOVA Gas Transmission": 154.7,
+  "Grand Rapids Pipeline": 120.9,
+  "Pembina": 109.3,
+  "Trans Mountain Corperation": 92,
+  "Midway Pipelines": 81.6,
+  "Trans Mountain": 69.8,
+  "ATCO": 59.8,
+  "Enbridge Energy Partners, L.P.": 57.9,
+  "Cenovus": 47.1,
+  "Midwest Pipelines": 28,
+  "NOVA Gas": 22.3,
+  "Trans-Northern Pipelines": 22,
+  "Capital Region-Parkland Water Services Commission": 21.1,
+  "ATCO Gas": 18.6,
+  "Cold Lake Pipeline Ltd": 13.8,
+  "unknown": 12.9,
+  "St Mary River Irrigation District": 10.7,
+  "Husky Oil Ops": 6.4,
+  "TransAlta": 1.3,
+  "TAQA": 1.2,
+  "City of Medicine Hat": 0.3,
+  "Canlin Energy": 0.3,
+  "City of Calgary": 0.2,
+  "Whitecap Resources": 0.2,
+  "Atco": 0.1,
+  "Whitecap Resourses": 0
+ },
+ "bySubstance": {
+  "oil": 5268.1,
+  "gas": 3805.7,
+  "(none)": 1422.3,
+  "water": 75.5,
+  "hydrocarbons": 34.4,
+  "sewage": 5.2,
+  "sulphur": 3.3,
+  "rainwater": 0.8,
+  "natural_gas": 0.2,
+  "h2s": 0,
+  "natural_gasqq": 0
+ },
+ "ngtl": {
+  "ways": 6,
+  "km": 505.1,
+  "byOperator": {
+   "Nova Gas": 328.2,
+   "NOVA Gas Transmission": 154.7,
+   "NOVA Gas": 22.3
+  },
+  "byName": {
+   "(unnamed)": 505.1
+  },
+  "byDiameter": {
+   "(none)": 505.1
+  },
+  "matchedBy": {
+   "way operator": 505.1
+  }
+ },
+ "gasKm": 3805.9,
+ "gasNoOperatorKm": 2775.4,
+ "seconds": 12
+}
