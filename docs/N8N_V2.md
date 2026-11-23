@@ -51,6 +51,7 @@ A separate set for NGTL lives in the n8n folder **"TerraCorridor NGTL"**. They w
 | NGTL · W1: Corridor Setup | `hj7z3Zm0fsYu71bn` | Reads `data/ngtl/ngtl-overpass.json` pinned at commit 5c96a30 from GitHub (no Overpass). Segmenter keeps all six lines (`workflows/ngtl/segment-route.js`, built by `scripts/make-ngtl-w1.js`). No offline fixture: if GitHub is unreachable the batch fails closed. Starts NGTL W2 |
 | NGTL · W2: Long-Range Engine | `znZUJQb6r75IUavf` | Same engine; default corridor `ngtl-ab-osm` |
 | NGTL · WF3 - Near-term watch | `fqZoknjxE98R0aQi` | DRY_RUN stays true: logs what it would draft, never calls WF4 |
+| NGTL Seed - Hazard inputs | `e2KQq77pkzUkNdF1` | Manual only. Loads `ngtl_climate_cells` and the crossings on `ngtl_baselines` from `workflows/ngtl/NGTL Seed - Hazard inputs.json`. Run NGTL W2 after it |
 | NGTL · API - Dashboard feed | `QHtI0E4XlA1YKSHb` | GET `terracorridor-ngtl/corridor`. Reads ngtl_* geohazard tables; class, obligations, work orders and build are the shared tables, read only |
 
 Tables: ngtl_segments `xS9ClnujA4OcoBnp`, ngtl_sources `pKGFtBvarPgjHcM2`, ngtl_baselines `ZTaX6AEU5LB1jjMD`, ngtl_climate_cells `7rAbbtFPPAoZJ6jC`, ngtl_predictions `ZI6kdrxJeRhkLi0t`, ngtl_watch `H3ZGRfXhdpFzOzHw`, ngtl_audit `eRaYp9xSdyYLgGKW`.
